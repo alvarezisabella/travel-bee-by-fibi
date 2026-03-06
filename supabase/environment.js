@@ -1,0 +1,4 @@
+//Environment variables for supabase
+projectUrl = "https://tvtlavxxarjsfrynkidl.supabase.co"
+publishableKey = "sb_publishable_EWIcU-TmUR5mPTrlc_HEmQ_vGmapP29"
+anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2dGxhdnh4YXJqc2ZyeW5raWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNTgzMjQsImV4cCI6MjA4NzYzNDMyNH0.mHGPufCGZxLjtZquW0hSKavNj5V6CuChLhWtvDU-tTM"
