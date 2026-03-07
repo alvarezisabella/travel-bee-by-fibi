@@ -1,7 +1,9 @@
 "use client"
 
 // import Image from "next/image"
-import { MapPin, Calendar, Users } from "lucide-react"
+import {
+  MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark
+} from "lucide-react"
 import { Trip } from "../types/trips"
 import { useState } from "react"
 
@@ -13,6 +15,13 @@ export default function TripHeader({ trip }: Props) {
 
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
+
+  const [location, setLocation] = useState(trip.location || "")
+  const [editingLocation, setEditingLocation] = useState(false)
+
+  const [startDate, setStartDate] = useState(trip.startDate || "")
+  const [endDate, setEndDate] = useState(trip.endDate || "")
+  const [editingDates, setEditingDates] = useState(false)
 
   return (
     <div className="w-full max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-lg bg-white">
@@ -53,23 +62,79 @@ export default function TripHeader({ trip }: Props) {
           {/* Trip Info */}
           <div className="flex gap-6 mt-3 text-gray-500 text-sm">
 
+            {/* LOCATION */}
             <div className="flex items-center gap-1">
               <MapPin size={16}/>
-              {trip.location || "Add location"}
+
+              {editingLocation ? (
+                <input
+                  className="border rounded px-1 text-sm"
+                  value={location}
+                  autoFocus
+                  onChange={(e) => setLocation(e.target.value)}
+                  onBlur={() => setEditingLocation(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setEditingLocation(false)
+                  }}
+                />
+              ) : (
+                <span
+                  className="cursor-pointer hover:text-black"
+                  onClick={() => setEditingLocation(true)}
+                >
+                  {location || "Add location"}
+                </span>
+              )}
+
             </div>
 
+            {/* DATES */}
             <div className="flex items-center gap-1">
               <Calendar size={16}/>
-              {trip.startDate
-                ? `${trip.startDate} - ${trip.endDate}`
-                : "Add dates"}
+
+              {editingDates ? (
+                <div className="flex gap-1">
+                  <input
+                    type="date"
+                    className="border rounded px-1 text-sm"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className="border rounded px-1 text-sm"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    onBlur={() => setEditingDates(false)}
+                  />
+                </div>
+              ) : (
+                <span
+                  className="cursor-pointer hover:text-black"
+                  onClick={() => setEditingDates(true)}
+                >
+                  {startDate
+                    ? `${startDate} - ${endDate}`
+                    : "Add dates"}
+                </span>
+              )}
+
             </div>
 
+            {/* TRAVELERS */}
             <div className="flex items-center gap-1">
               <Users size={16}/>
               {trip.travelers.length} traveler(s)
             </div>
 
+          </div>
+
+          {/* Bottom Icons */}
+          <div className="flex gap-5 mt-5 text-gray-600">
+            <List size={20} />
+            <CalendarDays size={20} />
+            <Map size={20} />
+            <Bookmark size={20} />
           </div>
 
         </div>
