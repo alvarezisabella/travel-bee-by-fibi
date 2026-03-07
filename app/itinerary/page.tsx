@@ -1,14 +1,15 @@
 import EventCardPreview from "./event";
 import TripHeader from "./components/TripHeader";
+import AddDay from "./components/AddDay";
 import { Trip } from "./types/trips";
 
 async function getTrip(): Promise<Trip> {
   return {
     id: "1",
-    title: "Hawaii Summer '26",
-    location: "Honolulu, Hawaii",
-    startDate: "Jun 15",
-    endDate: "Jun 22",
+    title: "Add title",
+    location: "Add location",
+    startDate: "Add start date",
+    endDate: "Add end date",
     coverImage: "image placeholder",
     travelers: [
       { id: "1", name: "Traveler 1" },
@@ -25,6 +26,7 @@ export default async function itineraryList(){
     return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
+      <AddDay />
       <EventCardPreview/>
     </main>
   );
