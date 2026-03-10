@@ -23,18 +23,38 @@ export default function TripHeader({ trip }: Props) {
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
 
+  const [coverImage, setCoverImage] = useState<string | null>(null)
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setCoverImage(url)
+    }
+  }
+
   return (
     <div className="w-full max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-lg bg-white">
 
       {/* HERO IMAGE */}
       <div className="relative w-full h-[280px]">
-        {/* <Image
-          src={trip.coverImage}
-          alt={trip.title}
-          fill
-          className="object-cover"
-        /> */}
-        <h1>image placeholder</h1>
+        {coverImage ? (
+          <>
+            <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover" />
+            <label className="absolute bottom-3 right-3 cursor-pointer bg-white bg-opacity-80 text-gray-700 text-xs px-3 py-1.5 rounded-full shadow hover:bg-opacity-100 transition-all">
+              Change photo
+              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+            </label>
+          </>
+        ) : (
+          <label className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors">
+            <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl">
+              +
+            </div>
+            <span>Upload cover photo</span>
+            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+          </label>
+        )}
       </div>
 
       {/* CONTENT */}
