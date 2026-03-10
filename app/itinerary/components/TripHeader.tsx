@@ -5,7 +5,7 @@ import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark
 } from "lucide-react"
 import { Trip } from "../types/trips"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 
 interface Props {
   trip: Trip
@@ -15,6 +15,13 @@ export default function TripHeader({ trip }: Props) {
 
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.select()
+    }
+  }, [editing])
 
   const [location, setLocation] = useState(trip.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
@@ -65,9 +72,15 @@ export default function TripHeader({ trip }: Props) {
           {/* Editable Title */}
           {editing ? (
             <input
-              className="text-2xl font-bold border rounded px-2"
+              ref={inputRef}
+              className="text-2xl font-bold border border-yellow-400 rounded px-2 outline-none focus:ring-2 focus:ring-yellow-300"
               value={title}
+              autoFocus
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.currentTarget.blur(); setEditing(false) }
+                if (e.key === "Escape") { setEditing(false) }
+              }}
               onBlur={() => setEditing(false)}
             />
           ) : (
