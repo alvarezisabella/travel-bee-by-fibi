@@ -1,36 +1,38 @@
+"use client";
 import React, { useState } from "react";
 
 //The code here is none functional for now 
 //creates an account
-const SignupPage: React.FC = () => {
+//const SignupPage: React.FC = () => {
+export default function SignupPage(){
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  //const [username, setUsername] = useState("");
+  //const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+ // const handleSubmit = (e: React.FormEvent) => {
+    //e.preventDefault();
 
     // Placeholder (no functionality yet)
-    console.log("Signup attempt:", {
-      email,
-      username,
-      password
-    });
+    //console.log("Signup attempt:", {
+      //email,
+     // username,
+      //password
+    
 
-    alert("Signup functionality not implemented yet.");
-  };
+   // alert("Signup functionality not implemented yet.");
+  
 
   //code for the frontend
   return (
     <div style={styles.container}>
-      <form style={styles.form} onSubmit={handleSubmit}>
+      <form style={styles.form} >
         <h2>Create an Account</h2>
 
         <input
           type="text"
           placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          //value={username}
+          //onChange={(e) => setUsername(e.target.value)}
           style={styles.input}
         />
 
@@ -45,8 +47,8 @@ const SignupPage: React.FC = () => {
         <input
           type="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          //value={password}
+          //onChange={(e) => setPassword(e.target.value)}
           style={styles.input}
         />
 
@@ -98,4 +100,4 @@ const styles = {
   }
 };
 
-export default SignupPage;
+//export default SignupPage;
