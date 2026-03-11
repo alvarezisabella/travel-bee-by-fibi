@@ -62,14 +62,33 @@ export default function AddDayButton() {
       {/* Display Saved Days */}
       <div className="mt-4 space-y-2 w-full max-w-6xl mx-auto">
 
-        {savedDates.map((d, index) => (
-          <div
-            key={index}
-            className="bg-white p-3 rounded shadow"
-          >
-            Day {index + 1}: {new Date(d).toDateString()}
-          </div>
-        ))}
+      {savedDates.map((d, index) => (
+        <div
+          key={index}
+          className="
+            bg-amber-100
+            rounded-xl
+            shadow-sm
+            p-5
+            w-full
+            max-w-6xl
+            mx-auto
+          "
+        >
+          <h2 className="text-xl font-semibold">
+            Day {index + 1}
+          </h2>
+
+          <p className="text-gray-700 mt-1">
+            {new Date(d + "T00:00:00").toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+      ))}
 
       </div>
 
