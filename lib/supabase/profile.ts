@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import {createAdminClient} from '@/lib/supabase/admin'
 
 export async function insertProfile(supabase: SupabaseClient, id: string, name: string) {
   return supabase.from('profiles').insert({ id, name })
@@ -13,5 +14,6 @@ export async function updateProfile(supabase: SupabaseClient, id: string, name: 
 }
 
 export async function deleteProfile(supabase: SupabaseClient, id: string) {
-  return supabase.from('profiles').delete().eq('id', id)
+  const adminClient = createAdminClient()
+  return adminClient.auth.admin.deleteUser(id)  
 }

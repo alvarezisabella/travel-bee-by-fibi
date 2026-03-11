@@ -1,68 +1,86 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-//The code here is none functional for now 
-//creates an account
-//const SignupPage: React.FC = () => {
-export default function SignupPage(){
+// design for signup page and routing for signing in
+export default function SignupPage() {
+  // variables for username, email, password, error message, and loading state
+  const router = useRouter();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  //const [username, setUsername] = useState("");
-  //const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
- // const handleSubmit = (e: React.FormEvent) => {
-    //e.preventDefault();
+  // handle form submission for signing up
+  const handleSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    // Placeholder (no functionality yet)
-    //console.log("Signup attempt:", {
-      //email,
-     // username,
-      //password
-    
+    // calls POST function from api/auth/rignup with user entered username, email, and password
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password }),
+    });
 
-   // alert("Signup functionality not implemented yet.");
-  
+    const data = await res.json();
+    setLoading(false);
 
-  //code for the frontend
+    // error handling for signup failure
+    if (!res.ok) {
+      setError(data.error ?? "Signup failed.");
+      return;
+    }
+// on successful signup, redirects user to login page
+    router.push("/login");
+  };
+
   return (
     <div style={styles.container}>
-      <form style={styles.form} >
+      <form style={styles.form} onSubmit={handleSubmit}>
         <h2>Create an Account</h2>
 
+        {/* Username */}
         <input
           type="text"
           placeholder="Username"
-          //value={username}
-          //onChange={(e) => setUsername(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           style={styles.input}
+          required
         />
 
+        {/* Email */}
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           style={styles.input}
+          required
         />
 
+        {/* Password */}
         <input
           type="password"
           placeholder="Password"
-          //value={password}
-          //onChange={(e) => setPassword(e.target.value)}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           style={styles.input}
+          required
         />
 
-        <button type="submit" style={styles.button}>
-          Sign Up
-        </button>
+        {error && <p style={styles.error}>{error}</p>}
 
-        <p style={styles.note}>
-          Signup is currently disabled.
-        </p>
+        <button type="submit" style={styles.button} disabled={loading}>
+          {loading ? "Signing up..." : "Sign Up"}
+        </button>
       </form>
     </div>
   );
-};
+}
 
 const styles = {
   container: {
@@ -70,7 +88,7 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     height: "100vh",
-    backgroundColor: "#f4f4f4"
+    backgroundColor: "#f4f4f4",
   },
   form: {
     backgroundColor: "white",
@@ -80,24 +98,22 @@ const styles = {
     flexDirection: "column" as const,
     width: "300px",
     gap: "10px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
   },
   input: {
     padding: "10px",
-    fontSize: "14px"
+    fontSize: "14px",
   },
   button: {
     padding: "10px",
     backgroundColor: "#333",
     color: "white",
     border: "none",
-    cursor: "pointer"
+    cursor: "pointer",
   },
-  note: {
+  error: {
     fontSize: "12px",
-    color: "gray",
-    textAlign: "center" as const
-  }
+    color: "red",
+    textAlign: "center" as const,
+  },
 };
-
-//export default SignupPage;
