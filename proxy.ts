@@ -4,6 +4,10 @@ import { NextResponse, type NextRequest } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!;
 
+//Debug check
+console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("SUPABASE KEY:", process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY);
+
 // This is the helper Supabase essentially gave 
 function createSupabaseMiddlewareClient(request: NextRequest, response: NextResponse) {
   return createServerClient(supabaseUrl, supabaseKey, {
