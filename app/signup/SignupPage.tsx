@@ -39,8 +39,8 @@ export default function SignupPage() {
 
   return (
     <div style={styles.container}>
-      <form style={styles.form} onSubmit={handleSubmit}>
-        <h2>Create an Account</h2>
+      <form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md" style={styles.form} onSubmit={handleSubmit}>
+        <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
 
         {/* Username */}
         <input
@@ -48,6 +48,7 @@ export default function SignupPage() {
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          className = "w-full p-3 mb-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
           style={styles.input}
           required
         />
@@ -58,6 +59,7 @@ export default function SignupPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className = "w-full p-3 mb-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
           style={styles.input}
           required
         />
@@ -68,6 +70,7 @@ export default function SignupPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className = "w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
           style={styles.input}
           required
         />
@@ -106,8 +109,8 @@ const styles = {
   },
   button: {
     padding: "10px",
-    backgroundColor: "#333",
-    color: "white",
+    backgroundColor: "#F5C842",
+    color: "black",
     border: "none",
     cursor: "pointer",
   },
