@@ -130,6 +130,7 @@ export default function AddEvent({day, event, onClose, onAdd}: AddEventProps) {
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] text-sm focus:outline-none focus:border-[#e3e3e3] transition-colors"
               >
+                <option value={"Idea"}>Idea</option>
                 <option value={"Pending"}>Pending</option>
                 <option value={"Confirmed"}>Confirmed</option>
               </select>
