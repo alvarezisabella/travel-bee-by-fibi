@@ -215,10 +215,6 @@ export default function TripHeader({ trip }: Props) {
             Invite Friends
           </button>
 
-          <button className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-full text-sm font-medium">
-            + Add Event
-          </button>
-
         </div>
       </div>
       {/* INVITE MODAL */}
