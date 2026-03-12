@@ -1,17 +1,18 @@
 "use client"
 import {useState} from "react"
 import {Event, EventLabel} from "./event"
-import { EventCard } from "./event"
+import { EventCard, EventStatus} from "./event"
 
 
 interface AddEventProps {
   day: string
+  trip: string
   event?: Event
   onClose: () =>void;
   onAdd: (event: Event) => void;
 }
 
-export default function AddEvent({day, event, onClose, onAdd}: AddEventProps) {
+export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventProps) {
   const [title, setTitle] = useState(event?.title || "")
   const [description, setDescription] = useState(event?.description || "")
   const [startTime, setStartTime] = useState(event?.startTime || "09:00")
@@ -21,7 +22,7 @@ export default function AddEvent({day, event, onClose, onAdd}: AddEventProps) {
 
     const handleSubmit = () => {
       if (!title.trim()) return;
-      onAdd({ id:event?.id || crypto.randomUUID(), dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, type });
+      onAdd({ id:event?.id || crypto.randomUUID(), tripid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, type });
       onClose();
   };
 
@@ -33,7 +34,7 @@ export default function AddEvent({day, event, onClose, onAdd}: AddEventProps) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-left">
+    <div className="fixed inset-0 z-50 flex items-center justify-start">
       <div 
         className="absolute inset-0 bg-[#f5f5f5]/60 "
         onClick={onClose}
@@ -55,7 +56,7 @@ export default function AddEvent({day, event, onClose, onAdd}: AddEventProps) {
 
         {/* Description */}
         <div>
-          <label className="block text-[#1a1812] text-xs tracking-[0.15em] uppercase font-medium mb-1.5">
+          <label className="block text-[#1a1812] text-xs tracking-[0.15em] uppercase font-md mb-1.5">
             Description
           </label>
             <textarea
@@ -127,12 +128,13 @@ export default function AddEvent({day, event, onClose, onAdd}: AddEventProps) {
               </label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                onChange={(e) => setStatus(e.target.value as EventStatus)}
                 className="w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] text-sm focus:outline-none focus:border-[#e3e3e3] transition-colors"
               >
                 <option value={"Idea"}>Idea</option>
                 <option value={"Pending"}>Pending</option>
                 <option value={"Confirmed"}>Confirmed</option>
+                <option value={"Idea"}>Idea</option>
               </select>
             </div>
 
