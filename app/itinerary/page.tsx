@@ -26,8 +26,8 @@ export default async function itineraryList(){
     return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
-      <AddDay />
       <DayPreview/>
+      <AddDay />
     </main>
   );
 }
