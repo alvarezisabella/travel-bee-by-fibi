@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
 
-export default function AddDayButton() {
-  const [open, setOpen] = useState(false)
+export default function AddDay() {
+  const [adding, setAdding] = useState(false)
   const [date, setDate] = useState("")
   const [savedDates, setSavedDates] = useState<string[]>([])
 
@@ -13,114 +13,120 @@ export default function AddDayButton() {
 
     setSavedDates([...savedDates, date])
     setDate("")
-    setOpen(false)
+    setAdding(false)
   }
 
   const handleDelete = (indexToDelete: number) => {
-    const updated = savedDates.filter((_, i) => i !== indexToDelete)
-    setSavedDates(updated)
+    setSavedDates(savedDates.filter((_, i) => i !== indexToDelete))
   }
 
   return (
-    <div className="mt-6">
+    <div className="mt-6 w-full max-w-6xl mx-auto space-y-4">
 
-      {/* Add Day Button */}
-      {savedDates.length === 0 && (
-        <button
-          onClick={() => setOpen(true)}
-          className="
-            w-full max-w-6xl mx-auto
-            flex items-center justify-center gap-2
-            bg-gray-100
-            border border-orange-400
-            rounded-xl
-            py-4
-            text-lg font-medium
-            hover:bg-gray-200
-            transition
-          "
-        >
-        <Plus size={20} className="text-orange-500" />
-        Add Day
-        </button>
-      )}
+      {/* DAYS */}
+      {savedDates.map((d, index) => (
+        <div key={index}>
 
-      {/* Display Saved Days */}
-      <div className="mt-4 space-y-4 w-full max-w-6xl mx-auto">
+          <div className="bg-amber-100 rounded-xl shadow-sm p-5">
 
-        {savedDates.map((d, index) => (
-          <div key={index}>
+            <div className="flex justify-between items-center">
 
-            {/* DAY CARD */}
-            <div className="bg-amber-100 rounded-xl shadow-sm p-5 w-full">
+              <h2 className="text-xl font-semibold">
+                Day {index + 1}
+              </h2>
 
-              <div className="flex items-center justify-between">
-
-                <h2 className="text-xl font-semibold">
-                  Day {index + 1}
-                </h2>
-
-                <button
-                  onClick={() => handleDelete(index)}
-                  className="p-2 rounded-md hover:bg-red-200"
-                >
-                  <Trash2 size={18}/>
-                </button>
-
-              </div>
-
-              <p className="text-gray-700 mt-1">
-                {new Date(d + "T00:00:00").toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
+              <button
+                onClick={() => handleDelete(index)}
+                className="p-2 rounded-md hover:bg-red-200"
+              >
+                <Trash2 size={18}/>
+              </button>
 
             </div>
 
-            {/* ADD BUTTON AFTER LAST DAY */}
-            {index === savedDates.length - 1 && (
-              <button
-                onClick={() => setOpen(true)}
-                className="
-                  w-full flex items-center justify-center gap-2
-                  bg-gray-100 border border-orange-400
-                  rounded-xl py-3 mt-3
-                "
-              >
-                <Plus size={18} className="text-orange-500"/>
-                Add Day
-              </button>
-            )}
+            <p className="text-gray-700 mt-1">
+              {new Date(d + "T00:00:00").toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
 
           </div>
-        ))}
 
-      </div>
-
-      {/* DATE MODAL (OUTSIDE MAP) */}
-      {open && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/30">
-
-          <div className="bg-white p-6 rounded-xl shadow-lg w-[280px]">
-
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="border rounded p-2 w-full"
-            />
-
+          {/* ADD BUTTON AFTER LAST DAY */}
+          {index === savedDates.length - 1 && !adding && (
             <button
-              onClick={handleSave}
-              className="bg-yellow-400 px-3 py-2 rounded mt-3 w-full"
+              onClick={() => setAdding(true)}
+              className="
+                w-full flex items-center justify-center gap-2
+                bg-gray-100 border border-orange-400
+                rounded-xl py-3 mt-3
+                hover:bg-gray-200
+              "
             >
-              Save
+              <Plus size={18} className="text-orange-500"/>
+              Add Day
             </button>
+          )}
 
-          </div>
+          {/* DATE PICKER */}
+          {index === savedDates.length - 1 && adding && (
+            <div className="mt-3 bg-white p-4 rounded-lg shadow w-[260px]">
+
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="border rounded p-2 w-full"
+              />
+
+              <button
+                onClick={handleSave}
+                className="bg-yellow-400 px-3 py-2 rounded mt-3 w-full hover:bg-yellow-500"
+              >
+                Save
+              </button>
+
+            </div>
+          )}
+
+        </div>
+      ))}
+
+      {/* EMPTY STATE */}
+      {savedDates.length === 0 && !adding && (
+        <button
+          onClick={() => setAdding(true)}
+          className="
+            w-full flex items-center justify-center gap-2
+            bg-gray-100 border border-orange-400
+            rounded-xl py-4
+            text-lg
+          "
+        >
+          <Plus size={20} className="text-orange-500"/>
+          Add Day
+        </button>
+      )}
+
+      {savedDates.length === 0 && adding && (
+        <div className="bg-white p-4 rounded-lg shadow w-[260px]">
+
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="border rounded p-2 w-full"
+          />
+
+          <button
+            onClick={handleSave}
+            className="bg-yellow-400 px-3 py-2 rounded mt-3 w-full hover:bg-yellow-500"
+          >
+            Save
+          </button>
 
         </div>
       )}
