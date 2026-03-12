@@ -12,23 +12,20 @@ interface DayProps {
     day: Day;
     onAddEvent: (dayid : string) => void;
     onDeleteEvent: (dayid: string, eventid: string) => void;
+    onOpenEvent: (event: Event) => void
 }
 
 const SAMPLE_EVENTS:Event[] = [
-    { id: "1", dayid: "1", title: "Morning Event", description: "detail1.", startTime: "09:00", duration: 30, type: "outdoors" },
-    { id: "2", dayid: "1", title: "brunch", description: "detail2", startTime: "11:00", duration: 60, type: "food" },
-    { id: "3", dayid: "1", title: "shopping event", description: "", startTime: "12:30", duration: 90, type: "shopping" },
-    { id: "4", dayid: "1", title: "afternoon event", description: "detail3", startTime: "14:00", duration: 120, type: "transportation" },
-    { id: "5", dayid: "1", title: "evening time", description: "", startTime: "18:00", duration: 60, type: "cultural" },
+    { id: "1", dayid: "1", title: "Morning Event", description: "detail1.", status: "confirmed", startTime: "09:00", duration: 30, type: "Activity" },
+    { id: "2", dayid: "1", title: "brunch", description: "detail2", status: "pending", startTime: "11:00", duration: 60, type: "Food" },
+    { id: "3", dayid: "1", title: "shopping event", description: "", status: "confirmed", startTime: "12:30", duration: 90, type: "Transit" },
+    { id: "4", dayid: "1", title: "afternoon event", description: "detail3", status: "confirmed", startTime: "14:00", duration: 120, type: "Reservation" },
+    { id: "5", dayid: "1", title: "evening time", description: "", status: "pending", startTime: "18:00", duration: 60, type: "Activity" },
   ]
 
-const MOCK_DAYS:Day[] = [{id: "1", events: SAMPLE_EVENTS}]
+const MOCK_DAYS:Day[] = [{id: "1", events: SAMPLE_EVENTS}, {id: "2", events:[]}]
 
-export function DayCell({ day, onAddEvent, onDeleteEvent}: DayProps) {
-    const [events, setEvents] = useState<Event[]>(day.events);
-    const handleDelete = (id: string) => {
-        setEvents((prev) => prev.filter((e) => e.id !== id));
-    };
+export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent}: DayProps) {
     return(
 
         <div className="group border border-grey rounded-2xl p-6 mb-10 shadow-sm bg-white">
@@ -37,8 +34,8 @@ export function DayCell({ day, onAddEvent, onDeleteEvent}: DayProps) {
             </div>
                 
             <div className='space-y-3'>
-                {events.map((event) => (
-                    <EventCard key={event.id} event={event} onDelete={() => onDeleteEvent(day.id, event.id)}/>
+                {day.events.map((event) => (
+                    <EventCard key={event.id} event={event} onDelete={() => onDeleteEvent(day.id, event.id)} onOpen={() => onOpenEvent(event)}/>
                 ))}
 
                 <button
@@ -55,22 +52,36 @@ export default function DayPreview() {
     const [days, setDays] = useState<Day[]>(MOCK_DAYS)
     const [showAdd, setShowAdd] = useState(false)
     const [dayid, setDayId] = useState<string>("")
+    const [selectEvent, setEvent] = useState<Event | null>(null)
 
     const initAddHandler = (dayid: string) => {
         setDayId(dayid)
         setShowAdd(true)
     }
 
-    const handleAddEvent = useCallback((event: Omit<Event, "id">) => {
-        const newEvent: Event = { ...event, id: crypto.randomUUID() };
+    const handleAddEvent = useCallback((newEvent: Event) => {
         setDays(prev =>
             prev.map(day =>
-                day.id === event.dayid
+                day.id === newEvent.dayid
                     ? { ...day, events: [...day.events, newEvent] }
                     : day
             )
         );
     }, []);
+
+    const handleEdit = (alteredEvent: Event) => {
+        setDays(prev =>
+            prev.map(day =>
+                day.id === alteredEvent.dayid
+                    ? { ...day, 
+                        events: day.events.map(event => 
+                            event.id === alteredEvent.id ? alteredEvent : event
+                        )
+                    }
+                    : day
+            )
+        )
+    }
 
     const handleDeleteEvent = (dayId: string, eventId: string) => {
         setDays(prev =>
@@ -81,6 +92,10 @@ export default function DayPreview() {
             )
         );
     };
+
+    const handleOpenEvent = (event: Event) => {
+        setEvent(event)
+    }
     
     return(
         <div className="min-h-screen bg-[#f5f5f5] flex items-start justify-center pt-16 px-4">
@@ -93,6 +108,7 @@ export default function DayPreview() {
                             day={day}
                             onAddEvent={initAddHandler}
                             onDeleteEvent={handleDeleteEvent}
+                            onOpenEvent={handleOpenEvent}
                         />
                     ))}
               </div>
@@ -102,6 +118,15 @@ export default function DayPreview() {
                     onClose={() => setShowAdd(false)}
                     onAdd={handleAddEvent}
                 />
+                )}
+
+                {selectEvent && (
+                    <AddEvent
+                        day = {selectEvent.dayid}
+                        event = {selectEvent}
+                        onClose={() => setEvent(null)}
+                        onAdd={handleEdit}
+                    />
                 )}
             </div>
         </div>

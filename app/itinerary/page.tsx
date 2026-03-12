@@ -1,4 +1,4 @@
-import EventCardPreview from "./event";
+import DayPreview from "./day";
 import TripHeader from "./components/TripHeader";
 import AddDay from "./components/AddDay";
 import { Trip } from "./types/trips";
@@ -26,8 +26,8 @@ export default async function itineraryList(){
     return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
+      <DayPreview/>
       <AddDay />
-      <EventCardPreview/>
     </main>
   );
 }

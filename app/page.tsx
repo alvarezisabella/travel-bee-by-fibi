@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
@@ -11,8 +13,18 @@ export default function LandingPage() {
           <div className="w-16 h-4 bg-gray-200 rounded" />
         </div>
         <div className="flex gap-3">
-          <div className="w-20 h-8 bg-gray-200 rounded" />
-          <div className="w-20 h-8 bg-[#F5C842] rounded" />
+          <Link
+            href="/login"
+            className="w-20 h-8 bg-gray-200 rounded flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors"
+            >
+            Login
+          </Link>
+          <Link
+            href="/signup"
+            className="w-20 h-8 bg-[#F5C842] rounded flex items-center justify-center text-sm font-medium text-gray-900 hover:brightness-95 transition-all"
+            >
+            Sign Up
+          </Link>
         </div>
       </nav>
 
