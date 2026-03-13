@@ -2,6 +2,10 @@
 import {useState} from "react"
 import {Event, EventLabel} from "./event"
 import { EventCard, EventStatus} from "./event"
+import {
+  MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
+  X, Copy, Check
+} from "lucide-react"
 
 
 interface AddEventProps {
@@ -19,10 +23,12 @@ export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventPro
   const [duration, setDuration] = useState(event?.duration || 60)
   const [type, setType] = useState<EventLabel>(event?.type || "Activity")
   const [status, setStatus] = useState(event?.status || "Pending")
+  const [location, setLocation] = useState(event?.location || "")
+  const [travelers, setTravelers] = useState(event?.travelers || "")
 
     const handleSubmit = () => {
       if (!title.trim()) return;
-      onAdd({ id:event?.id || crypto.randomUUID(), tripid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, type });
+      onAdd({ id:event?.id || crypto.randomUUID(), tripid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers, type });
       onClose();
   };
 
@@ -32,6 +38,12 @@ export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventPro
   { value: "Reservation",  label: "Reservation",     bg: "bg-[#c9a84c]", border: "border-[#c9a84c]" },
   { value: "Food",         label: "Food",            bg: "bg-[#b87a8a]", border: "border-[#b87a8a]" },
   ];
+
+  const STATUS_COLORS: {value: EventStatus; bg: string}[] = [
+    {value: "Idea", bg: "bg-[#9c8a8a]"},
+    {value: "Pending", bg: "bg-[#ffcd59]"},
+    {value: "Confirmed", bg: "bg-[#98d99f]"}
+  ]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-start">
@@ -103,39 +115,70 @@ export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventPro
             </div>
           </div>
 
+
+
+        <div className="flex space-x-4 items-center">
+          <div className="flex-shrink-0"><Users size={16} /></div>
+          <textarea
+            value={travelers}
+            onChange={(e) => setTravelers(e.target.value)}
+            placeholder="@traveler..."
+            rows={1}
+            className="flex-grow w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] placeholder-[#b0a48a] text-sm focus:outline-none focus:border-[#8a7d5a] transition-colors resize-none"
+          />
+        </div>  
+
+        <div className="flex space-x-4 items-center">
+          <div className="flex-shrink-0"><MapPin size={16} /></div>
+          <textarea
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Event Location..."
+            rows={1}
+            className="flex-grow w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] placeholder-[#b0a48a] text-sm focus:outline-none focus:border-[#8a7d5a] transition-colors resize-none"
+          />
+        </div>  
+        
+        {/*event status*/}
+          <div>
+            <label className="block text-[#1a1812] text-xs tracking-[0.15em] uppercase font-medium mb-2">
+              Status
+            </label>
+            <div className="flex gap-4 flex-wrap">
+              {STATUS_COLORS.map((c) => (
+              <div key={c.value} className="flex flex-col items-center">
+                <button
+                  onClick={() => setStatus(c.value as EventStatus)}
+                  className={`w-8 h-8 rounded-full ${c.bg} transition-all transform duration-200 ease-in-out
+                  ${status === c.value ? "ring ring-offset-2 ring-[#1a1812] scale-110" : "hover:scale-130"}`}
+                  title={c.value}
+                />
+                <span className="text-xs mt-2 text-[#1a1812]">{c.value}</span>
+              </div>
+              ))}
+            </div>
+          </div>                 
+
           {/*event type/label */}
           <div>
             <label className="block text-[#1a1812] text-xs tracking-[0.15em] uppercase font-medium mb-2">
               Event Label
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-4 flex-wrap">
               {EVENT_COLORS.map((c) => (
+              <div key={c.value} className="flex flex-col items-center">
                 <button
-                  key={c.value}
                   onClick={() => setType(c.value)}
-                  className={`w-8 h-8 rounded-full ${c.bg} transition-transform ${
-                    type === c.value ? "scale-125 ring-2 ring-offset-2 ring-[#1a1812]" : "hover:scale-110"
-                  }`}
+                  className={`w-8 h-8 rounded-full ${c.bg} transition-all transform duration-200 ease-in-out
+                  ${type === c.value ? "ring ring-offset-2 ring-[#1a1812] scale-120" : "hover:scale-130"}`}
                   title={c.label}
                 />
+                <span className="text-xs mt-2 text-[#1a1812]">{c.label}</span>
+              </div>
               ))}
             </div>
           </div>
 
-           <div>
-              <label className="block text-[#1a1812] text-xs tracking-[0.15em] uppercase font-medium mb-1.5">
-                Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as EventStatus)}
-                className="w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] text-sm focus:outline-none focus:border-[#e3e3e3] transition-colors"
-              >
-                <option value={"Pending"}>Pending</option>
-                <option value={"Confirmed"}>Confirmed</option>
-                <option value={"Idea"}>Idea</option>
-              </select>
-            </div>
 
           {/*Save & Cancel */}
           <div className="px-6 pb-5 flex gap-3">

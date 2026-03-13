@@ -1,5 +1,6 @@
 "use client"
 import {useState} from "react";
+import { Traveler } from "./types/trips";
 export interface Event {
     id: string
     tripid: string
@@ -9,6 +10,8 @@ export interface Event {
     status: EventStatus
     startTime: string
     duration: number
+    location: string
+    travelers: string
     type: EventLabel;
 }
 
@@ -29,8 +32,8 @@ const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: string; tim
 };
 const cardColor = {bg: "bg-[#fcfcfc]", bar: "bg-[#dbdbdb]", text: "text-[#262626]", time: "text-[#3a4042]"}
 const STATUS_MAP: Record<EventStatus, string> = {
-  Pending: "bg-[#98d99f]",
-  Confirmed: "bg-[#ffcd59]",
+  Confirmed: "bg-[#98d99f]",
+  Pending: "bg-[#ffcd59]",
   Idea:     "bg-[#9c8a8a]"
 }
 
@@ -42,7 +45,7 @@ export function EventCard({ event, onDelete, onOpen }: EventCardProp) {
 
   return (
     <div
-      className={`max-w-2xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-gray transition-shadow`}
+      className={`max-w-2xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
       style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none" }}
       onClick={() => onOpen(event.id)}
       onMouseEnter={() => setHovered(true)}
