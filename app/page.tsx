@@ -9,7 +9,14 @@ export default function LandingPage() {
         <div className="w-24 h-6 bg-gray-200 rounded" />
         <div className="flex gap-6">
           <div className="w-16 h-4 bg-gray-200 rounded" />
-          <div className="w-16 h-4 bg-gray-200 rounded" />
+          <div className="w-16 h-4 bg-gray-200 rounded">  
+            <Link
+              href="/itinerary"
+              className="w-full h-full flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors rounded"
+            >
+              Trips
+            </Link>
+          </div>
           <div className="w-16 h-4 bg-gray-200 rounded" />
         </div>
         <div className="flex gap-3">
