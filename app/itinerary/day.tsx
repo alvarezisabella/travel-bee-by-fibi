@@ -4,8 +4,9 @@ import {Event} from "./event"
 import {EventCard} from './event'
 import AddEvent from './add_event'
 
-interface Day{
+export interface Day{
     id: string
+    tripid: string;
     events: Event[];
 }
 interface DayProps {
@@ -16,33 +17,36 @@ interface DayProps {
 }
 
 const SAMPLE_EVENTS:Event[] = [
-    { id: "1", dayid: "1", title: "Morning Event", description: "detail1.", status: "confirmed", startTime: "09:00", duration: 30, type: "Activity" },
-    { id: "2", dayid: "1", title: "brunch", description: "detail2", status: "pending", startTime: "11:00", duration: 60, type: "Food" },
-    { id: "3", dayid: "1", title: "shopping event", description: "", status: "confirmed", startTime: "12:30", duration: 90, type: "Transit" },
-    { id: "4", dayid: "1", title: "afternoon event", description: "detail3", status: "confirmed", startTime: "14:00", duration: 120, type: "Reservation" },
-    { id: "5", dayid: "1", title: "evening time", description: "", status: "pending", startTime: "18:00", duration: 60, type: "Activity" },
+    { id: "1", tripid: "1", dayid: "1", title: "Morning Event", description: "detail1.", status: "Confirmed", startTime: "09:00", duration: 30, type: "Activity" },
+    { id: "2", tripid: "1", dayid: "1", title: "brunch", description: "detail2", status: "Pending", startTime: "11:00", duration: 60, type: "Food" },
+    { id: "3", tripid: "1", dayid: "1", title: "shopping event", description: "", status: "Confirmed", startTime: "12:30", duration: 90, type: "Transit" },
+    { id: "4", tripid: "1", dayid: "1", title: "afternoon event", description: "detail3", status: "Confirmed", startTime: "14:00", duration: 120, type: "Reservation" },
+    { id: "5", tripid: "1", dayid: "1", title: "evening time", description: "", status: "Pending", startTime: "18:00", duration: 60, type: "Activity" },
   ]
 
-const MOCK_DAYS:Day[] = [{id: "1", events: SAMPLE_EVENTS}, {id: "2", events:[]}]
+const MOCK_DAYS:Day[] = [{id: "1", tripid: "1", events: SAMPLE_EVENTS}, {id: "2", tripid: "1", events:[]}]
 
 export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent}: DayProps) {
     return(
 
-        <div className="group border border-grey rounded-2xl p-6 mb-10 shadow-sm bg-white">
+        <div className="w-full w-5xl group border border-gray rounded-2xl p-6 mb-10 shadow-lg bg-[#f5f5f5]">
             <div className='mb-8'>
                 <h1 className="text-[#1a1812] text-3xl">Day {day.id}</h1>
             </div>
                 
-            <div className='space-y-3'>
+            <div className='space-y-5'>
                 {day.events.map((event) => (
                     <EventCard key={event.id} event={event} onDelete={() => onDeleteEvent(day.id, event.id)} onOpen={() => onOpenEvent(event)}/>
                 ))}
 
-                <button
-                className="center opacity-0 group-hover:opacity-100 transition-opacity text-sm text-yellow-500"
-                onClick={() => onAddEvent(day.id)}
-                > Add event
-            </button>
+                <div className='max-w-24 border border-gray rounded-2xl shadow-md 
+                opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'>
+                    <button
+                    className="text-md text-yellow-500 py-1"
+                    onClick={() => onAddEvent(day.id)}
+                    > Add Event
+                    </button>
+                 </div>
             </div>
         </div>
     )
@@ -53,6 +57,7 @@ export default function DayPreview() {
     const [showAdd, setShowAdd] = useState(false)
     const [dayid, setDayId] = useState<string>("")
     const [selectEvent, setEvent] = useState<Event | null>(null)
+    const tripid = days[0].tripid
 
     const initAddHandler = (dayid: string) => {
         setDayId(dayid)
@@ -98,8 +103,8 @@ export default function DayPreview() {
     }
     
     return(
-        <div className="min-h-screen bg-[#f5f5f5] flex items-start justify-center pt-16 px-4">
-            <div className="w-full max-w-sm">
+        <div className="min-h-screen bg-[#f5f5f5] flex justify-center pt-16 px-4">
+            <div className="w-full max-w-lg">
 
                 <div className="space-y-2.5">
                     {days.map((day) => (
@@ -115,6 +120,7 @@ export default function DayPreview() {
               {showAdd && (
                 <AddEvent
                     day = {dayid}
+                    trip = {tripid}
                     onClose={() => setShowAdd(false)}
                     onAdd={handleAddEvent}
                 />
@@ -123,6 +129,7 @@ export default function DayPreview() {
                 {selectEvent && (
                     <AddEvent
                         day = {selectEvent.dayid}
+                        trip = {tripid}
                         event = {selectEvent}
                         onClose={() => setEvent(null)}
                         onAdd={handleEdit}
