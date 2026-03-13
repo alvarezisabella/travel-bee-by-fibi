@@ -1,4 +1,3 @@
-import DayPreview from "./day";
 import TripHeader from "./components/TripHeader";
 import AddDay from "./components/AddDay";
 import { Trip } from "./types/trips";
