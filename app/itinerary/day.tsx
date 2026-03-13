@@ -21,7 +21,7 @@ interface DayProps {
 export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent, onUpvote, onDownvote}: DayProps) {
     return(
 
-        <div className="max-w-3xl group border border-[#c9c9c9] rounded-2xl p-6 mb-10 shadow-lg ">
+        <div className="group border border-[#c9c9c9] rounded-2xl p-6 mb-10 shadow-lg ">
             <div className='mb-8'>
                 <h1 className="text-[#1a1812] text-3xl">Day {day.id}</h1>
             </div>

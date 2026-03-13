@@ -85,9 +85,22 @@ export default function TripList({trip }: TripProps) {
                             events: day.events.map(event => {
                                 if (event.id !== eventId) return event
 
+                                if (event.hasUpvoted) {
+                                    return {
+                                        ...event,
+                                        upvotes: event.upvotes - 1,
+                                        hasUpvoted: false
+                                    }
+                                }
+
                                 return {
                                     ...event,
-                                    upvotes: event.upvotes + 1
+                                    upvotes: event.upvotes + 1,
+                                    hasUpvoted: true,
+                                    downvotes: event.hasDownvoted
+                                        ? event.downvotes - 1
+                                        : event.downvotes,
+                                    hasDownvoted: false
                                 }
                             })
                         }
@@ -105,9 +118,22 @@ export default function TripList({trip }: TripProps) {
                             events: day.events.map(event => {
                                 if (event.id !== eventId) return event
 
+                                if (event.hasDownvoted) {
+                                    return {
+                                        ...event,
+                                        downvotes: event.downvotes - 1,
+                                        hasDownvoted: false
+                                    }
+                                }
+
                                 return {
                                     ...event,
-                                    downvotes: event.downvotes + 1
+                                    downvotes: event.downvotes + 1,
+                                    hasDownvoted: true,
+                                    upvotes: event.hasUpvoted
+                                        ? event.upvotes - 1
+                                        : event.upvotes,
+                                    hasUpvoted: false
                                 }
                             })
                         }
@@ -121,7 +147,7 @@ export default function TripList({trip }: TripProps) {
             
             // Display of Days
             <div className="pt-16 px-4">
-                <div className="w-full max-w-6xl mx-auto gap-2 ">
+                <div className="w-full max-w-5xl mx-auto ">
     
                     <div className="space-y-2.5">
                         {days.map((day) => (

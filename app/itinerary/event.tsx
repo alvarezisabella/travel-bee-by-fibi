@@ -18,6 +18,8 @@ export interface Event {
     type: EventLabel;
     upvotes: number
     downvotes: number
+    hasUpvoted?: boolean
+    hasDownvoted?: boolean
 }
 
 interface EventCardProp {
@@ -52,7 +54,7 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
 
   return (
     <div
-      className={`max-w-2xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
+      className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
       style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none" }}
       onClick={() => onOpen(event.id)}
       onMouseEnter={() => setHovered(true)}
@@ -65,6 +67,9 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
         className={`absolute top-2 right-8 max-w-24 rounded-xl ${status_bg} shadow-sm items-center justify-center`}>
         <h4 className="px-2 py-1 text-white text-xs">{event.status}</h4>
       </div>
+
+
+
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-start justify-between gap-2">
           <h4 className={`font-medium text-md ${cardColor.text} truncate`} style={{ fontFamily: "Helvetica, serif" }}>
@@ -97,7 +102,7 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
           <span>{event.duration}</span>
         </div>
 
-        <div className="flex items-center gap-4 mt-2">
+        <div className="absolute top-2 right-30 flex items-center gap-4 mt-2">
           <button
             className="flex items-center gap-1 text-xs hover:text-green-600"
             onClick={(e) => {

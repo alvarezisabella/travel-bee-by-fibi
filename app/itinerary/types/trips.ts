@@ -1,3 +1,5 @@
+import {Day} from "../day"
+
 export interface Traveler {
   id: string
   name: string
@@ -12,4 +14,5 @@ export interface Trip {
   endDate?: string
   travelers: Traveler[]
   coverImage: string
+  days: Day[]
 }
