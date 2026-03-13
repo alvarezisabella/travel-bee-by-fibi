@@ -14,19 +14,11 @@ interface DayProps {
     onAddEvent: (dayid : string) => void;
     onDeleteEvent: (dayid: string, eventid: string) => void;
     onOpenEvent: (event: Event) => void
+    onUpvote: (dayid: string, eventid: string) => void;
+    onDownvote: (dayid: string, eventid: string) => void;
 }
 
-const SAMPLE_EVENTS:Event[] = [
-    { id: "1", tripid: "1", dayid: "1", title: "Morning Event", description: "detail1.", status: "Confirmed", startTime: "09:00", duration: 30, location: "", travelers: "", type: "Activity" },
-    { id: "2", tripid: "1", dayid: "1", title: "brunch", description: "detail2", status: "Pending", startTime: "11:00", duration: 60, location: "", travelers: "", type: "Food" },
-    { id: "3", tripid: "1", dayid: "1", title: "shopping event", description: "", status: "Confirmed", startTime: "12:30", duration: 90, location: "", travelers: "", type: "Transit" },
-    { id: "4", tripid: "1", dayid: "1", title: "afternoon event", description: "detail3", status: "Confirmed", startTime: "14:00", duration: 120, location: "", travelers: "", type: "Reservation" },
-    { id: "5", tripid: "1", dayid: "1", title: "evening time", description: "", status: "Pending", startTime: "18:00", duration: 60, location: "", travelers: "", type: "Activity" },
-  ]
-
-const MOCK_DAYS:Day[] = [{id: "1", tripid: "1", events: SAMPLE_EVENTS}, {id: "2", tripid: "1", events:[]}]
-
-export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent}: DayProps) {
+export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent, onUpvote, onDownvote}: DayProps) {
     return(
 
         <div className="max-w-3xl group border border-[#c9c9c9] rounded-2xl p-6 mb-10 shadow-lg ">
@@ -36,7 +28,7 @@ export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent}: DayProps
                 
             <div className='space-y-5'>
                 {day.events.map((event) => (
-                    <EventCard key={event.id} event={event} onDelete={() => onDeleteEvent(day.id, event.id)} onOpen={() => onOpenEvent(event)}/>
+                    <EventCard key={event.id} event={event} onDelete={() => onDeleteEvent(day.id, event.id)} onOpen={() => onOpenEvent(event)} onUpvote={() => onUpvote(day.id, event.id)} onDownvote={() => onDownvote(day.id, event.id)}/>
                 ))}
 
                 <div className='max-w-24 border border-[#c9c9c9] rounded-2xl shadow-md 
@@ -52,6 +44,7 @@ export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent}: DayProps
     )
 }
 
+/*
 export default function DayPreview() {
     const [days, setDays] = useState<Day[]>(MOCK_DAYS)
     const [showAdd, setShowAdd] = useState(false)
@@ -101,6 +94,46 @@ export default function DayPreview() {
     const handleOpenEvent = (event: Event) => {
         setEvent(event)
     }
+
+    const handleUpvote = (dayId: string, eventId: string) => {
+        setDays(prev =>
+            prev.map(day =>
+                day.id === dayId
+                    ? {
+                        ...day,
+                        events: day.events.map(event => {
+                            if (event.id !== eventId) return event
+
+                            return {
+                                ...event,
+                                upvotes: event.upvotes + 1
+                            }
+                        })
+                    }
+                    : day
+            )
+        )
+    }
+
+    const handleDownvote = (dayId: string, eventId: string) => {
+        setDays(prev =>
+            prev.map(day =>
+                day.id === dayId
+                    ? {
+                        ...day,
+                        events: day.events.map(event => {
+                            if (event.id !== eventId) return event
+
+                            return {
+                                ...event,
+                                downvotes: event.downvotes + 1
+                            }
+                        })
+                    }
+                    : day
+            )
+        )
+    }
     
     return(
         <div className="min-h-screen bg-[#f5f5f5] flex justify-center pt-16 px-4">
@@ -114,6 +147,8 @@ export default function DayPreview() {
                             onAddEvent={initAddHandler}
                             onDeleteEvent={handleDeleteEvent}
                             onOpenEvent={handleOpenEvent}
+                            onUpvote={handleUpvote}
+                            onDownvote={handleDownvote}
                         />
                     ))}
               </div>
@@ -139,4 +174,4 @@ export default function DayPreview() {
         </div>
 
     );
-}
+}*/

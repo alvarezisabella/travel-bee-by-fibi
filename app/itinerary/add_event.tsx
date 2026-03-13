@@ -28,7 +28,7 @@ export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventPro
 
     const handleSubmit = () => {
       if (!title.trim()) return;
-      onAdd({ id:event?.id || crypto.randomUUID(), tripid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers, type });
+      onAdd({ id:event?.id || crypto.randomUUID(), tripid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers,type, upvotes:0, downvotes:0 });
       onClose();
   };
 

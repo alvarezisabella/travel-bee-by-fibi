@@ -1,5 +1,8 @@
 "use client"
 import {useState} from "react";
+import { ThumbsUp, ThumbsDown } from "lucide-react"
+
+
 import { Traveler } from "./types/trips";
 export interface Event {
     id: string
@@ -13,12 +16,16 @@ export interface Event {
     location: string
     travelers: string
     type: EventLabel;
+    upvotes: number
+    downvotes: number
 }
 
 interface EventCardProp {
     event: Event;
     onDelete: (eventid: string) => void
     onOpen: (eventid: string) => void
+    onUpvote: (eventid: string) => void
+    onDownvote: (eventid: string) => void
 }
 
 export type EventLabel = "Activity" | "Transit" | "Reservation" | "Food" 
@@ -38,7 +45,7 @@ const STATUS_MAP: Record<EventStatus, string> = {
 }
 
 
-export function EventCard({ event, onDelete, onOpen }: EventCardProp) {
+export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: EventCardProp) {
   const [hovered, setHovered] = useState(false);
   const colors = LABEL_MAP[event.type];
   const status_bg = STATUS_MAP[event.status]
@@ -88,6 +95,30 @@ export function EventCard({ event, onDelete, onOpen }: EventCardProp) {
           <span>{event.startTime}</span>
           <span className="opacity-40">·</span>
           <span>{event.duration}</span>
+        </div>
+
+        <div className="flex items-center gap-4 mt-2">
+          <button
+            className="flex items-center gap-1 text-xs hover:text-green-600"
+            onClick={(e) => {
+              e.stopPropagation()
+              onUpvote(event.id)
+            }}
+          >
+            <ThumbsUp size={14} />
+            {event.upvotes}
+          </button>
+
+          <button
+            className="flex items-center gap-1 text-xs hover:text-orange-600"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDownvote(event.id)
+            }}
+          >
+            <ThumbsDown size={14} />
+            {event.downvotes}
+          </button>
         </div>
 
       </div>
