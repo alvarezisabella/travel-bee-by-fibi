@@ -2,6 +2,7 @@ import DayPreview from "./day";
 import TripHeader from "./components/TripHeader";
 import AddDay from "./components/AddDay";
 import { Trip } from "./types/trips";
+import TripList from "./components/TripCard";
 
 async function getTrip(): Promise<Trip> {
   return {
@@ -26,8 +27,9 @@ export default async function itineraryList(){
     return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
-      <DayPreview/>
-      <AddDay />
+      <TripList trip={trip} />
+      {/* <DayPreview/>
+      <AddDay /> */}
     </main>
   );
 }
