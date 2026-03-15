@@ -6,7 +6,7 @@ export async function insertEvent(supabase: SupabaseClient,
     location?: string; cost?: number; booking_code?: string
     type?: string; status?: string; created_by: string}
 ) {
-  return supabase.from('events').insert(data)
+  return supabase.from('events').insert(data).select('id').single()
 }
 
 export async function getEvent(supabase: SupabaseClient, id: string) {

@@ -6,7 +6,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react"
 import { Traveler } from "./types/trips";
 export interface Event {
     id: string
-    tripid: string
+    itineraryid: string
     dayid: string
     title: string
     description: string

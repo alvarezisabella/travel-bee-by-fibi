@@ -6,7 +6,7 @@ import AddEvent from './add_event'
 
 export interface Day{
     id: string
-    tripid: string;
+    itineraryid: string;
     events: Event[];
 }
 interface DayProps {

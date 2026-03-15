@@ -16,7 +16,10 @@ interface AddEventProps {
   onAdd: (event: Event) => void;
 }
 
+// Design for add event card and routing for adding an event 
 export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventProps) {
+  // variables that can be entered when adding an event
+  // title is required
   const [title, setTitle] = useState(event?.title || "")
   const [description, setDescription] = useState(event?.description || "")
   const [startTime, setStartTime] = useState(event?.startTime || "09:00")
@@ -26,10 +29,24 @@ export default function AddEvent({day, trip, event, onClose, onAdd}: AddEventPro
   const [location, setLocation] = useState(event?.location || "")
   const [travelers, setTravelers] = useState(event?.travelers || "")
 
-    const handleSubmit = () => {
-      if (!title.trim()) return;
-      onAdd({ id:event?.id || crypto.randomUUID(), tripid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers,type, upvotes:0, downvotes:0 });
-      onClose();
+  // Handle form submission for adding events
+  // If title not provided, does not submit
+  const handleSubmit = async () => {
+    if (!title.trim()) return;
+
+    // Calls POST function from api/auth/event with event variables and trip id
+    const res = await fetch("/api/auth/event", {
+      method: "POST", 
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({itineraryid: trip, dayid: day, title: title.trim(), description: description.trim(), status, startTime, duration, location, type})
+    })
+
+    // If 
+    const data = await res.json()
+    if(!res.ok) {console.error(data.error); return;}
+
+    onAdd({ id: data.event.id, itineraryid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers, type, upvotes:0, downvotes:0 });
+    onClose();
   };
 
   const EVENT_COLORS: { value: EventLabel; label: string; bg: string; border: string }[] = [
