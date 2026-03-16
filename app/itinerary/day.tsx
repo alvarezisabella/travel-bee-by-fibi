@@ -7,11 +7,12 @@ import AddEvent from './add_event'
 export interface Day{
     id: string
     itineraryid: string;
+    date?: string;
     events: Event[];
 }
 interface DayProps {
     day: Day;
-    onAddEvent: (dayid : string) => void;
+    onAddEvent: (dayid: string, date: string) => void;
     onDeleteEvent: (dayid: string, eventid: string) => void;
     onOpenEvent: (event: Event) => void
     onUpvote: (dayid: string, eventid: string) => void;
@@ -35,7 +36,7 @@ export function DayCell({ day, onAddEvent, onDeleteEvent, onOpenEvent, onUpvote,
                 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'>
                     <button
                     className="text-md text-yellow-500 py-1"
-                    onClick={() => onAddEvent(day.id)}
+                    onClick={() => onAddEvent(day.id, day.date ?? '')}
                     > Add Event
                     </button>
                  </div>

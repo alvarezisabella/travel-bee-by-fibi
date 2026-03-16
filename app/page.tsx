@@ -1,6 +1,23 @@
 import Link from "next/link"
+import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
+import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 
-export default function LandingPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function LandingPage() {
+  const cookieStore = await cookies()
+  const supabase = await createClient(cookieStore)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let tripsHref = "/itinerary"
+  console.log("[LandingPage] user:", user?.id ?? "null")
+  if (user) {
+    const { data, error } = await getItinerariesByUser(supabase, user.id)
+    console.log("[LandingPage] itineraries:", data, "error:", error)
+    if (data && data.length > 0) tripsHref = `/itinerary/${data[0].id}`
+  }
+  console.log("[LandingPage] tripsHref:", tripsHref)
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
 
@@ -11,7 +28,7 @@ export default function LandingPage() {
           <div className="w-16 h-4 bg-gray-200 rounded" />
           <div className="w-16 h-4 bg-gray-200 rounded">  
             <Link
-              href="/itinerary"
+              href={tripsHref}
               className="w-full h-full flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors rounded"
             >
               Trips

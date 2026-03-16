@@ -9,7 +9,7 @@ export async function insertItinerary(supabase: SupabaseClient,
 export async function getItinerary(supabase: SupabaseClient, id: string) {
   return supabase
     .from('itineraries')
-    .select('id, title, description, start_date, end_date, city, state, country, created_by, created_at, updated_at')
+    .select('id, title, description, start_date, end_date, city, state, country, created_by, created_at')
     .eq('id', id)
     .single()
 }
@@ -17,7 +17,7 @@ export async function getItinerary(supabase: SupabaseClient, id: string) {
 export async function getItinerariesByUser(supabase: SupabaseClient, userId: string) {
   return supabase
     .from('itineraries')
-    .select('id, title, description, start_date, end_date, created_by, created_at, updated_at')
+    .select('id, title, description, start_date, end_date, created_by, created_at')
     .eq('created_by', userId)
 }
 

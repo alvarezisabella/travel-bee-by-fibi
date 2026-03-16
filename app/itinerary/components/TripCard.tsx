@@ -26,11 +26,13 @@ export default function TripList({trip }: TripProps) {
         const [days, setDays] = useState<Day[]>(trip.days)
         const [showAdd, setShowAdd] = useState(false)
         const [dayid, setDayId] = useState<string>("")
+        const [dayDate, setDayDate] = useState<string>("")
         const [selectEvent, setEvent] = useState<Event | null>(null)
         const [open, setOpen] = useState(false)
     
-        const initAddHandler = (dayid: string) => {
+        const initAddHandler = (dayid: string, date: string) => {
             setDayId(dayid)
+            setDayDate(date)
             setShowAdd(true)
         }
     
@@ -165,6 +167,7 @@ export default function TripList({trip }: TripProps) {
                   {showAdd && (
                     <AddEvent
                         day = {dayid}
+                        date = {dayDate}
                         trip = {trip.id}
                         onClose={() => setShowAdd(false)}
                         onAdd={handleAddEvent}
