@@ -22,35 +22,37 @@ export default async function LandingPage() {
     <main className="min-h-screen bg-[#F5F5F5]">
 
       {/* NAVBAR */}
-      <nav className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <div className="w-24 h-6 bg-gray-200 rounded" />
-        <div className="flex gap-6">
-          <div className="w-16 h-4 bg-gray-200 rounded" />
-          <div className="w-16 h-4 bg-gray-200 rounded">  
-            <Link
-              href={tripsHref}
-              className="w-full h-full flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors rounded"
-            >
-              Trips
-            </Link>
-          </div>
-          <div className="w-16 h-4 bg-gray-200 rounded" />
-        </div>
-        <div className="flex gap-3">
-          <Link
-            href="/login"
-            className="w-20 h-8 bg-gray-200 rounded flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors"
-            >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="w-20 h-8 bg-[#F5C842] rounded flex items-center justify-center text-sm font-medium text-gray-900 hover:brightness-95 transition-all"
-            >
-            Sign Up
-          </Link>
-        </div>
-      </nav>
+      <nav className="w-full flex items-center justify-between px-10 py-4 bg-white border-b border-gray-100 shadow-sm">
+
+  {/* Logo - left */}
+  <div className="flex-1">
+    <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
+  </div>
+
+  {/* Nav Links - center */}
+  <div className="flex-1 flex items-center justify-center gap-8">
+    <Link href="/" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+      Home
+    </Link>
+    <Link href={tripsHref} className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+      Trips
+    </Link>
+    <Link href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+      Explore
+    </Link>
+  </div>
+
+  {/* Auth Buttons - right */}
+  <div className="flex-1 flex items-center justify-end gap-3">
+    <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 transition-all">
+      Login
+    </Link>
+    <Link href="/signup" className="text-sm font-semibold text-gray-900 bg-[#F5C842] hover:bg-[#e6b93a] px-5 py-2 rounded-full transition-all shadow-sm">
+      Sign Up
+    </Link>
+  </div>
+
+</nav>
 
       {/* HERO SECTION */}
       <section className="w-full flex flex-col items-center justify-center text-center px-8 py-24 gap-6">
