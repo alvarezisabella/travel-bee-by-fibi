@@ -8,6 +8,8 @@ import {
 import { Trip } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
+import LocationSearch from "./LocationSearch"
+
 
 interface Props {
   trip: Trip
@@ -131,15 +133,10 @@ export default function TripHeader({ trip }: Props) {
               <MapPin size={16}/>
 
               {editingLocation ? (
-                <input
-                  className="border rounded px-1 text-sm"
+                <LocationSearch
                   value={location}
-                  autoFocus
-                  onChange={(e) => setLocation(e.target.value)}
-                  onBlur={() => setEditingLocation(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") setEditingLocation(false)
-                  }}
+                  onChange={(val) => setLocation(val)}
+                  onClose={() => setEditingLocation(false)}
                 />
               ) : (
                 <span
