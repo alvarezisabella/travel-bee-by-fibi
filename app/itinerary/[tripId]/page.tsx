@@ -26,6 +26,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     getEventsByItinerary(supabase, tripId),
     getItineraryMembers(supabase, tripId),
   ])
+  console.log("[TripPage] itinError:", itinError, "itinerary:", itinerary)
 
   if (itinError || !itinerary){
     return <div className="p-10 text-center text-gray-500">Trip not found.</div>
@@ -104,7 +105,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     dayCounter++
   }
 
-  const location = [itinerary.city, itinerary.state, itinerary.country].filter(Boolean).join(', ')
+  const location = itinerary.location ?? ''
 
   const trip: Trip = {
     id: tripId,

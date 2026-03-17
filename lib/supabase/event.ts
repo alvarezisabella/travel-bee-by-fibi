@@ -4,7 +4,7 @@ export async function insertEvent(supabase: SupabaseClient,
   data: { itinerary_id: string; title: string; description?: string
     starts_at?: string; ends_at?: string; day?: string
     location?: string; cost?: number; booking_code?: string
-    type?: string; status?: string; created_by: string}
+    type?: string; status?: string; travelers?: string[]; created_by: string}
 ) {
   return supabase.from('events').insert(data).select('id').single()
 }
@@ -29,7 +29,7 @@ export async function updateEvent(
   id: string,
   data: {title?: string; description?: string; starts_at?: string; ends_at?: string
     num_guests?: number; location?: string; cost?: number
-    booking_code?: string; type?: string; status?: string
+    booking_code?: string; type?: string; status?: string; travelers?: string[]
   }
 ) {
   return supabase.from('events').update(data).eq('id', id)
