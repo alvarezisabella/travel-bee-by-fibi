@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { insertItinerary } from '@/lib/supabase/itinerary'
+import { insertItinerary, updateItinerary } from '@/lib/supabase/itinerary'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
@@ -23,4 +23,20 @@ export async function POST(req: NextRequest){
     if(error) {return NextResponse.json({error: error.message}, {status: 500})}
 
     return NextResponse.json({itinerary: data}, {status: 201})
+}
+
+export async function PUT(req: NextRequest) {
+    const { id, title, description, start_date, end_date, city, state, country } = await req.json()
+    if (!id) { return NextResponse.json({ error: 'Itinerary ID is required.' }, { status: 400 }) }
+
+    const cookieStore = await cookies()
+    const supabase = await createClient(cookieStore)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) { return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 }) }
+
+    const { error } = await updateItinerary(supabase, id, { title, description, start_date, end_date, city, state, country })
+    if (error) { return NextResponse.json({ error: error.message }, { status: 500 }) }
+
+    return NextResponse.json({ success: true }, { status: 200 })
 }
