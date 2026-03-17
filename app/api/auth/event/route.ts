@@ -1,5 +1,5 @@
 import {createClient} from '@/lib/supabase/server'
-import {insertEvent, updateEvent} from '@/lib/supabase/event'
+import {insertEvent, updateEvent, deleteEvent} from '@/lib/supabase/event'
 import {NextRequest, NextResponse} from 'next/server'
 import {cookies} from 'next/headers'
 
@@ -47,5 +47,21 @@ export async function PUT(req: NextRequest) {
 
     const {error} = await updateEvent(supabase, id, { title, description, status, starts_at: startTime || undefined, ends_at, location, type, travelers: travelers ?? [] })
     if(error) { return NextResponse.json({ error: error.message }, { status: 500 }) }
+    return NextResponse.json({ success: true }, { status: 200 })
+}
+
+export async function DELETE(req: NextRequest) {
+    const { id } = await req.json()
+    if (!id) return NextResponse.json({ error: 'ID is required.' }, { status: 400 })
+
+    const cookieStore = await cookies()
+    const supabase = await createClient(cookieStore)
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+
+    const { error } = await deleteEvent(supabase, id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
     return NextResponse.json({ success: true }, { status: 200 })
 }
