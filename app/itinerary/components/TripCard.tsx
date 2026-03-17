@@ -169,6 +169,7 @@ export default function TripList({trip }: TripProps) {
                         day = {dayid}
                         date = {dayDate}
                         trip = {trip.id}
+                        members = {trip.travelers}
                         onClose={() => setShowAdd(false)}
                         onAdd={handleAddEvent}
                     />
@@ -179,6 +180,7 @@ export default function TripList({trip }: TripProps) {
                             day = {selectEvent.dayid}
                             trip = {trip.id}
                             event = {selectEvent}
+                            members = {trip.travelers}
                             onClose={() => setEvent(null)}
                             onAdd={handleEdit}
                         />

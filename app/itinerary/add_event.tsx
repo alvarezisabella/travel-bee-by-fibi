@@ -2,6 +2,7 @@
 import {useState} from "react"
 import {Event, EventLabel} from "./event"
 import { EventCard, EventStatus} from "./event"
+import { Traveler } from "./types/trips"
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
   X, Copy, Check
@@ -13,12 +14,13 @@ interface AddEventProps {
   date?: string
   trip: string
   event?: Event
+  members?: Traveler[]
   onClose: () =>void;
   onAdd: (event: Event) => void;
 }
 
 // Design for add event card and routing for adding an event 
-export default function AddEvent({day, date, trip, event, onClose, onAdd}: AddEventProps) {
+export default function AddEvent({day, date, trip, event, members, onClose, onAdd}: AddEventProps) {
   // variables that can be entered when adding an event
   // title is required
   const [title, setTitle] = useState(event?.title || "")
@@ -28,7 +30,11 @@ export default function AddEvent({day, date, trip, event, onClose, onAdd}: AddEv
   const [type, setType] = useState<EventLabel>(event?.type || "Activity")
   const [status, setStatus] = useState(event?.status || "Pending")
   const [location, setLocation] = useState(event?.location || "")
-  const [travelers, setTravelers] = useState(event?.travelers || "")
+  const [travelers, setTravelers] = useState<string[]>(() => {
+    if (!event?.travelers || !members?.length) return []
+    const names = event.travelers.split(', ').filter(Boolean)
+    return members.filter(m => names.includes(m.name)).map(m => m.id)
+  })
 
   // Handle form submission for adding events
   // If title not provided, does not submit
@@ -39,15 +45,16 @@ export default function AddEvent({day, date, trip, event, onClose, onAdd}: AddEv
     const res = await fetch("/api/auth/event", {
       method: event ? "PUT" : "POST",
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id: event?.id, itineraryid: trip, dayid: day, day: date, title: title.trim(), description: description.trim(), status, startTime, duration, location, type})
+      body: JSON.stringify({id: event?.id, itineraryid: trip, dayid: day, day: date, title: title.trim(), description: description.trim(), status, startTime, duration, location, type, travelers})
     })
 
-    // If 
+    // If
     const data = await res.json()
     if(!res.ok) {console.error(data.error); return;}
 
     const eventId = event ? event.id : data.event.id
-    onAdd({ id: eventId, itineraryid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers, type, upvotes:0, downvotes:0 });
+    const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
+    onAdd({ id: eventId, itineraryid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers: travelerNames, type, upvotes:0, downvotes:0 });
     onClose();
   };
 
@@ -136,15 +143,34 @@ export default function AddEvent({day, date, trip, event, onClose, onAdd}: AddEv
 
 
 
-        <div className="flex space-x-4 items-center">
-          <div className="flex-shrink-0"><Users size={16} /></div>
-          <textarea
-            value={travelers}
-            onChange={(e) => setTravelers(e.target.value)}
-            placeholder="@traveler..."
-            rows={1}
-            className="flex-grow w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] placeholder-[#b0a48a] text-sm focus:outline-none focus:border-[#8a7d5a] transition-colors resize-none"
-          />
+        <div className="flex space-x-4 items-start">
+          <div className="flex-shrink-0 mt-1"><Users size={16} /></div>
+          <div className="flex flex-col gap-2 w-full">
+            {(members ?? []).length === 0 && (
+              <span className="text-sm text-[#b0a48a]">No members on this trip yet.</span>
+            )}
+            {(members ?? []).length > 0 && travelers.length === 0 && (
+              <span className="text-sm text-[#b0a48a]">@traveler...</span>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {(members ?? []).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setTravelers(prev =>
+                    prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
+                  )}
+                  className={`px-3 py-1 rounded-full text-sm border transition-all ${
+                    travelers.includes(m.id)
+                      ? 'bg-[#fac643] border-[#fac643] text-white'
+                      : 'bg-white border-[#e3e3e3] text-[#1a1812] hover:border-[#fac643]'
+                  }`}
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>  
 
         <div className="flex space-x-4 items-center">
