@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getItinerary } from '@/lib/supabase/itinerary'
 import { getEventsByItinerary } from '@/lib/supabase/event'
+import { getItineraryMembers } from '@/lib/supabase/itineraryMembers'
 import TripHeader from '../components/TripHeader'
 import TripList from '../components/TripCard'
 import { Trip } from '../types/trips'
@@ -20,9 +21,10 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
   const cookieStore = await cookies()
   const supabase = await createClient(cookieStore)
 
-  const [{data: itinerary, error: itinError}, {data: dbEvents}] = await Promise.all([
+  const [{data: itinerary, error: itinError}, {data: dbEvents}, {data: members}] = await Promise.all([
     getItinerary(supabase, tripId),
     getEventsByItinerary(supabase, tripId),
+    getItineraryMembers(supabase, tripId),
   ])
 
   if (itinError || !itinerary){
@@ -111,7 +113,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     startDate: itinerary.start_date ?? undefined,
     endDate: itinerary.end_date ?? undefined,
     coverImage: '',
-    travelers: [],
+    travelers: members ?? [],
     days,
   }
 

@@ -188,7 +188,10 @@ export default function TripHeader({ trip }: Props) {
             
 
             {/* TRAVELERS */}
-            <div className="flex items-center gap-1">
+            <div
+              className="flex items-center gap-1 cursor-pointer hover:text-black"
+              onClick={() => { setInviteModal(true); setInviteTab("travelers") }}
+            >
               <Users size={16}/>
               {trip.travelers.length} traveler(s)
             </div>
@@ -299,10 +302,15 @@ export default function TripHeader({ trip }: Props) {
                         <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">
                           {t.name.charAt(0)}
                         </div>
-                        <span className="flex-1 text-sm text-gray-800">{t.name}</span>
-                        <button onClick={() => handleRemoveTraveler(t.id)} className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded transition-all">
-                          <X size={14} />
-                        </button>
+                        <span className="flex-1 text-sm text-gray-800">
+                          {t.name}
+                          {t.role && <span className="ml-2 text-xs text-gray-400 capitalize">{t.role}</span>}
+                        </span>
+                        {t.role !== 'owner' && (
+                          <button onClick={() => handleRemoveTraveler(t.id)} className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded transition-all">
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
                     ))}
                     {travelers.length === 0 && (

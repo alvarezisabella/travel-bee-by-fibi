@@ -3,6 +3,7 @@ import {Day} from "../day"
 export interface Traveler {
   id: string
   name: string
+  role: string
   avatar?: string
 }
 
