@@ -104,24 +104,28 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
 
         <div className="absolute top-2 right-30 flex items-center gap-4 mt-2">
           <button
-            className="flex items-center gap-1 text-xs hover:text-green-600"
+          className={`flex items-center gap-1 text-xs transition
+            ${event.hasUpvoted ? "text-green-600" : "hover:text-green-600"}
+          `}
             onClick={(e) => {
               e.stopPropagation()
               onUpvote(event.id)
             }}
           >
-            <ThumbsUp size={14} />
+            <ThumbsUp size={14} fill={event.hasUpvoted ? "currentColor" : "none"}/>
             {event.upvotes}
           </button>
 
           <button
-            className="flex items-center gap-1 text-xs hover:text-orange-600"
+            className={`flex items-center gap-1 text-xs transition
+              ${event.hasDownvoted ? "text-orange-600" : "hover:text-orange-600"}
+            `}
             onClick={(e) => {
               e.stopPropagation()
               onDownvote(event.id)
             }}
           >
-            <ThumbsDown size={14} />
+            <ThumbsDown size={14} fill={event.hasDownvoted ? "currentColor" : "none"}/>
             {event.downvotes}
           </button>
         </div>
