@@ -3,6 +3,7 @@ import {useState} from "react"
 import {Event, EventLabel} from "./event"
 import { EventCard, EventStatus} from "./event"
 import { Traveler } from "./types/trips"
+import LocationSearch from "./components/LocationSearch"
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
   X, Copy, Check
@@ -30,6 +31,7 @@ export default function AddEvent({day, date, trip, event, members, onClose, onAd
   const [type, setType] = useState<EventLabel>(event?.type || "Activity")
   const [status, setStatus] = useState(event?.status || "Pending")
   const [location, setLocation] = useState(event?.location || "")
+  const [editingLocation, setEditingLocation] = useState(false)
   const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
     const names = event.travelers.split(', ').filter(Boolean)
@@ -175,13 +177,19 @@ export default function AddEvent({day, date, trip, event, members, onClose, onAd
 
         <div className="flex space-x-4 items-center">
           <div className="flex-shrink-0"><MapPin size={16} /></div>
-          <textarea
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Event Location..."
-            rows={1}
-            className="flex-grow w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 text-[#1a1812] placeholder-[#b0a48a] text-sm focus:outline-none focus:border-[#8a7d5a] transition-colors resize-none"
-          />
+          
+          {editingLocation ? (
+            <LocationSearch
+              value={location}
+              onChange={(val) => setLocation(val)}
+              onClose={() => setEditingLocation(false)}
+            />
+            ) : (
+              <span
+                className="cursor-pointer hover:text-black"
+                onClick={() => setEditingLocation(true)}>
+                {location || "Add location"}
+              </span>)}
         </div>  
         
         {/*event status*/}
