@@ -186,8 +186,8 @@ export default function TripHeader({ trip }: Props) {
 
             {/* TRAVELERS */}
             <div
-              className="flex items-center gap-1 cursor-pointer hover:text-black"
-              onClick={() => { setInviteModal(true); setInviteTab("travelers") }}
+              className="flex items-center gap-1"
+              //onClick={() => { setInviteModal(true); setInviteTab("travelers") }}
             >
               <Users size={16}/>
               {trip.travelers.length} traveler(s)
