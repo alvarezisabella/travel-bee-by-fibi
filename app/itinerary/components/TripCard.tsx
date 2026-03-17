@@ -60,7 +60,13 @@ export default function TripList({trip }: TripProps) {
             )
         }
     
-        const handleDeleteEvent = (dayId: string, eventId: string) => {
+        const handleDeleteEvent = async (dayId: string, eventId: string) => {
+            const res = await fetch('/api/auth/event', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: eventId })
+            })
+            if (!res.ok) { console.error('Failed to delete event'); return }
             setDays(prev =>
                 prev.map(day =>
                     day.id === dayId
