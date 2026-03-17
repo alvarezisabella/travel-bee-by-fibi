@@ -25,10 +25,10 @@ async function getTrip(): Promise<Trip> {
     endDate: "Add end date",
     coverImage: "image placeholder",
     travelers: [
-      { id: "1", name: "Traveler 1" },
-      { id: "2", name: "Traveler 2" },
-      { id: "3", name: "Traveler 3" },
-      { id: "4", name: "Traveler 4" }
+      { id: "1", name: "Traveler 1", role: "Organizer" },
+      { id: "2", name: "Traveler 2", role: "Participant" },
+      { id: "3", name: "Traveler 3", role: "Participant" },
+      { id: "4", name: "Traveler 4", role: "Participant" }
     ],
     days: MOCK_DAYS
   }
