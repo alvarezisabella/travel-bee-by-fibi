@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
@@ -10,49 +9,13 @@ export default async function LandingPage() {
   const supabase = await createClient(cookieStore)
   const { data: { user } } = await supabase.auth.getUser()
 
-  let tripsHref = "/itinerary"
-  console.log("[LandingPage] user:", user?.id ?? "null")
   if (user) {
     const { data, error } = await getItinerariesByUser(supabase, user.id)
     console.log("[LandingPage] itineraries:", data, "error:", error)
-    if (data && data.length > 0) tripsHref = `/itinerary/${data[0].id}`
   }
-  console.log("[LandingPage] tripsHref:", tripsHref)
+
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
-
-      {/* NAVBAR */}
-      <nav className="w-full flex items-center justify-between px-10 py-4 bg-white border-b border-gray-100 shadow-sm">
-
-      {/* Logo - left */}
-      <div className="flex-1">
-        <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
-      </div>
-
-      {/* Nav Links - center */}
-      <div className="flex-1 flex items-center justify-center gap-8">
-        <Link href="/" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-          Home
-        </Link>
-        <Link href={tripsHref} className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-          Trips
-        </Link>
-        <Link href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-          Explore
-        </Link>
-      </div>
-
-      {/* Auth Buttons - right */}
-      <div className="flex-1 flex items-center justify-end gap-3">
-        <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 transition-all">
-          Login
-        </Link>
-        <Link href="/signup" className="text-sm font-semibold text-gray-900 bg-[#F5C842] hover:bg-[#e6b93a] px-5 py-2 rounded-full transition-all shadow-sm">
-          Sign Up
-        </Link>
-      </div>
-
-    </nav>
 
       {/* HERO SECTION */}
       <section className="w-full flex flex-col items-center justify-center text-center px-8 py-24 gap-6">
