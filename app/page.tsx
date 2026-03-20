@@ -1,32 +1,21 @@
-import Link from "next/link"
+import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
+import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 
-export default function LandingPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function LandingPage() {
+  const cookieStore = await cookies()
+  const supabase = await createClient(cookieStore)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    const { data, error } = await getItinerariesByUser(supabase, user.id)
+    console.log("[LandingPage] itineraries:", data, "error:", error)
+  }
+
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
-
-      {/* NAVBAR */}
-      <nav className="w-full flex items-center justify-between px-8 py-4 bg-white border-b border-gray-200">
-        <div className="w-24 h-6 bg-gray-200 rounded" />
-        <div className="flex gap-6">
-          <div className="w-16 h-4 bg-gray-200 rounded" />
-          <div className="w-16 h-4 bg-gray-200 rounded" />
-          <div className="w-16 h-4 bg-gray-200 rounded" />
-        </div>
-        <div className="flex gap-3">
-          <Link
-            href="/login"
-            className="w-20 h-8 bg-gray-200 rounded flex items-center justify-center text-sm font-medium text-gray-700 hover:bg-gray-300 transition-colors"
-            >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            className="w-20 h-8 bg-[#F5C842] rounded flex items-center justify-center text-sm font-medium text-gray-900 hover:brightness-95 transition-all"
-            >
-            Sign Up
-          </Link>
-        </div>
-      </nav>
 
       {/* HERO SECTION */}
       <section className="w-full flex flex-col items-center justify-center text-center px-8 py-24 gap-6">

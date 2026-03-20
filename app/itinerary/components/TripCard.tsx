@@ -6,31 +6,33 @@ import AddEvent from './../add_event'
 import {Day, DayCell} from './../day'
 import AddDayButton from './AddDay'
 import { Trip } from './../types/trips'
+import { Plus } from "lucide-react"
 
 interface TripProps {
     trip: Trip;
-    // onAddDay: () => void;
 }
 
 const SAMPLE_EVENTS:Event[] = [
-    { id: "1", tripid: "1", dayid: "1", title: "Morning Event", description: "detail1.", status: "Confirmed", startTime: "09:00", duration: 30, type: "Activity", upvotes: 0, downvotes: 0 },
-    { id: "2", tripid: "1", dayid: "1", title: "brunch", description: "detail2", status: "Pending", startTime: "11:00", duration: 60, type: "Food", upvotes: 0, downvotes: 0 },
-    { id: "3", tripid: "1", dayid: "1", title: "shopping event", description: "", status: "Confirmed", startTime: "12:30", duration: 90, type: "Transit", upvotes: 0, downvotes: 0 },
-    { id: "4", tripid: "1", dayid: "1", title: "afternoon event", description: "detail3", status: "Confirmed", startTime: "14:00", duration: 120, type: "Reservation", upvotes: 0, downvotes: 0 },
-    { id: "5", tripid: "1", dayid: "1", title: "evening time", description: "", status: "Pending", startTime: "18:00", duration: 60, type: "Activity", upvotes: 0, downvotes: 0 },
+    { id: "1", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", dayid: "1", title: "Morning Event", description: "detail1.", status: "Confirmed", startTime: "09:00", duration: 30, location: "", travelers: "", type: "Activity", upvotes: 0, downvotes: 0 },
+    { id: "2", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", dayid: "1", title: "brunch", description: "detail2", status: "Pending", startTime: "11:00", duration: 60, location: "", travelers: "", type: "Food", upvotes: 0, downvotes: 0 },
+    { id: "3", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", dayid: "1", title: "shopping event", description: "", status: "Confirmed", startTime: "12:30", duration: 90, location: "", travelers: "", type: "Transit", upvotes: 0, downvotes: 0 },
+    { id: "4", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", dayid: "1", title: "afternoon event", description: "detail3", status: "Confirmed", startTime: "14:00", duration: 120, location: "", travelers: "", type: "Reservation", upvotes: 0, downvotes: 0 },
+    { id: "5", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", dayid: "1", title: "evening time", description: "", status: "Pending", startTime: "18:00", duration: 60, location: "", travelers: "", type: "Activity", upvotes: 0, downvotes: 0 },
   ]
 
-const MOCK_DAYS:Day[] = [{id: "1", tripid: "1", events: SAMPLE_EVENTS}, {id: "2", tripid: "1", events:[]}]
+const MOCK_DAYS:Day[] = [{id: "1", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events: SAMPLE_EVENTS}, {id: "2", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events:[]}]
 
-export default function TripList({ trip }: TripProps) {
-        const [days, setDays] = useState<Day[]>(MOCK_DAYS)
+export default function TripList({trip }: TripProps) {
+        const [days, setDays] = useState<Day[]>(trip.days)
         const [showAdd, setShowAdd] = useState(false)
         const [dayid, setDayId] = useState<string>("")
+        const [dayDate, setDayDate] = useState<string>("")
         const [selectEvent, setEvent] = useState<Event | null>(null)
-        const tripid = days[0].tripid
+        const [open, setOpen] = useState(false)
     
-        const initAddHandler = (dayid: string) => {
+        const initAddHandler = (dayid: string, date: string) => {
             setDayId(dayid)
+            setDayDate(date)
             setShowAdd(true)
         }
     
@@ -58,7 +60,13 @@ export default function TripList({ trip }: TripProps) {
             )
         }
     
-        const handleDeleteEvent = (dayId: string, eventId: string) => {
+        const handleDeleteEvent = async (dayId: string, eventId: string) => {
+            const res = await fetch('/api/auth/event', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: eventId })
+            })
+            if (!res.ok) { console.error('Failed to delete event'); return }
             setDays(prev =>
                 prev.map(day =>
                     day.id === dayId
@@ -72,6 +80,10 @@ export default function TripList({ trip }: TripProps) {
             setEvent(event)
         }
 
+        const handleAddDay = () => {
+            setDays((prevDays) => [...prevDays, {id: (days.length + 1).toString(), itineraryid: trip.id, events: []}]);
+        }
+
         const handleUpvote = (dayId: string, eventId: string) => {
             setDays(prev =>
                 prev.map(day =>
@@ -81,9 +93,22 @@ export default function TripList({ trip }: TripProps) {
                             events: day.events.map(event => {
                                 if (event.id !== eventId) return event
 
+                                if (event.hasUpvoted) {
+                                    return {
+                                        ...event,
+                                        upvotes: event.upvotes - 1,
+                                        hasUpvoted: false
+                                    }
+                                }
+
                                 return {
                                     ...event,
-                                    upvotes: event.upvotes + 1
+                                    upvotes: event.upvotes + 1,
+                                    hasUpvoted: true,
+                                    downvotes: event.hasDownvoted
+                                        ? event.downvotes - 1
+                                        : event.downvotes,
+                                    hasDownvoted: false
                                 }
                             })
                         }
@@ -101,9 +126,22 @@ export default function TripList({ trip }: TripProps) {
                             events: day.events.map(event => {
                                 if (event.id !== eventId) return event
 
+                                if (event.hasDownvoted) {
+                                    return {
+                                        ...event,
+                                        downvotes: event.downvotes - 1,
+                                        hasDownvoted: false
+                                    }
+                                }
+
                                 return {
                                     ...event,
-                                    downvotes: event.downvotes + 1
+                                    downvotes: event.downvotes + 1,
+                                    hasDownvoted: true,
+                                    upvotes: event.hasUpvoted
+                                        ? event.upvotes - 1
+                                        : event.upvotes,
+                                    hasUpvoted: false
                                 }
                             })
                         }
@@ -116,8 +154,8 @@ export default function TripList({ trip }: TripProps) {
 
             
             // Display of Days
-            <div className="min-h-screen bg-[#f5f5f5] flex items-start justify-center pt-16 px-4">
-                <div className="w-full max-w-5xl">
+            <div className="pt-16 px-4">
+                <div className="w-full max-w-5xl mx-auto ">
     
                     <div className="space-y-2.5">
                         {days.map((day) => (
@@ -135,7 +173,9 @@ export default function TripList({ trip }: TripProps) {
                   {showAdd && (
                     <AddEvent
                         day = {dayid}
-                        trip = {tripid}
+                        date = {dayDate}
+                        trip = {trip.id}
+                        members = {trip.travelers}
                         onClose={() => setShowAdd(false)}
                         onAdd={handleAddEvent}
                     />
@@ -144,12 +184,36 @@ export default function TripList({ trip }: TripProps) {
                     {selectEvent && (
                         <AddEvent
                             day = {selectEvent.dayid}
-                            trip = {tripid}
+                            trip = {trip.id}
                             event = {selectEvent}
+                            members = {trip.travelers}
                             onClose={() => setEvent(null)}
                             onAdd={handleEdit}
                         />
                     )}
+                    <div className="mt-6">
+
+                {/* Add Day Button */}
+                <button
+                  onClick={handleAddDay}
+                  className="
+                     w-full max-w-6xl mx-auto
+                     flex items-center justify-center gap-2
+                     bg-gray-100
+                     border border-orange-400
+                     rounded-xl
+                     py-4
+                     text-lg font-medium
+                     hover:bg-yellow-400
+                     transition
+                    "
+                     >
+                <Plus size={20} className="text-orange-500" />
+                 Add Day
+                 </button>
+
+            </div>
+                    
                 </div>
             </div>
     
