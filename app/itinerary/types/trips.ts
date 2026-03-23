@@ -14,6 +14,7 @@ export interface Trip {
   startDate?: string
   endDate?: string
   travelers: Traveler[]
-  coverImage: string
+  coverImage?: string
+  cover_photo_url?: string | null
   days: Day[]
 }
