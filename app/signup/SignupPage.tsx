@@ -39,7 +39,7 @@ export default function SignupPage() {
 
   return (
     <div style={styles.container}>
-      <form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md" style={styles.form} onSubmit={handleSubmit}>
+      <form style={styles.form} onSubmit={handleSubmit}>
         <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
 
         {/* Username */}
