@@ -9,17 +9,21 @@ import { Trip } from '../types/trips'
 import { Day } from '../day'
 import { Event, EventLabel, EventStatus } from '../event'
 
+// calculates ends_at time based on start_at and duration 
 function timeDiffMinutes(start: string, end: string): number{
   const [sh, sm] = start.split(':').map(Number)
   const [eh, em] = end.split(':').map(Number)
   return (eh*60+em)-(sh*60+sm)
 }
 
+// Main page component for itinerary, fetches trip and event data, processes it, and renders TripHeader and TripList components
 export default async function ItineraryPage({params}: {params: Promise<{ tripId: string }>}){
   const {tripId} = await params
 
   const cookieStore = await cookies()
   const supabase = await createClient(cookieStore)
+
+  const { data: { user } } = await supabase.auth.getUser()
 
   const [{data: itinerary, error: itinError}, {data: dbEvents}, {data: members}] = await Promise.all([
     getItinerary(supabase, tripId),
@@ -33,6 +37,29 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
   }
 
   const rawEvents = dbEvents ?? []
+
+  // Fetch the current user's votes for events in this itinerary
+  const voteMap = new Map<string, { id: string; vote_type: string }>()
+  if (user && rawEvents.length > 0) {
+    const { data: member } = await supabase
+      .from('itinerary_members')
+      .select('id')
+      .eq('itinerary_id', tripId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (member) {
+      const eventIds = rawEvents.map(ev => ev.id)
+      const { data: userVotes } = await supabase
+        .from('event_votes')
+        .select('id, event_id, vote_type')
+        .eq('user_id', member.id)
+        .in('event_id', eventIds)
+      for (const v of userVotes ?? []) {
+        voteMap.set(v.event_id, { id: v.id, vote_type: v.vote_type })
+      }
+    }
+  }
 
   // Collect all unique traveler UUIDs across all events
   const allTravelerIds = [
@@ -67,7 +94,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     dateGroups.set(key, group)
   }
 
-  // Build Day[]
+  // Build Day[] with events
   let dayCounter = 1
   const days: Day[] = []
 
@@ -80,6 +107,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
           ? timeDiffMinutes(ev.starts_at, ev.ends_at)
           : 0
 
+      // Maps traveler ids to names
       const travelerNames = ((ev.travelers as string[] | null) ?? [])
         .map(id => profileMap.get(id) ?? id)
         .join(', ')
@@ -98,6 +126,9 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
         type: (ev.type as EventLabel) ?? 'Activity',
         upvotes: ev.upvote ?? 0,
         downvotes: ev.downvote ?? 0,
+        hasUpvoted: voteMap.get(ev.id)?.vote_type === 'upvote',
+        hasDownvoted: voteMap.get(ev.id)?.vote_type === 'downvote',
+        voteId: voteMap.get(ev.id)?.id,
       }
     })
 
@@ -107,6 +138,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
 
   const location = itinerary.location ?? ''
 
+  // Constructs Trip object to pass to components
   const trip: Trip = {
     id: tripId,
     title: itinerary.title ?? 'Untitled Trip',

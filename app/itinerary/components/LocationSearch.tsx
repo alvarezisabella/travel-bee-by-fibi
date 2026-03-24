@@ -10,6 +10,7 @@ interface Props {
   onClose?: () => void
 }
 
+// Component for searching locations with a dropdown of suggestions
 export default function LocationSearch({ value, onChange, onClose }: Props) {
   const [query, setQuery] = useState(value === "Add location" ? "" : value)
   const [open, setOpen] = useState(true)
@@ -42,6 +43,7 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
     return () => document.removeEventListener("mousedown", handler)
   }, [onClose])
 
+  // Handles selecting a location from the dropdown, sets query to selected location 
   const handleSelect = (loc: string) => {
     setQuery(loc)
     onChange(loc)
@@ -49,12 +51,14 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
     onClose?.()
   }
 
+  // Handles clearing the search input, resets query 
   const handleClear = () => {
     setQuery("")
     onChange("")
     inputRef.current?.focus()
   }
 
+  // Renders the search input and dropdown suggestions based on the query
   return (
     <div ref={containerRef} className="relative w-72">
       <div className="flex items-center gap-2 border border-gray-300 rounded-xl px-3 py-2 bg-white focus-within:border-yellow-400 focus-within:ring-2 focus-within:ring-yellow-100 transition-all">

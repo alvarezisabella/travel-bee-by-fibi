@@ -32,6 +32,14 @@ export default function TripHeader({ trip }: Props) {
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
 
+  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string }) => {
+    await fetch('/api/auth/itinerary', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: trip.id, ...fields }),
+    })
+  }
+
   const [coverImage, setCoverImage] = useState<string | null>(trip.cover_photo_url || null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -156,7 +164,7 @@ export default function TripHeader({ trip }: Props) {
                 if (e.key === "Enter") { e.currentTarget.blur(); setEditing(false) }
                 if (e.key === "Escape") { setEditing(false) }
               }}
-              onBlur={() => setEditing(false)}
+              onBlur={() => { setEditing(false); saveItinerary({ title }) }}
             />
           ) : (
             <h1 className="text-2xl font-bold cursor-pointer" onClick={() => setEditing(true)}>
@@ -174,7 +182,7 @@ export default function TripHeader({ trip }: Props) {
                 <LocationSearch
                   value={location}
                   onChange={(val) => setLocation(val)}
-                  onClose={() => setEditingLocation(false)}
+                  onClose={() => { setEditingLocation(false); saveItinerary({ location }) }}
                 />
               ) : (
                 <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
@@ -188,8 +196,19 @@ export default function TripHeader({ trip }: Props) {
               <Calendar size={16} />
               {editingDates ? (
                 <div className="flex gap-1">
-                  <input type="date" className="border rounded px-1 text-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                  <input type="date" className="border rounded px-1 text-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} onBlur={() => setEditingDates(false)} />
+                  <input
+                    type="date"
+                    className="border rounded px-1 text-sm"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className="border rounded px-1 text-sm"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    onBlur={() => { setEditingDates(false); saveItinerary({ start_date: startDate, end_date: endDate }) }}
+                  />
                 </div>
               ) : (
                 <span className="cursor-pointer hover:text-black" onClick={() => setEditingDates(true)}>

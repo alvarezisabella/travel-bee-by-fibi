@@ -20,6 +20,7 @@ export interface Event {
     downvotes: number
     hasUpvoted?: boolean
     hasDownvoted?: boolean
+    voteId?: string
 }
 
 interface EventCardProp {

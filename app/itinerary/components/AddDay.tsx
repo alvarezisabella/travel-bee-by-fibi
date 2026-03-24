@@ -3,11 +3,13 @@
 import { useState } from "react"
 import { Plus } from "lucide-react"
 
+// Component for adding a new day to the itinerary, includes button to open form and form design
 export default function AddDayButton() {
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState("")
   const [savedDates, setSavedDates] = useState<string[]>([])
 
+  // Handles saving new day, checks if date is valid and not already added, then adds to savedDates state and closes form
   const handleSave = () => {
     if (!date) return
 

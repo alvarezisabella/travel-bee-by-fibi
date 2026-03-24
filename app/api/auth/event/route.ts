@@ -31,6 +31,7 @@ export async function POST(req: NextRequest){
     return NextResponse.json({ event: data }, { status: 201 })
 }
 
+// PUT function to update event details based on event ID and provided fields in request body
 export async function PUT(req: NextRequest) {
     const {id, title, description, status, startTime, duration, location, type, travelers} = await req.json()
     if(!id || !title) { return NextResponse.json({ error: 'ID and title are required.' }, { status: 400 }) }
@@ -50,6 +51,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true }, { status: 200 })
 }
 
+// DELETE function to remove event based on provided event ID in request body
 export async function DELETE(req: NextRequest) {
     const { id } = await req.json()
     if (!id) return NextResponse.json({ error: 'ID is required.' }, { status: 400 })
