@@ -7,7 +7,7 @@ import AddEvent from './add_event'
 export interface Day{
     id: string
     itineraryid: string;
-    date?: string;
+    date: string;
     events: Event[];
 }
 interface DayProps {

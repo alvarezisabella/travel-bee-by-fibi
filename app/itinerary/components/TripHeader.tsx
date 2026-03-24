@@ -9,6 +9,8 @@ import { Trip } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
 import LocationSearch from "./LocationSearch"
+// import { navigate } from "next/dist/client/components/segment-cache/navigation"
+import { useRouter } from "next/navigation"
 
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
 type InviteTab = "link" | "email" | "travelers"
 
 export default function TripHeader({ trip }: Props) {
+  const router = useRouter();
 
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
@@ -197,10 +200,31 @@ export default function TripHeader({ trip }: Props) {
 
           {/* Bottom Icons */}
           <div className="flex gap-5 mt-5 text-gray-600">
-            <List size={20} />
-            <CalendarDays size={20} />
-            <Map size={20} />
-            <Bookmark size={20} />
+            <button
+              onClick={() => router.push(`/itinerary/${trip.id}`)}
+              className="hover:text-black transition"
+            >
+              <List size={20} />
+            </button>
+
+            <button
+              onClick={() => router.push(`/itinerary/${trip.id}/calendar`)}
+              className="hover:text-black transition"
+            >
+              <CalendarDays size={20} />
+            </button>
+            <button
+              onClick={() => router.push(`/itinerary/${trip.id}/map`)}
+              className="hover:text-black transition"
+            >
+              <Map size={20} />
+            </button>
+            <button
+              onClick={() => router.push(`/itinerary/${trip.id}/bookmarks`)}
+              className="hover:text-black transition"
+            >
+              <Bookmark size={20} />
+            </button>
           </div>
 
         </div>

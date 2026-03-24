@@ -14,7 +14,7 @@ const SAMPLE_EVENTS:Event[] = [
     { id: "5", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", dayid: "1", title: "evening time", description: "", status: "Pending", startTime: "18:00", duration: 60, location: "", travelers: "", type: "Activity", upvotes: 0, downvotes: 0 },
   ]
 
-const MOCK_DAYS:Day[] = [{id: "1", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events: SAMPLE_EVENTS}, {id: "2", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events:[]}]
+const MOCK_DAYS:Day[] = [{id: "1", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events: SAMPLE_EVENTS, date: "2023-10-10"}, {id: "2", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events: [], date: "2023-10-11"}]
 
 async function getTrip(): Promise<Trip> {
   return {

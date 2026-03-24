@@ -3,11 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getItinerary } from '@/lib/supabase/itinerary'
 import { getEventsByItinerary } from '@/lib/supabase/event'
 import { getItineraryMembers } from '@/lib/supabase/itineraryMembers'
-import TripHeader from '../components/TripHeader'
-import TripList from '../components/TripCard'
-import { Trip } from '../types/trips'
-import { Day } from '../day'
-import { Event, EventLabel, EventStatus } from '../event'
+import TripHeader from '../../components/TripHeader'
+import TripList from '../../components/TripCard'
+import { Trip } from '../../types/trips'
+import { Day } from '../../day'
+import { Event, EventLabel, EventStatus } from '../../event'
+import { Calendar } from 'lucide-react'
+import CalendarGrid from '../../components/CalendarGrid'
 
 function timeDiffMinutes(start: string, end: string): number{
   const [sh, sm] = start.split(':').map(Number)
@@ -121,7 +123,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
   return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
-      <TripList trip={trip} />
+      <CalendarGrid days={trip.days} />
     </main>
   )
 }
