@@ -80,8 +80,23 @@ export default function TripList({trip }: TripProps) {
             setEvent(event)
         }
 
-        const handleAddDay = () => {
-            setDays((prevDays) => [...prevDays, {id: (days.length + 1).toString(), itineraryid: trip.id, events: []}]);
+        // When adding a day, calculates the next date based on the trip's start date and the number of existing days. 
+        // If the new date exceeds the itinerary's end date, updates the itinerary's end date accordingly.
+        const handleAddDay = async () => {
+            const startDate = trip.startDate ? new Date(trip.startDate) : null
+            const nextDate = startDate
+                ? new Date(startDate.getTime() + days.length * 86400000).toISOString().split('T')[0]
+                : undefined
+
+            if (nextDate && (!trip.endDate || nextDate > trip.endDate)) {
+                await fetch('/api/auth/itinerary', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: trip.id, end_date: nextDate })
+                })
+            }
+
+            setDays(prev => [...prev, { id: String(prev.length + 1), itineraryid: trip.id, date: nextDate, events: [] }])
         }
 
         const handleUpvote = async (dayId: string, eventId: string) => {
