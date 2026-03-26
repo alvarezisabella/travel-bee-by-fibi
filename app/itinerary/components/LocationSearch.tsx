@@ -7,7 +7,7 @@ import { WORLD_LOCATIONS } from "../data/worldLocations"
 interface Props {
   value: string
   onChange: (val: string) => void
-  onClose?: () => void
+  onClose?: (val: string) => void
 }
 
 // Component for searching locations with a dropdown of suggestions
@@ -36,7 +36,7 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false)
-        onClose?.()
+        onClose?.(query)
       }
     }
     document.addEventListener("mousedown", handler)
@@ -48,7 +48,7 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
     setQuery(loc)
     onChange(loc)
     setOpen(false)
-    onClose?.()
+    onClose?.(loc)
   }
 
   // Handles clearing the search input, resets query 
@@ -69,13 +69,13 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
           onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
           onFocus={(e) => { e.target.select(); setOpen(true) }}
           onKeyDown={(e) => {
-            if (e.key === "Escape") { setOpen(false); onClose?.() }
+            if (e.key === "Escape") { setOpen(false); onClose?.(query) }
             if (e.key === "Enter") {
               if (filtered.length > 0) {
                 handleSelect(filtered[0])
               } else if (query.trim().length > 0) {
                 onChange(query.trim())
-                onClose?.()
+                onClose?.(query.trim())
               }
             }
           }}

@@ -182,7 +182,7 @@ export default function TripHeader({ trip }: Props) {
                 <LocationSearch
                   value={location}
                   onChange={(val) => setLocation(val)}
-                  onClose={() => { setEditingLocation(false); saveItinerary({ location }) }}
+                  onClose={(val) => { setEditingLocation(false); saveItinerary({ location: val }) }}
                 />
               ) : (
                 <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
