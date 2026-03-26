@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     const inviteLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${tripId}&email=${email}`;
     const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "TravelBee <onboarding@resend.dev>",
       to: email,
       subject: `${inviterName} invited you to a trip!`,
       html: `
