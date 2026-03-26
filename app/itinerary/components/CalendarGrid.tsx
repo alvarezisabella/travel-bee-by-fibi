@@ -2,7 +2,7 @@ import { Event } from "../event"
 
 interface DayWithDate {
   id: string
-  date: string // "2026-07-14"
+  date: string
   events: Event[]
 }
 
@@ -11,7 +11,7 @@ interface CalendarGridProps {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
-const HOUR_HEIGHT = 80 // px per hour
+const HOUR_HEIGHT = 80
 
 export default function CalendarGrid({ days }: CalendarGridProps) {
 
@@ -30,22 +30,28 @@ export default function CalendarGrid({ days }: CalendarGridProps) {
     })
   }
 
-  // 🔥 Normalize event times for easier math
   const getEventPosition = (event: Event) => {
-    const [startH, startM] = event.startTime.split(":").map(Number)
-    const startMinutes = startH * 60 + startM
-
-    const endMinutes = startMinutes + event.duration
+    const [h, m] = event.startTime.split(":").map(Number)
+    const start = h * 60 + m
+    const end = start + event.duration
 
     return {
-      top: (startMinutes / 60) * HOUR_HEIGHT,
-      height: ((endMinutes - startMinutes) / 60) * HOUR_HEIGHT,
+      top: (start / 60) * HOUR_HEIGHT,
+      height: ((end - start) / 60) * HOUR_HEIGHT,
     }
   }
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="grid grid-cols-[80px_repeat(7,minmax(140px,1fr))] border bg-white">
+
+      {/* 🔥 MAIN GRID */}
+      <div
+        className="grid border bg-white"
+        style={{
+          gridTemplateColumns: `80px repeat(${days.length}, minmax(140px, 1fr))`,
+          gridTemplateRows: `60px repeat(24, ${HOUR_HEIGHT}px)`,
+        }}
+      >
 
         {/* Empty corner */}
         <div />
@@ -54,36 +60,41 @@ export default function CalendarGrid({ days }: CalendarGridProps) {
         {days.map((day) => (
           <div
             key={day.id}
-            className="text-center border-b py-3 text-sm font-medium bg-gray-50"
+            className="border-b text-center font-medium text-sm py-2 bg-gray-50"
           >
             {formatDayHeader(day.date)}
           </div>
         ))}
 
-        {/* Time rows */}
+        {/* Time labels + grid cells */}
         {HOURS.map((hour) => (
-          <div key={hour} className="contents">
-            <div className="border-t text-xs p-2 text-gray-500">
+          <>
+            {/* Time column */}
+            <div
+              key={`time-${hour}`}
+              className="border-t text-xs text-gray-500 p-2"
+            >
               {formatHour(hour)}
             </div>
 
+            {/* Day columns */}
             {days.map((day) => (
               <div
                 key={`${day.id}-${hour}`}
-                className="relative border-t border-l h-20"
+                className="border-t border-l"
               />
             ))}
-          </div>
+          </>
         ))}
 
-        {/* 🔥 Render ALL events once per day (not per hour) */}
-        {days.map((day) => (
+        {/* 🔥 EVENTS LAYER */}
+        {days.map((day, index) => (
           <div
             key={`events-${day.id}`}
-            className="col-start-2 relative"
+            className="relative"
             style={{
-              gridColumn: `span 1`,
-              gridRow: `2 / span ${HOURS.length}`,
+              gridColumn: index + 2,
+              gridRow: "2 / span 24",
             }}
           >
             {day.events.map((event) => {
@@ -92,17 +103,15 @@ export default function CalendarGrid({ days }: CalendarGridProps) {
               return (
                 <div
                   key={event.id}
-                  className="absolute left-1 right-1 rounded-md p-2 text-xs shadow-sm overflow-hidden"
+                  className="absolute left-1 right-1 rounded-md p-2 text-xs shadow-sm"
                   style={{
                     top,
                     height,
                     backgroundColor: getEventColor(event.type),
                   }}
                 >
-                  <div className="font-medium truncate">
-                    {event.title}
-                  </div>
-                  <div className="opacity-70 text-[10px]">
+                  <div className="font-medium">{event.title}</div>
+                  <div className="text-[10px] opacity-70">
                     {event.startTime}
                   </div>
                 </div>
@@ -116,7 +125,7 @@ export default function CalendarGrid({ days }: CalendarGridProps) {
   )
 }
 
-/* 🎨 Event colors */
+/* 🎨 Colors */
 function getEventColor(type: string) {
   switch (type) {
     case "Activity":
