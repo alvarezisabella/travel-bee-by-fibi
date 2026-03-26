@@ -2,28 +2,9 @@
 import {useState} from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 import EditEvent from "./edit_event"
-import { Trip } from "../types/trips";
-
-
+import { Event, EventLabel, EventStatus } from "../types/trips";
 import { Traveler } from "../types/trips";
-export interface Event {
-    id: string
-    itineraryid: string
-    dayid: string
-    title: string
-    description: string
-    status: EventStatus
-    startTime: string
-    duration: number
-    location: string
-    travelers: string
-    type: EventLabel;
-    upvotes: number
-    downvotes: number
-    hasUpvoted?: boolean
-    hasDownvoted?: boolean
-    voteId?: string
-}
+
 
 interface EventCardProp {
     event: Event;
@@ -33,9 +14,6 @@ interface EventCardProp {
     onUpvote: (eventid: string) => void
     onDownvote: (eventid: string) => void
 }
-
-export type EventLabel = "Activity" | "Transit" | "Reservation" | "Food" 
-export type EventStatus = "Pending" | "Confirmed" | "Idea"
 
 const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: string; time: string }> = {
   Activity:  { bg: "bg-[#eef4f0]", bar: "bg-[#8fad9b]", text: "text-[#3a5a46]", time: "text-[#6a9078]" },
@@ -54,14 +32,13 @@ const STATUS_MAP: Record<EventStatus, string> = {
 export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvote }: EventCardProp) {
   const [hovered, setHovered] = useState(false)
   const [isEditing, setEditing] = useState(false)
-  const [editedEvent, setEditedEvent] = useState(event);
   const colors = LABEL_MAP[event.type];
   const status_bg = STATUS_MAP[event.status]
 
   return(
     <div className="event-card">
     {isEditing ? (
-        <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={() => setEditing(false)} onSave={() => onSave(event)}></EditEvent>
+        <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={() => setEditing(false)} onSave={onSave}></EditEvent>
 
     ) : (
     <div

@@ -30,9 +30,8 @@ export default function TripList({trip }: TripProps) {
         const [selectEvent, setEvent] = useState<Event | null>(null)
         const [open, setOpen] = useState(false)
     
-        const initAddHandler = (dayid: string, date: string) => {
+        const initAddHandler = (dayid: string) => {
             setDayId(dayid)
-            setDayDate(date)
             setShowAdd(true)
         }
     
@@ -47,6 +46,7 @@ export default function TripList({trip }: TripProps) {
         }, []);
     
         const handleEdit = (alteredEvent: Event) => {
+            console.log("edited event being rendered: id - ", alteredEvent.type)
             setDays(prev =>
                 prev.map(day =>
                     day.id === alteredEvent.dayid
@@ -218,9 +218,10 @@ export default function TripList({trip }: TripProps) {
                             <DayCell
                                 key={day.id}
                                 day={day}
-                                onAddEvent={initAddHandler}
+                                members={trip.travelers}
+                                onAddEvent={handleAddEvent}
+                                onEditEvent={handleEdit}
                                 onDeleteEvent={handleDeleteEvent}
-                                onOpenEvent={handleOpenEvent}
                                 onUpvote={handleUpvote}
                                 onDownvote={handleDownvote}
                             />
