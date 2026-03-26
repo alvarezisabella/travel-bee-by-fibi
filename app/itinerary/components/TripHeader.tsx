@@ -8,6 +8,7 @@ import { Trip } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
+import { downloadICS } from "@/lib/ics"
 
 interface Props {
   trip: Trip
@@ -262,6 +263,12 @@ export default function TripHeader({ trip }: Props) {
 
         {/* Buttons */}
         <div className="flex gap-3">
+          <button
+            onClick={() => downloadICS(trip)}
+            className="border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Save to Calendar
+          </button>
           <button
             onClick={() => { setInviteModal(true); setInviteTab("link") }}
             className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-full text-sm font-medium"
