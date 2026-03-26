@@ -11,14 +11,17 @@ export async function insertItinerary(supabase: SupabaseClient,
 export async function getItinerary(supabase: SupabaseClient, id: string) {
   return supabase
     .from('itineraries')
-    .select('id, title, start_date, end_date, location, created_by, created_at')
+    .select('id, title, start_date, end_date, location, created_by, created_at, cover_photo_url')
     .eq('id', id)
     .single()
 }
 
 // Gets all itineraries created by a user, returns array of itinerary objects
 export async function getItinerariesByUser(supabase: SupabaseClient, userId: string) {
-  return supabase.from('itineraries').select('id, title, start_date, end_date, created_by, created_at').eq('created_by', userId)
+  return supabase
+    .from('itineraries')
+    .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, location')
+    .eq('created_by', userId)
 }
 
 // Updates itinerary row with provided fields, returns success or error

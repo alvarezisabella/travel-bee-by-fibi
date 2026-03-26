@@ -172,6 +172,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     startDate: itinerary.start_date ?? undefined,
     endDate: itinerary.end_date ?? undefined,
     coverImage: '',
+    cover_photo_url: itinerary.cover_photo_url ?? null,
     travelers: members ?? [],
     days,
   }

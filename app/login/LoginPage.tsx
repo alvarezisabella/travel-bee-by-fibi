@@ -1,11 +1,16 @@
 "use client";
 import { useState } from "react";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+
+
 
 // design for login page and routing for signing in
 export default function LoginPage() {
   // variables for email, password, error message, and loading state
-  // const router = useRouter();
+  const router = useRouter();
+  const params = useSearchParams();
+  const redirect = params.get("redirect");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,7 +38,8 @@ export default function LoginPage() {
       return;
     }
 // on successful login, redirects user to home page
-    window.location.href = "/";
+    // window.location.href = "/";
+    router.push(redirect || "/");
   };
 
   return (
