@@ -102,11 +102,34 @@ export default function TripHeader({ trip }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleSendInvite = () => {
-    if (!emailInput.trim() || !emailInput.includes("@")) return
-    if (!sentInvites.includes(emailInput.trim())) setSentInvites((prev) => [...prev, emailInput.trim()])
-    setEmailInput("")
+  const handleSendInvite = async () => {
+    if (!emailInput) return
+
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailInput,
+          tripId: trip.id,
+          inviterName: trip.travelers.find(t => t.role === "owner")?.name || "A friend",
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error)
+
+      setSentInvites((prev) => [...prev, emailInput])
+      setEmailInput("")
+    } catch (err) {
+      console.error(err)
+      alert("Failed to send invite")
+    }
   }
+
 
   const handleRemoveTraveler = (id: string) => setTravelers((prev) => prev.filter((t) => t.id !== id))
 
@@ -182,7 +205,7 @@ export default function TripHeader({ trip }: Props) {
                 <LocationSearch
                   value={location}
                   onChange={(val) => setLocation(val)}
-                  onClose={() => { setEditingLocation(false); saveItinerary({ location }) }}
+                  onClose={(val) => { setEditingLocation(false); saveItinerary({ location: val }) }}
                 />
               ) : (
                 <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>

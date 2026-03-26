@@ -85,8 +85,10 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     return (a.starts_at ?? '').localeCompare(b.starts_at ?? '')
   })
 
-  // Group by day column
+  // Group events by their date
   const dateGroups = new Map<string, typeof rawEvents>()
+  // Checks if each event has a date
+  // If no date, adds to undated group, otherwise groups by date
   for (const ev of rawEvents){
     const key = ev.day ?? 'undated'
     const group = dateGroups.get(key) ?? []
@@ -94,46 +96,70 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     dateGroups.set(key, group)
   }
 
-  // Build Day[] with events
-  let dayCounter = 1
+  // Helper to map a db event to the frontend Event type
+  const mapEvent = (ev: typeof rawEvents[0], dayId: string): Event => {
+    // Computes duration in minutes if both start and end times are present
+    const duration = ev.starts_at && ev.ends_at ? timeDiffMinutes(ev.starts_at, ev.ends_at) : 0
+    const travelerNames = ((ev.travelers as string[] | null) ?? [])
+      .map(id => profileMap.get(id) ?? id)
+      .join(', ')
+    return {
+      id: ev.id,
+      itineraryid: ev.itinerary_id,
+      dayid: dayId,
+      title: ev.title,
+      description: ev.description ?? '',
+      status: (ev.status as EventStatus) ?? 'Pending',
+      startTime: ev.starts_at ?? '',
+      duration,
+      location: ev.location ?? '',
+      travelers: travelerNames,
+      type: (ev.type as EventLabel) ?? 'Activity',
+      upvotes: ev.upvote ?? 0,
+      downvotes: ev.downvote ?? 0,
+      hasUpvoted: voteMap.get(ev.id)?.vote_type === 'upvote',
+      hasDownvoted: voteMap.get(ev.id)?.vote_type === 'downvote',
+      voteId: voteMap.get(ev.id)?.id,
+    }
+  }
+
   const days: Day[] = []
 
-  for (const [key, eventsInGroup] of dateGroups.entries()){
-    const dayId = String(dayCounter)
+  // Generate one Day per calendar date in the trip's range
+  if (itinerary.start_date && itinerary.end_date) {
+    let current = new Date(itinerary.start_date)
+    const end = new Date(itinerary.end_date)
+    let dayCounter = 1
 
-    const events: Event[] = eventsInGroup.map(ev => {
-      const duration =
-        ev.starts_at && ev.ends_at
-          ? timeDiffMinutes(ev.starts_at, ev.ends_at)
-          : 0
+    // Loop from start date to end date and create a Day for each date, attaching events that match that date
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0]
+      const dayId = String(dayCounter)
+      const events = (dateGroups.get(dateStr) ?? []).map(ev => mapEvent(ev, dayId))
+      days.push({ id: dayId, itineraryid: tripId, date: dateStr, events })
+      dateGroups.delete(dateStr)
+      current = new Date(current.getTime() + 86400000)
+      dayCounter++
+    }
 
-      // Maps traveler ids to names
-      const travelerNames = ((ev.travelers as string[] | null) ?? [])
-        .map(id => profileMap.get(id) ?? id)
-        .join(', ')
-
-      return {
-        id: ev.id,
-        itineraryid: ev.itinerary_id,
-        dayid: dayId,
-        title: ev.title,
-        description: ev.description ?? '',
-        status: (ev.status as EventStatus) ?? 'Pending',
-        startTime: ev.starts_at ?? '',
-        duration,
-        location: ev.location ?? '',
-        travelers: travelerNames,
-        type: (ev.type as EventLabel) ?? 'Activity',
-        upvotes: ev.upvote ?? 0,
-        downvotes: ev.downvote ?? 0,
-        hasUpvoted: voteMap.get(ev.id)?.vote_type === 'upvote',
-        hasDownvoted: voteMap.get(ev.id)?.vote_type === 'downvote',
-        voteId: voteMap.get(ev.id)?.id,
-      }
-    })
-
-    days.push({ id: dayId, itineraryid: tripId, date: key !== 'undated' ? key : undefined, events })
-    dayCounter++
+    // Any events outside the range are added to a final "leftover" day at the end
+    const leftover: Event[] = []
+    for (const evs of dateGroups.values()) {
+      const dayId = String(dayCounter)
+      for (const ev of evs) leftover.push(mapEvent(ev, dayId))
+    }
+    if (leftover.length > 0) {
+      days.push({ id: String(dayCounter), itineraryid: tripId, events: leftover })
+    }
+  } else {
+    // Fallback: build days from grouped events (no date range set)
+    let dayCounter = 1
+    for (const [key, eventsInGroup] of dateGroups.entries()){
+      const dayId = String(dayCounter)
+      const events = eventsInGroup.map(ev => mapEvent(ev, dayId))
+      days.push({ id: dayId, itineraryid: tripId, date: key !== 'undated' ? key : undefined, events })
+      dayCounter++
+    }
   }
 
   const location = itinerary.location ?? ''
