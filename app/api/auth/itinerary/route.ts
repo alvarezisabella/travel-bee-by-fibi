@@ -30,7 +30,7 @@ export async function POST(req: NextRequest){
 export async function PUT(req: NextRequest) {
     // Collects itinerary variables from json response
     // If id not provided, throws error
-    const { id, title, start_date, end_date, location} = await req.json()
+    const { id, title, start_date, end_date, location, cover_photo_url } = await req.json()
     if (!id) { return NextResponse.json({ error: 'Itinerary ID is required.' }, { status: 400 }) }
 
     // Creates supabase client
@@ -42,8 +42,8 @@ export async function PUT(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) { return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 }) }
 
-    // Updates itinerary row 
-    const { error } = await updateItinerary(supabase, id, { title, start_date, end_date, location})
+    // Updates itinerary row
+    const { error } = await updateItinerary(supabase, id, { title, start_date, end_date, location, cover_photo_url })
     if (error) { return NextResponse.json({ error: error.message }, { status: 500 }) }
 
     return NextResponse.json({ success: true }, { status: 200 })

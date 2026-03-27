@@ -26,7 +26,7 @@ export async function getItinerariesByUser(supabase: SupabaseClient, userId: str
 
 // Updates itinerary row with provided fields, returns success or error
 export async function updateItinerary(supabase: SupabaseClient, id: string,
-  data: { title?: string; start_date?: string; end_date?: string; location?: string }) {
+  data: { title?: string; start_date?: string; end_date?: string; location?: string; cover_photo_url?: string }) {
   return supabase.from('itineraries').update(data).eq('id', id)
 }
 
