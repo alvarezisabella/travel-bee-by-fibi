@@ -37,16 +37,16 @@ export async function getItineraryMembers(supabase: SupabaseClient, itineraryId:
   // Makes array of user ids from the members data
   const userIds = members.map((m) => m.user_id) 
 
-  // Selects id and name from profiles table of all userIDs
+  // Selects id and username from profiles table of all userIDs
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, name')
+    .select('id, username')
     .in('id', userIds)
 
-  // For each member, maps their user_id to their name from the profiles table
+  // For each member, maps their user_id to their username from the profiles table
   const profileMap = new Map<string, string>()
   for (const p of profiles ?? []) {
-    profileMap.set(p.id, p.name)
+    profileMap.set(p.id, p.username)
   }
 
   // Maps the members data to an array of objects containing id, name, and role for each member
