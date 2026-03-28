@@ -1,13 +1,12 @@
 import Link from "next/link"
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
-import { getItinerariesByUser } from "@/lib/supabase/itinerary"
+import UserMenu from "@/components/ui/UserMenu"
 
 interface NavbarProps {
   tripsHref: string
 }
 
-// Extracts initials from a full name e.g. "John Doe" → "JD"
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -22,22 +21,23 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
   const supabase = await createClient(cookieStore)
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Fetch profile for avatar/name if logged in
   let profileName: string | null = null
   let avatarUrl: string | null = null
 
   if (user) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("first_name, last_name, avatar_url")
-    .eq("id", user.id)
-    .single()
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name, last_name, avatar_url")
+      .eq("id", user.id)
+      .single()
 
-  const first = profile?.first_name ?? ""
-  const last = profile?.last_name ?? ""
-  profileName = [first, last].filter(Boolean).join(" ") || user.email || null
-  avatarUrl = profile?.avatar_url ?? null
-}
+    const first = profile?.first_name ?? ""
+    const last = profile?.last_name ?? ""
+    profileName = [first, last].filter(Boolean).join(" ") || user.email || null
+    avatarUrl = profile?.avatar_url ?? null
+  }
+
+  const initials = profileName ? getInitials(profileName) : "?"
 
   return (
     <nav className="w-full flex items-center justify-between px-10 py-4 bg-white border-b border-gray-100 shadow-sm">
@@ -65,22 +65,12 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
       {/* Auth - right */}
       <div className="flex-1 flex items-center justify-end gap-3">
         {user ? (
-          // Logged in — show avatar or initials
-          <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={profileName ?? "Profile"}
-                className="w-9 h-9 rounded-full object-cover border border-gray-200"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-sm font-bold text-gray-900">
-                {profileName ? getInitials(profileName) : "?"}
-              </div>
-            )}
-          </Link>
+          <UserMenu
+            profileName={profileName}
+            avatarUrl={avatarUrl}
+            initials={initials}
+          />
         ) : (
-          // Logged out — show login/signup buttons
           <>
             <Link
               href="/login"
