@@ -44,7 +44,9 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
 
       {/* Logo - left */}
       <div className="flex-1">
-        <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
+        <Link href="/">
+          <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
+        </Link>
       </div>
 
       {/* Nav Links - center */}
