@@ -4,7 +4,14 @@ import { Resend } from "resend";
 
 export async function POST(req: Request) {
   try {
-    const { email, tripId, inviterName } = await req.json();
+    const { email, tripId, inviterId } = await req.json();
+
+    if (!email || !tripId || !inviterId) {
+      return NextResponse.json(
+        { error: "Missing email, tripId, or inviterId" },
+        { status: 400 }
+      );
+    }
 
     const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -13,11 +20,24 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    //from: "onboarding@resend.dev",
-    
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", inviterId)
+      .single();
+
+    if (profileError) {
+      console.error("Profile lookup error:", profileError);
+    }
+
+    const inviterName =
+      profile?.username ||
+      "A friend";
+
     const inviteLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${tripId}&email=${email}`;
+
     const result = await resend.emails.send({
-      from: "travelbee@travelbeebyfibi.com",
+      from: "TravelBee<travelbee@travelbeebyfibi.com>",
       to: email,
       subject: `${inviterName} invited you to a trip!`,
       html: `
@@ -40,7 +60,6 @@ export async function POST(req: Request) {
       success: true,
       message: "Invite sent",
     });
-
   } catch (err: any) {
     console.error("Invite error:", err);
 

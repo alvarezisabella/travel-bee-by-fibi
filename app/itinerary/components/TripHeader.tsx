@@ -77,7 +77,7 @@ export default function TripHeader({ trip }: Props) {
         body: JSON.stringify({
           email: emailInput,
           tripId: trip.id,
-          inviterName: trip.travelers.find(t => t.role === "owner")?.name || "A friend",
+          inviterId: trip.travelers.find(t => t.role === "owner")?.id,
         }),
       })
 
