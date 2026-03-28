@@ -16,7 +16,6 @@ export default function AcceptInvitePage() {
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState("");
 
-  // 1) Check Supabase session directly (uses cookies that login set)
   useEffect(() => {
     const checkAuth = async () => {
       if (!tripId) {
@@ -35,7 +34,6 @@ export default function AcceptInvitePage() {
       }
 
       if (!data.session) {
-        // Not logged in → redirect once to login with redirect back
         const redirectUrl = encodeURIComponent(
           `/accept-invite?tripId=${tripId}&email=${emailFromLink ?? ""}`
         );
@@ -50,7 +48,6 @@ export default function AcceptInvitePage() {
     checkAuth();
   }, [tripId, emailFromLink, router]);
 
-  // 2) Accept invite via your existing API route
   const handleAcceptInvite = async () => {
     if (!tripId) {
       setError("Invalid invite link. Missing trip.");
@@ -99,9 +96,9 @@ export default function AcceptInvitePage() {
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md text-center">
         <h1 className="text-2xl font-bold mb-4">You're invited 🎉</h1>
 
-        <p className="mb-2">
+        {/* <p className="mb-2">
           <strong>Email:</strong> {displayEmail}
-        </p>
+        </p> */}
 
         <p className="mb-4">You’ve been invited to join this trip.</p>
 
