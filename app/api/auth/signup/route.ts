@@ -6,9 +6,9 @@ import { cookies } from 'next/headers'
 export async function POST(req: NextRequest) {
   // Collects profile variables from json request
   // If email, password, username not all provided, throws error
-  const { email, password, username } = await req.json()
-  if (!email || !password || !username) {
-    return NextResponse.json({ error: 'Email, password, and username are required.' }, { status: 400 })
+  const { email, password, username, firstName, lastName } = await req.json()
+  if (!email || !password || !username || !firstName || !lastName) {
+    return NextResponse.json({ error: 'All fields are required.' }, { status: 400 })
   }
 
   // Creates supabase client
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Inserts row into supabase profile table using user id and username
-  await insertProfile(supabase, data.user.id, username)
+  await insertProfile(supabase, data.user.id, username, firstName, lastName)
 
   // Returns successful status if signup is good
   return NextResponse.json({ user: data.user }, { status: 201 })

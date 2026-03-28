@@ -1,23 +1,22 @@
 "use client";
 import { useState } from "react";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
-// design for login page and routing for signing in
 export default function LoginPage() {
-  // variables for email, password, error message, and loading state
-  // const router = useRouter();
+  const router = useRouter();
+  const params = useSearchParams();
+  const redirect = params.get("redirect");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // error/success handling for logging
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // calls POST function from api/auth/login with user entered email and password
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -27,57 +26,72 @@ export default function LoginPage() {
     const data = await res.json();
     setLoading(false);
 
-    // error handling for login failure
     if (!res.ok) {
       setError(data.error ?? "Login failed.");
       return;
     }
-// on successful login, redirects user to home page
-    window.location.href = "/";
+
+    router.push(redirect || "/");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md" onSubmit={handleSubmit}>
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#D4DADF]"
+      onClick={() => router.push("/")}
+    >
+      <form
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 flex flex-col gap-4 mx-4"
+        onSubmit={handleSubmit}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="text-center mb-1">
+          <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
+          <p className="text-sm text-gray-500 mt-1">Log in to your TravelBee account</p>
+        </div>
 
         {/* Email */}
-        <label className="block mb-2 text-gray-700">Email</label>
         <input
           type="email"
-          placeholder="you@example.com"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
         />
 
         {/* Password */}
-        <label className="block mb-2 text-gray-700">Password</label>
         <input
           type="password"
-          placeholder="Your password"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
         />
 
-        {/* Submit */}
-        {error && (
-          <p className="text-red-500 text-sm text-center mb-4">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-500 text-center">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-3 rounded transition"
+          className="w-full py-2.5 bg-[#F5C842] hover:bg-[#e6b93a] text-gray-900 font-semibold text-sm rounded-xl transition-all disabled:opacity-50 mt-1"
         >
           {loading ? "Logging in..." : "Log In"}
         </button>
-        {/* Optional */}
-        <p className="mt-4 text-sm text-center text-gray-500">
-          Forgot your password?
+
+        <p className="text-center text-sm text-gray-500">
+          Forgot your password?{" "}
+          <a href="#" className="text-yellow-600 font-medium hover:underline">
+            Reset it
+          </a>
+        </p>
+
+        <p className="text-center text-sm text-gray-500">
+          Don't have an account?{" "}
+          <a href="/signup" className="text-yellow-600 font-medium hover:underline">
+            Sign up
+          </a>
         </p>
       </form>
     </div>

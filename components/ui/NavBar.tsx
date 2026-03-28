@@ -1,16 +1,52 @@
 import Link from "next/link"
+import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
+import UserMenu from "@/components/ui/UserMenu"
 
 interface NavbarProps {
   tripsHref: string
 }
 
-export default function Navbar({ tripsHref }: NavbarProps) {
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("")
+}
+
+export default async function NavBar({ tripsHref }: NavbarProps) {
+  const cookieStore = await cookies()
+  const supabase = await createClient(cookieStore)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let profileName: string | null = null
+  let avatarUrl: string | null = null
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name, last_name, avatar_url")
+      .eq("id", user.id)
+      .single()
+
+    const first = profile?.first_name ?? ""
+    const last = profile?.last_name ?? ""
+    profileName = [first, last].filter(Boolean).join(" ") || user.email || null
+    avatarUrl = profile?.avatar_url ?? null
+  }
+
+  const initials = profileName ? getInitials(profileName) : "?"
+
   return (
     <nav className="w-full flex items-center justify-between px-10 py-4 bg-white border-b border-gray-100 shadow-sm">
 
       {/* Logo - left */}
       <div className="flex-1">
-        <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
+        <Link href="/">
+          <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
+        </Link>
       </div>
 
       {/* Nav Links - center */}
@@ -26,14 +62,30 @@ export default function Navbar({ tripsHref }: NavbarProps) {
         </Link>
       </div>
 
-      {/* Auth Buttons - right */}
+      {/* Auth - right */}
       <div className="flex-1 flex items-center justify-end gap-3">
-        <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 transition-all">
-          Login
-        </Link>
-        <Link href="/signup" className="text-sm font-semibold text-gray-900 bg-[#F5C842] hover:bg-[#e6b93a] px-5 py-2 rounded-full transition-all shadow-sm">
-          Sign Up
-        </Link>
+        {user ? (
+          <UserMenu
+            profileName={profileName}
+            avatarUrl={avatarUrl}
+            initials={initials}
+          />
+        ) : (
+          <>
+            <Link
+              href="/login"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 transition-all"
+            >
+              Login
+            </Link>
+            <Link
+              href="/signup"
+              className="text-sm font-semibold text-gray-900 bg-[#F5C842] hover:bg-[#e6b93a] px-5 py-2 rounded-full transition-all shadow-sm"
+            >
+              Sign Up
+            </Link>
+          </>
+        )}
       </div>
 
     </nav>

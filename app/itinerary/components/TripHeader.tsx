@@ -72,12 +72,13 @@ export default function TripHeader({ trip }: Props) {
       // Cache-bust so the browser loads the new image instead of the cached one
       const bustUrl = `${publicUrl}?t=${Date.now()}`
 
-      const { error: dbError } = await supabase
-        .from("itineraries")
-        .update({ cover_photo_url: publicUrl }) // save clean URL to DB
-        .eq("id", trip.id)
+      const res = await fetch('/api/auth/itinerary', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: trip.id, cover_photo_url: bustUrl }),
+      })
 
-      if (dbError) throw dbError
+      if (!res.ok) throw new Error('Failed to save cover photo')
 
       setCoverImage(bustUrl) // use busted URL for display only
 

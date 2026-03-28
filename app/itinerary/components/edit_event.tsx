@@ -12,6 +12,7 @@ import {
 
 interface EditEventProps {
   day: string
+  date?: string
   trip: string
   event?: Event
   members?: Traveler[]
@@ -45,7 +46,7 @@ const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: string; tim
   Food:  { bg: "bg-[#f8eff2]", bar: "bg-[#b87a8a]", text: "text-[#5a2234]", time: "text-[#905060]" },
 };
 
-export default function EditEvent({day, trip, event, members, onClose, onSave}: EditEventProps) {
+export default function EditEvent({day, date, trip, event, members, onClose, onSave}: EditEventProps) {
     // variables that can be entered when adding an event
     // title is required
     const [altEvent, setEvent] = useState<Event>(event? event : emptyEvent)
@@ -72,7 +73,7 @@ export default function EditEvent({day, trip, event, members, onClose, onSave}: 
         const res = await fetch("/api/auth/event", {
         method: event ? "PUT" : "POST",
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: event?.id, itineraryid: trip, day: day, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers})})
+        body: JSON.stringify({id: event?.id, itineraryid: trip, day: date, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers})})
 
         // If unsuccessful, logs error. If successful, calls onAdd with new event details and closes add event card
         const data = await res.json()
