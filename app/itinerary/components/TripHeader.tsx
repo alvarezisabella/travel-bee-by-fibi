@@ -2,7 +2,7 @@
 
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
-  X, Copy, Check, Loader2
+  X, Copy, Check, Loader2, UserPlus
 } from "lucide-react"
 import { Trip } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
@@ -265,16 +265,16 @@ export default function TripHeader({ trip }: Props) {
         {/* Buttons */}
         <div className="flex gap-3">
           <button
-            onClick={() => downloadICS(trip)}
-            className="border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+            onClick={() => { setInviteModal(true); setInviteTab("link") }}
+            className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
           >
-            Save to Calendar
+            <UserPlus size={16} /> Invite Friends
           </button>
           <button
-            onClick={() => { setInviteModal(true); setInviteTab("link") }}
-            className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-full text-sm font-medium"
+            onClick={() => downloadICS(trip)}
+            className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
           >
-            Invite Friends
+            <Calendar size={16} /> Save to Calendar
           </button>
         </div>
       </div>
