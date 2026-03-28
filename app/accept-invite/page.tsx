@@ -96,9 +96,9 @@ export default function AcceptInvitePage() {
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md text-center">
         <h1 className="text-2xl font-bold mb-4">You're invited 🎉</h1>
 
-        <p className="mb-2">
+        {/* <p className="mb-2">
           <strong>Email:</strong> {displayEmail}
-        </p>
+        </p> */}
 
         <p className="mb-4">You’ve been invited to join this trip.</p>
 

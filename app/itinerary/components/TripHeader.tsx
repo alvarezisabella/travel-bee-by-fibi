@@ -57,7 +57,7 @@ export default function TripHeader({ trip }: Props) {
   const [copied, setCopied] = useState(false)
   const [travelers, setTravelers] = useState(trip.travelers)
 
-  const shareLink = "https://travelbee.com/trip/hawaii-summer-26?invite=abc123"
+  const shareLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${trip.id}`;
 
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(shareLink)
