@@ -1,5 +1,6 @@
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
+import ProfileForm from "./ProfileForm"
 
 export default async function ProfileHeader() {
   const cookieStore = await cookies()
@@ -8,7 +9,7 @@ export default async function ProfileHeader() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("first_name, last_name, avatar_url, created_at")
+    .select("first_name, last_name, avatar_url, created_at, username")
     .eq("id", user?.id ?? "")
     .single()
 
@@ -17,23 +18,34 @@ export default async function ProfileHeader() {
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : "Unknown"
 
+  const initials = [profile?.first_name?.[0], profile?.last_name?.[0]]
+    .filter(Boolean).join("").toUpperCase() || "?"
+
   return (
     <div className="bg-white rounded-2xl shadow-sm p-8 flex items-center gap-6">
-      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs text-center leading-tight px-1">
+      {/* Avatar */}
+      <div className="w-24 h-24 rounded-full overflow-hidden bg-yellow-100 flex items-center justify-center shrink-0">
         {profile?.avatar_url ? (
-          <img src={profile.avatar_url} className="w-full h-full rounded-full object-cover" />
+          <img src={profile.avatar_url} className="w-full h-full object-cover" alt={fullName} />
         ) : (
-          "Profile Photo"
+          <span className="text-2xl font-bold text-yellow-600">{initials}</span>
         )}
       </div>
+
+      {/* Info */}
       <div className="flex flex-col gap-2 flex-1">
         <p className="text-xl font-bold text-gray-800">{fullName}</p>
-        <p className="text-sm text-gray-400">{user?.email}</p>
+        <p className="text-sm text-gray-400">{profile?.username ? `@${profile.username}` : user?.email}</p>
         <p className="text-xs text-gray-300">Member since {memberSince}</p>
       </div>
-      <button className="w-28 h-9 bg-yellow-400 rounded-full text-sm font-medium text-gray-900">
-        Edit Profile
-      </button>
+
+      {/* Edit button — client component with modal */}
+      <ProfileForm
+        userId={user?.id ?? ""}
+        currentFirstName={profile?.first_name ?? null}
+        currentLastName={profile?.last_name ?? null}
+        currentAvatarUrl={profile?.avatar_url ?? null}
+      />
     </div>
   )
 }
