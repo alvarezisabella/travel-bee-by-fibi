@@ -42,7 +42,7 @@ export function DayCell({ day, members, onAddEvent, onDeleteEvent, onEditEvent, 
                 ))}
 
                 {addEvent && (
-                    <EditEvent day={day.id} trip={day.itineraryid} members={members} onClose={() => setAdd(false)} onSave={onAddEvent}/>
+                    <EditEvent day={day.id} date={day.date} trip={day.itineraryid} members={members} onClose={() => setAdd(false)} onSave={onAddEvent}/>
                 )}
 
                 <div className='max-w-24 border border-[#c9c9c9] rounded-2xl shadow-md 

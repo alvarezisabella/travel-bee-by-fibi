@@ -2,12 +2,13 @@
 
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
-  X, Copy, Check, Loader2
+  X, Copy, Check, Loader2, UserPlus
 } from "lucide-react"
 import { Trip } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
+import { downloadICS } from "@/lib/ics"
 
 interface Props {
   trip: Trip
@@ -48,35 +49,38 @@ export default function TripHeader({ trip }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Reset input value so the same file can be re-selected if needed
+    e.target.value = ""
+
     setUploading(true)
     setUploadError(null)
 
     try {
       const supabase = createClient()
 
-      // 1. Upload file to Supabase Storage
       const filePath = `${trip.id}/cover`
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadErr } = await supabase.storage
         .from("itinerary-covers")
         .upload(filePath, file, { upsert: true })
 
-      if (uploadError) throw uploadError
+      if (uploadErr) throw uploadErr
 
-      // 2. Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from("itinerary-covers")
         .getPublicUrl(filePath)
 
-      // 3. Save URL to itineraries table
-      const { error: dbError } = await supabase
-        .from("itineraries")
-        .update({ cover_photo_url: publicUrl })
-        .eq("id", trip.id)
+      // Cache-bust so the browser loads the new image instead of the cached one
+      const bustUrl = `${publicUrl}?t=${Date.now()}`
 
-      if (dbError) throw dbError
+      const res = await fetch('/api/auth/itinerary', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: trip.id, cover_photo_url: bustUrl }),
+      })
 
-      // 4. Update local preview
-      setCoverImage(publicUrl)
+      if (!res.ok) throw new Error('Failed to save cover photo')
+
+      setCoverImage(bustUrl) // use busted URL for display only
 
     } catch (err) {
       console.error("Upload failed:", err)
@@ -94,7 +98,7 @@ export default function TripHeader({ trip }: Props) {
   const [copied, setCopied] = useState(false)
   const [travelers, setTravelers] = useState(trip.travelers)
 
-  const shareLink = "https://travelbee.com/trip/hawaii-summer-26?invite=abc123"
+  const shareLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${trip.id}`;
 
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(shareLink)
@@ -114,7 +118,7 @@ export default function TripHeader({ trip }: Props) {
         body: JSON.stringify({
           email: emailInput,
           tripId: trip.id,
-          inviterName: trip.travelers.find(t => t.role === "owner")?.name || "A friend",
+          inviterId: trip.travelers.find(t => t.role === "owner")?.id,
         }),
       })
 
@@ -262,9 +266,15 @@ export default function TripHeader({ trip }: Props) {
         <div className="flex gap-3">
           <button
             onClick={() => { setInviteModal(true); setInviteTab("link") }}
-            className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-full text-sm font-medium"
+            className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
           >
-            Invite Friends
+            <UserPlus size={16} /> Invite Friends
+          </button>
+          <button
+            onClick={() => downloadICS(trip)}
+            className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+          >
+            <Calendar size={16} /> Save to Calendar
           </button>
         </div>
       </div>

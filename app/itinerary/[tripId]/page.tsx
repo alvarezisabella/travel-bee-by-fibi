@@ -71,10 +71,10 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
   if (allTravelerIds.length>0){
     const {data: profiles} = await supabase
       .from('profiles')
-      .select('id, name')
+      .select('id, username')
       .in('id', allTravelerIds)
     for (const p of profiles ?? []){
-      profileMap.set(p.id, p.name)
+      profileMap.set(p.id, p.username)
     }
   }
 
@@ -172,6 +172,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
     startDate: itinerary.start_date ?? undefined,
     endDate: itinerary.end_date ?? undefined,
     coverImage: '',
+    cover_photo_url: itinerary.cover_photo_url ?? null,
     travelers: members ?? [],
     days,
   }

@@ -9,8 +9,8 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { error } = await supabase.from("trip_members").insert({
-    trip_id: tripId,
+  const { error } = await supabase.from("itinerary_members").insert({
+    itinerary_id: tripId,
     user_id: userId,
     role: "editor",
   });
