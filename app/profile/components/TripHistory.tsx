@@ -1,6 +1,7 @@
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
+import NewTripButton from "./NewTripButton"
 import Link from "next/link"
 
 export default async function TripHistory() {
@@ -48,12 +49,7 @@ export default async function TripHistory() {
           <p className="text-base font-semibold text-gray-800">My Trips</p>
           <p className="text-xs text-gray-400 mt-0.5">All trips created or joined</p>
         </div>
-        <Link
-          href="/itinerary"
-          className="h-8 px-4 bg-[#F5C842] rounded-full flex items-center justify-center text-xs font-semibold text-gray-900"
-        >
-          + New Trip
-        </Link>
+        <NewTripButton />
       </div>
 
       {itineraries && itineraries.length > 0 ? (
