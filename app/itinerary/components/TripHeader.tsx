@@ -6,6 +6,7 @@ import {
 } from "lucide-react"
 import { Trip } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
@@ -17,6 +18,8 @@ interface Props {
 type InviteTab = "link" | "email" | "travelers"
 
 export default function TripHeader({ trip }: Props) {
+
+  const router = useRouter()
 
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
@@ -33,12 +36,17 @@ export default function TripHeader({ trip }: Props) {
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
 
-  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string }) => {
+  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null }) => {
     await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: trip.id, ...fields }),
     })
+    if (fields.start_date || fields.end_date) {
+      window.location.reload()
+    } else {
+      router.refresh()
+    }
   }
 
   const [coverImage, setCoverImage] = useState<string | null>(trip.cover_photo_url || null)
@@ -49,9 +57,7 @@ export default function TripHeader({ trip }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Reset input value so the same file can be re-selected if needed
     e.target.value = ""
-
     setUploading(true)
     setUploadError(null)
 
@@ -69,7 +75,6 @@ export default function TripHeader({ trip }: Props) {
         .from("itinerary-covers")
         .getPublicUrl(filePath)
 
-      // Cache-bust so the browser loads the new image instead of the cached one
       const bustUrl = `${publicUrl}?t=${Date.now()}`
 
       const res = await fetch('/api/auth/itinerary', {
@@ -80,13 +85,48 @@ export default function TripHeader({ trip }: Props) {
 
       if (!res.ok) throw new Error('Failed to save cover photo')
 
-      setCoverImage(bustUrl) // use busted URL for display only
+      setCoverImage(bustUrl)
 
     } catch (err) {
       console.error("Upload failed:", err)
       setUploadError("Failed to upload photo. Please try again.")
     } finally {
       setUploading(false)
+    }
+  }
+
+  // Clear itinerary
+  const [showClearModal, setShowClearModal] = useState(false)
+  const [clearing, setClearing] = useState(false)
+
+  const handleClearItinerary = async () => {
+    setClearing(true)
+    try {
+      await fetch('/api/auth/event/clear', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itinerary_id: trip.id }),
+      })
+
+      await fetch('/api/auth/itinerary', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: trip.id,
+          title: 'New Trip',
+          location: null,
+          start_date: null,
+          end_date: null,
+          cover_photo_url: null,
+        }),
+      })
+
+      setShowClearModal(false)
+      window.location.reload()
+    } catch (err) {
+      console.error("Failed to clear itinerary:", err)
+    } finally {
+      setClearing(false)
     }
   }
 
@@ -98,7 +138,7 @@ export default function TripHeader({ trip }: Props) {
   const [copied, setCopied] = useState(false)
   const [travelers, setTravelers] = useState(trip.travelers)
 
-  const shareLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${trip.id}`;
+  const shareLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${trip.id}`
 
   const handleCopyLink = () => {
     navigator.clipboard?.writeText(shareLink)
@@ -108,24 +148,18 @@ export default function TripHeader({ trip }: Props) {
 
   const handleSendInvite = async () => {
     if (!emailInput) return
-
     try {
       const res = await fetch("/api/invite", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: emailInput,
           tripId: trip.id,
           inviterId: trip.travelers.find(t => t.role === "owner")?.id,
         }),
       })
-
       const data = await res.json()
-
       if (!res.ok) throw new Error(data.error)
-
       setSentInvites((prev) => [...prev, emailInput])
       setEmailInput("")
     } catch (err) {
@@ -133,7 +167,6 @@ export default function TripHeader({ trip }: Props) {
       alert("Failed to send invite")
     }
   }
-
 
   const handleRemoveTraveler = (id: string) => setTravelers((prev) => prev.filter((t) => t.id !== id))
 
@@ -153,21 +186,13 @@ export default function TripHeader({ trip }: Props) {
         ) : (
           <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors rounded-t-2xl ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
             {uploading ? (
-              <>
-                <Loader2 size={24} className="animate-spin text-gray-400" />
-                <span>Uploading...</span>
-              </>
+              <><Loader2 size={24} className="animate-spin text-gray-400" /><span>Uploading...</span></>
             ) : (
-              <>
-                <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl">+</div>
-                <span>Upload cover photo</span>
-              </>
+              <><div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl">+</div><span>Upload cover photo</span></>
             )}
             <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
           </label>
         )}
-
-        {/* Error message */}
         {uploadError && (
           <div className="absolute bottom-3 left-3 bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-full">
             {uploadError}
@@ -239,7 +264,7 @@ export default function TripHeader({ trip }: Props) {
                 </div>
               ) : (
                 <span className="cursor-pointer hover:text-black" onClick={() => setEditingDates(true)}>
-                  {startDate ? `${startDate} - ${endDate}` : "Add dates"}
+                  {startDate ? `${startDate} – ${endDate}` : "Add dates"}
                 </span>
               )}
             </div>
@@ -263,18 +288,26 @@ export default function TripHeader({ trip }: Props) {
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex gap-3">
+            <button
+              onClick={() => { setInviteModal(true); setInviteTab("link") }}
+              className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+            >
+              <UserPlus size={16} /> Invite Friends
+            </button>
+            <button
+              onClick={() => downloadICS(trip)}
+              className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+            >
+              <Calendar size={16} /> Save to Calendar
+            </button>
+          </div>
           <button
-            onClick={() => { setInviteModal(true); setInviteTab("link") }}
-            className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+            onClick={() => setShowClearModal(true)}
+            className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-full transition-all"
           >
-            <UserPlus size={16} /> Invite Friends
-          </button>
-          <button
-            onClick={() => downloadICS(trip)}
-            className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
-          >
-            <Calendar size={16} /> Save to Calendar
+            Clear Itinerary
           </button>
         </div>
       </div>
@@ -291,7 +324,6 @@ export default function TripHeader({ trip }: Props) {
               </button>
             </div>
 
-            {/* Tabs */}
             <div className="flex border-b border-gray-200">
               {(["link", "email", "travelers"] as InviteTab[]).map((tab) => (
                 <button key={tab} onClick={() => setInviteTab(tab)}
@@ -303,7 +335,6 @@ export default function TripHeader({ trip }: Props) {
               ))}
             </div>
 
-            {/* Share Link */}
             {inviteTab === "link" && (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-gray-500">Share this link to invite friends to your trip:</p>
@@ -320,7 +351,6 @@ export default function TripHeader({ trip }: Props) {
               </div>
             )}
 
-            {/* Send Invite */}
             {inviteTab === "email" && (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-gray-500">Enter an email address to send an invitation:</p>
@@ -349,7 +379,6 @@ export default function TripHeader({ trip }: Props) {
               </div>
             )}
 
-            {/* Travelers */}
             {inviteTab === "travelers" && (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-gray-500">People currently on this trip:</p>
@@ -380,6 +409,39 @@ export default function TripHeader({ trip }: Props) {
           </div>
         </div>
       )}
+
+      {/* CLEAR CONFIRMATION MODAL */}
+      {showClearModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowClearModal(false) }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-bold text-gray-900">Clear itinerary?</h2>
+              <p className="text-sm text-gray-500">
+                This will remove all events, dates, location, and the cover photo. This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearModal(false)}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearItinerary}
+                disabled={clearing}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {clearing ? <><Loader2 size={14} className="animate-spin" /> Clearing...</> : "Yes, clear it"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
