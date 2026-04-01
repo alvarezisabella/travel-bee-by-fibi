@@ -2,121 +2,125 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// design for signup page and routing for signing in
 export default function SignupPage() {
-  // variables for username, email, password, error message, and loading state
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // handle form submission for signing up
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // calls POST function from api/auth/rignup with user entered username, email, and password
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, firstName, lastName, email, password }),
     });
 
     const data = await res.json();
     setLoading(false);
 
-    // error handling for signup failure
     if (!res.ok) {
       setError(data.error ?? "Signup failed.");
       return;
     }
-// on successful signup, redirects user to login page
+
     router.push("/login");
   };
 
   return (
-    <div style={styles.container}>
-      <form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md" style={styles.form} onSubmit={handleSubmit}>
-        <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
+    // Full screen overlay with dark background
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#D4DADF]"
+      onClick={() => router.push("/")}
+    >
+      {/* Modal — stop clicks from bubbling to the overlay */}
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 flex flex-col gap-4 mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="text-center mb-1">
+          <h2 className="text-2xl font-bold text-gray-900">Create an account</h2>
+          <p className="text-sm text-gray-500 mt-1">Join TravelBee and start planning</p>
+        </div>
 
-        {/* Username */}
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className = "w-full p-3 mb-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
-          style={styles.input}
-          required
-        />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
 
-        {/* Email */}
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className = "w-full p-3 mb-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
-          style={styles.input}
-          required
-        />
+          {/* First + Last Name */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="First name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Last name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
+              required
+            />
+          </div>
 
-        {/* Password */}
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className = "w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-yellow-400"
-          style={styles.input}
-          required
-        />
+          {/* Username */}
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
+            required
+          />
 
-        {error && <p style={styles.error}>{error}</p>}
+          {/* Email */}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
+            required
+          />
 
-        <button type="submit" style={styles.button} disabled={loading}>
-          {loading ? "Signing up..." : "Sign Up"}
-        </button>
-      </form>
+          {/* Password */}
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
+            required
+          />
+
+          {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 bg-[#F5C842] hover:bg-[#e6b93a] text-gray-900 font-semibold text-sm rounded-xl transition-all disabled:opacity-50 mt-1"
+          >
+            {loading ? "Signing up..." : "Sign Up"}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-gray-500">
+          Already have an account?{" "}
+          <a href="/login" className="text-yellow-600 font-medium hover:underline">
+            Log in
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-    backgroundColor: "#f4f4f4",
-  },
-  form: {
-    backgroundColor: "white",
-    padding: "30px",
-    borderRadius: "8px",
-    display: "flex",
-    flexDirection: "column" as const,
-    width: "300px",
-    gap: "10px",
-    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-  },
-  input: {
-    padding: "10px",
-    fontSize: "14px",
-  },
-  button: {
-    padding: "10px",
-    backgroundColor: "#F5C842",
-    color: "black",
-    border: "none",
-    cursor: "pointer",
-  },
-  error: {
-    fontSize: "12px",
-    color: "red",
-    textAlign: "center" as const,
-  },
-};

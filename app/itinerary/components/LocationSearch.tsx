@@ -7,9 +7,10 @@ import { WORLD_LOCATIONS } from "../data/worldLocations"
 interface Props {
   value: string
   onChange: (val: string) => void
-  onClose?: () => void
+  onClose?: (val: string) => void
 }
 
+// Component for searching locations with a dropdown of suggestions
 export default function LocationSearch({ value, onChange, onClose }: Props) {
   const [query, setQuery] = useState(value === "Add location" ? "" : value)
   const [open, setOpen] = useState(true)
@@ -35,26 +36,29 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false)
-        onClose?.()
+        onClose?.(query)
       }
     }
     document.addEventListener("mousedown", handler)
     return () => document.removeEventListener("mousedown", handler)
   }, [onClose])
 
+  // Handles selecting a location from the dropdown, sets query to selected location 
   const handleSelect = (loc: string) => {
     setQuery(loc)
     onChange(loc)
     setOpen(false)
-    onClose?.()
+    onClose?.(loc)
   }
 
+  // Handles clearing the search input, resets query 
   const handleClear = () => {
     setQuery("")
     onChange("")
     inputRef.current?.focus()
   }
 
+  // Renders the search input and dropdown suggestions based on the query
   return (
     <div ref={containerRef} className="relative w-72">
       <div className="flex items-center gap-2 border border-gray-300 rounded-xl px-3 py-2 bg-white focus-within:border-yellow-400 focus-within:ring-2 focus-within:ring-yellow-100 transition-all">
@@ -65,13 +69,13 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
           onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
           onFocus={(e) => { e.target.select(); setOpen(true) }}
           onKeyDown={(e) => {
-            if (e.key === "Escape") { setOpen(false); onClose?.() }
+            if (e.key === "Escape") { setOpen(false); onClose?.(query) }
             if (e.key === "Enter") {
               if (filtered.length > 0) {
                 handleSelect(filtered[0])
               } else if (query.trim().length > 0) {
                 onChange(query.trim())
-                onClose?.()
+                onClose?.(query.trim())
               }
             }
           }}

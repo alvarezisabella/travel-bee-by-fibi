@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-// 
+// POST function to insert login credentials and return user data if successful
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json()
 

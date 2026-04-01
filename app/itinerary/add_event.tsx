@@ -50,7 +50,7 @@ export default function AddEvent({day, date, trip, event, members, onClose, onAd
       body: JSON.stringify({id: event?.id, itineraryid: trip, dayid: day, day: date, title: title.trim(), description: description.trim(), status, startTime, duration, location, type, travelers})
     })
 
-    // If
+    // If unsuccessful, logs error. If successful, calls onAdd with new event details and closes add event card
     const data = await res.json()
     if(!res.ok) {console.error(data.error); return;}
 
@@ -60,6 +60,7 @@ export default function AddEvent({day, date, trip, event, members, onClose, onAd
     onClose();
   };
 
+  // Color options for event type and status with corresponding labels and styles
   const EVENT_COLORS: { value: EventLabel; label: string; bg: string; border: string }[] = [
   { value: "Activity",     label: "Activity",        bg: "bg-[#8fad9b]", border: "border-[#8fad9b]" },
   { value: "Transit",      label: "Transit",         bg: "bg-[#7a8fa6]", border: "border-[#7a8fa6]" },
@@ -67,12 +68,15 @@ export default function AddEvent({day, date, trip, event, members, onClose, onAd
   { value: "Food",         label: "Food",            bg: "bg-[#b87a8a]", border: "border-[#b87a8a]" },
   ];
 
+  // Color options for event status with corresponding labels and styles
   const STATUS_COLORS: {value: EventStatus; bg: string}[] = [
     {value: "Idea", bg: "bg-[#9c8a8a]"},
     {value: "Pending", bg: "bg-[#ffcd59]"},
     {value: "Confirmed", bg: "bg-[#98d99f]"}
   ]
 
+  // Design for add event card, includes form fields for event variables, 
+  // buttons to select event type and status, and save/cancel buttons
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-start">
       <div 

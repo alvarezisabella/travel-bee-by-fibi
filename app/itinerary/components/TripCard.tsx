@@ -30,9 +30,8 @@ export default function TripList({trip }: TripProps) {
         const [selectEvent, setEvent] = useState<Event | null>(null)
         const [open, setOpen] = useState(false)
     
-        const initAddHandler = (dayid: string, date: string) => {
+        const initAddHandler = (dayid: string) => {
             setDayId(dayid)
-            setDayDate(date)
             setShowAdd(true)
         }
     
@@ -47,6 +46,7 @@ export default function TripList({trip }: TripProps) {
         }, []);
     
         const handleEdit = (alteredEvent: Event) => {
+            console.log("edited event being rendered: id - ", alteredEvent.type)
             setDays(prev =>
                 prev.map(day =>
                     day.id === alteredEvent.dayid
@@ -80,35 +80,78 @@ export default function TripList({trip }: TripProps) {
             setEvent(event)
         }
 
-        const handleAddDay = () => {
-            setDays((prevDays) => [...prevDays, {id: (days.length + 1).toString(), itineraryid: trip.id, events: []}]);
+        // When adding a day, calculates the next date based on the trip's start date and the number of existing days. 
+        // If the new date exceeds the itinerary's end date, updates the itinerary's end date accordingly.
+        const handleAddDay = async () => {
+            const startDate = trip.startDate ? new Date(trip.startDate) : null
+            const nextDate = startDate
+                ? new Date(startDate.getTime() + days.length * 86400000).toISOString().split('T')[0]
+                : undefined
+
+            if (nextDate && (!trip.endDate || nextDate > trip.endDate)) {
+                await fetch('/api/auth/itinerary', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: trip.id, end_date: nextDate })
+                })
+            }
+
+            setDays(prev => [...prev, { id: String(prev.length + 1), itineraryid: trip.id, date: nextDate, events: [] }])
         }
 
-        const handleUpvote = (dayId: string, eventId: string) => {
+        const handleUpvote = async (dayId: string, eventId: string) => {
+            const day = days.find(d => d.id === dayId)
+            const event = day?.events.find(e => e.id === eventId)
+            if (!event) return
+
+            let newVoteId: string | undefined = undefined
+
+            if (event.hasUpvoted) {
+                // Toggle off: delete existing upvote
+                const res = await fetch('/api/auth/eventVote', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: event.voteId }),
+                })
+                if (!res.ok) { console.error('Failed to remove upvote'); return }
+            } else {
+                // Delete existing downvote first if switching
+                if (event.hasDownvoted) {
+                    const res = await fetch('/api/auth/eventVote', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: event.voteId }),
+                    })
+                    if (!res.ok) { console.error('Failed to remove downvote'); return }
+                }
+                // Post new upvote
+                const res = await fetch('/api/auth/eventVote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event_id: eventId, vote_type: 'upvote' }),
+                })
+                if (!res.ok) { console.error('Failed to save upvote'); return }
+                const data = await res.json()
+                newVoteId = data.vote?.id
+            }
+
             setDays(prev =>
                 prev.map(day =>
                     day.id === dayId
                         ? {
                             ...day,
-                            events: day.events.map(event => {
-                                if (event.id !== eventId) return event
-
-                                if (event.hasUpvoted) {
-                                    return {
-                                        ...event,
-                                        upvotes: event.upvotes - 1,
-                                        hasUpvoted: false
-                                    }
+                            events: day.events.map(ev => {
+                                if (ev.id !== eventId) return ev
+                                if (ev.hasUpvoted) {
+                                    return { ...ev, upvotes: ev.upvotes - 1, hasUpvoted: false, voteId: undefined }
                                 }
-
                                 return {
-                                    ...event,
-                                    upvotes: event.upvotes + 1,
+                                    ...ev,
+                                    upvotes: ev.upvotes + 1,
                                     hasUpvoted: true,
-                                    downvotes: event.hasDownvoted
-                                        ? event.downvotes - 1
-                                        : event.downvotes,
-                                    hasDownvoted: false
+                                    downvotes: ev.hasDownvoted ? ev.downvotes - 1 : ev.downvotes,
+                                    hasDownvoted: false,
+                                    voteId: newVoteId,
                                 }
                             })
                         }
@@ -117,31 +160,59 @@ export default function TripList({trip }: TripProps) {
             )
         }
 
-        const handleDownvote = (dayId: string, eventId: string) => {
+        const handleDownvote = async (dayId: string, eventId: string) => {
+            const day = days.find(d => d.id === dayId)
+            const event = day?.events.find(e => e.id === eventId)
+            if (!event) return
+
+            let newVoteId: string | undefined = undefined
+
+            if (event.hasDownvoted) {
+                // Toggle off: delete existing downvote
+                const res = await fetch('/api/auth/eventVote', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: event.voteId }),
+                })
+                if (!res.ok) { console.error('Failed to remove downvote'); return }
+            } else {
+                // Delete existing upvote first if switching
+                if (event.hasUpvoted) {
+                    const res = await fetch('/api/auth/eventVote', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: event.voteId }),
+                    })
+                    if (!res.ok) { console.error('Failed to remove upvote'); return }
+                }
+                // Post new downvote
+                const res = await fetch('/api/auth/eventVote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event_id: eventId, vote_type: 'downvote' }),
+                })
+                if (!res.ok) { console.error('Failed to save downvote'); return }
+                const data = await res.json()
+                newVoteId = data.vote?.id
+            }
+
             setDays(prev =>
                 prev.map(day =>
                     day.id === dayId
                         ? {
                             ...day,
-                            events: day.events.map(event => {
-                                if (event.id !== eventId) return event
-
-                                if (event.hasDownvoted) {
-                                    return {
-                                        ...event,
-                                        downvotes: event.downvotes - 1,
-                                        hasDownvoted: false
-                                    }
+                            events: day.events.map(ev => {
+                                if (ev.id !== eventId) return ev
+                                if (ev.hasDownvoted) {
+                                    return { ...ev, downvotes: ev.downvotes - 1, hasDownvoted: false, voteId: undefined }
                                 }
-
                                 return {
-                                    ...event,
-                                    downvotes: event.downvotes + 1,
+                                    ...ev,
+                                    downvotes: ev.downvotes + 1,
                                     hasDownvoted: true,
-                                    upvotes: event.hasUpvoted
-                                        ? event.upvotes - 1
-                                        : event.upvotes,
-                                    hasUpvoted: false
+                                    upvotes: ev.hasUpvoted ? ev.upvotes - 1 : ev.upvotes,
+                                    hasUpvoted: false,
+                                    voteId: newVoteId,
                                 }
                             })
                         }
@@ -162,9 +233,10 @@ export default function TripList({trip }: TripProps) {
                             <DayCell
                                 key={day.id}
                                 day={day}
-                                onAddEvent={initAddHandler}
+                                members={trip.travelers}
+                                onAddEvent={handleAddEvent}
+                                onEditEvent={handleEdit}
                                 onDeleteEvent={handleDeleteEvent}
-                                onOpenEvent={handleOpenEvent}
                                 onUpvote={handleUpvote}
                                 onDownvote={handleDownvote}
                             />
