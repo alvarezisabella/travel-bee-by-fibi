@@ -279,7 +279,12 @@ export default function TripHeader({ trip }: Props) {
 
           {/* Bottom Icons */}
           <div className="flex gap-5 mt-5 text-gray-600">
-            <List size={20} />
+            <button
+              onClick={() => router.push(`/itinerary/${trip.id}`)}
+              className="hover:text-black transition"
+            >
+              <List size={20} />
+            </button>
             <CalendarDays size={20} />
             <Map size={20} />
             <Bookmark size={20} />
