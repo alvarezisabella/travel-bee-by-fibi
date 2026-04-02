@@ -2,8 +2,9 @@
 import {useState} from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 import EditEvent from "./edit_event"
-import { Event, EventLabel, EventStatus } from "../types/trips";
-import { Traveler } from "../types/trips";
+import { Event, EventLabel, EventStatus } from "../types/types";
+import { Traveler } from "../types/types";
+import { useEventLock } from "@/lib/hooks/event_lock";
 
 
 interface EventCardProp {
@@ -32,19 +33,41 @@ const STATUS_MAP: Record<EventStatus, string> = {
 export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvote }: EventCardProp) {
   const [hovered, setHovered] = useState(false)
   const [isEditing, setEditing] = useState(false)
+  const { lock, acquireLock, releaseLock } = useEventLock(event.id);
   const colors = LABEL_MAP[event.type];
   const status_bg = STATUS_MAP[event.status]
 
+  // only allow one user to edit event at a time
+  const handleEdit = async () => {
+    const acquired = await acquireLock()
+    if(acquired) setEditing(true)
+  }
+  const handleClose = async () => {
+    await releaseLock()
+    setEditing(false)
+  }
+  const isLockedByOther = lock.lockedBy && !lock.isLockedByMe;
+
   return(
     <div className="event-card">
+    
+    {/* indicate that another user is editing*/}
+    {isLockedByOther && (
+        <div className="mb-2 flex items-center gap-2 text-sm text-amber-600">
+            <span>This is being edited</span>
+        </div>
+    )}
+    {lock.isLockedByMe && isEditing && (
+        <div className="mb-2 text-sm text-green-600"> You are editing</div>
+    )}    
     {isEditing ? (
-        <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={() => setEditing(false)} onSave={onSave}></EditEvent>
+        <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={handleClose} onSave={onSave}></EditEvent>
 
     ) : (
     <div
         className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
-        style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none" }}
-        onClick={() => setEditing(true)}
+        style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none", pointerEvents:isLockedByOther? "none" : "all"}}
+        onClick={handleEdit}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
     >

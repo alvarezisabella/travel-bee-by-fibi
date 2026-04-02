@@ -1,9 +1,9 @@
 "use client"
 import {useState} from "react"
-import {Event, EventStatus, EventLabel} from "../types/trips"
-import { emptyEvent } from "../types/trips"
-import { Traveler } from "../types/trips"
-import { Trip } from "../types/trips"
+import {Event, EventStatus, EventLabel} from "../types/types"
+import { emptyEvent } from "../types/types"
+import { Traveler } from "../types/types"
+import { Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
 import {
   MapPin, Users, Tag, CalendarCheck, Clock, TimerIcon
