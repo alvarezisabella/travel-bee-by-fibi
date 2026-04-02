@@ -4,9 +4,9 @@ import {Event} from "./../event"
 import {EventCard} from './../event'
 import AddEvent from './../add_event'
 import {Day, DayCell} from './../day'
-import AddDayButton from './AddDay'
-import { Trip } from './../types/trips'
+import { Trip } from '../types/types'
 import { Plus } from "lucide-react"
+import { ChatSidebar } from './sidebar'
 
 interface TripProps {
     trip: Trip;
@@ -226,9 +226,16 @@ export default function TripList({trip }: TripProps) {
             
             // Display of Days
             <div className="pt-16 px-4">
-                <div className="w-full max-w-5xl mx-auto ">
+                <div className="w-full max-w-7xl mx-auto grid grid-cols-4 ">
+
+                    {/* Sidebar */}
+                    <div className="hidden md:block shrink-0">
+                    <div className="sticky top-20 space-y-4">
+                        <ChatSidebar></ChatSidebar>
+                    </div>
+                    </div>
     
-                    <div className="space-y-2.5">
+                    <div className="space-y-2.5 col-span-3">
                         {days.map((day) => (
                             <DayCell
                                 key={day.id}
@@ -263,28 +270,28 @@ export default function TripList({trip }: TripProps) {
                             onAdd={handleEdit}
                         />
                     )}
-                    <div className="mt-6">
+                <div className="col-span-3 col-start-2 relative center">
 
-                {/* Add Day Button */}
-                <button
-                  onClick={handleAddDay}
-                  className="
-                     w-full max-w-6xl mx-auto
-                     flex items-center justify-center gap-2
-                     bg-gray-100
-                     border border-orange-400
-                     rounded-xl
-                     py-4
-                     text-lg font-medium
-                     hover:bg-yellow-400
-                     transition
-                    "
-                     >
-                <Plus size={20} className="text-orange-500" />
-                 Add Day
-                 </button>
+                    {/* Add Day Button */}
+                    <button
+                    onClick={handleAddDay}
+                    className="
+                        w-full
+                        flex items-center justify-center gap-2
+                        bg-gray-100
+                        border border-orange-400
+                        rounded-xl
+                        py-4
+                        text-lg font-medium
+                        hover:bg-yellow-400
+                        transition
+                        "
+                        >
+                    <Plus size={20} className="text-orange-500" />
+                    Add Day
+                    </button>
 
-            </div>
+                </div>
                     
                 </div>
             </div>

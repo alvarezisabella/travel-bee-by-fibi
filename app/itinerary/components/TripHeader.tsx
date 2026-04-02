@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
   X, Copy, Check, Loader2, UserPlus
 } from "lucide-react"
-import { Trip } from "../types/trips"
+import { Trip } from "../types/types"
 import { useState, useRef, useEffect } from "react"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
@@ -138,7 +138,7 @@ export default function TripHeader({ trip }: Props) {
   const handleRemoveTraveler = (id: string) => setTravelers((prev) => prev.filter((t) => t.id !== id))
 
   return (
-    <div className="w-full max-w-6xl mx-auto rounded-2xl shadow-lg bg-white">
+    <div className="w-full mx-auto rounded-2xl shadow-lg bg-white">
 
       {/* HERO IMAGE */}
       <div className="relative w-full h-[280px]">

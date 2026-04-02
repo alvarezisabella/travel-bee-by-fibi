@@ -56,3 +56,10 @@ export const emptyEvent = {
   upvotes: 0,
   downvotes: 0
 } as Event;
+
+export interface Message {
+  id: string;
+  text: string;
+  sender: "user" | "bot";
+  timestamp: Date;
+}
