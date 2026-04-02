@@ -4,12 +4,13 @@ import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
   X, Copy, Check, Loader2, UserPlus
 } from "lucide-react"
-import { Trip } from "../types/trips"
+import { Trip, Widget } from "../types/trips"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
+import { BookmarkCard } from "./BookmarkCard"
 
 interface Props {
   trip: Trip
@@ -29,12 +30,25 @@ export default function TripHeader({ trip }: Props) {
     if (editing) inputRef.current?.select()
   }, [editing])
 
+  useEffect(() => {
+  setLoadingBookmarks(true)
+  fetch(`/api/auth/bookmarks`)
+    .then(res => res.json())
+    .then(data => setSavedIdeas(data))
+    .catch(err => console.error("Failed to fetch bookmarks:", err))
+    .finally(() => setLoadingBookmarks(false))
+}, [])
+
   const [location, setLocation] = useState(trip.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
 
   const [startDate, setStartDate] = useState(trip.startDate || "")
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
+
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
+  const [bookmarkPanel, setBookmarkPanel] = useState(false)
+  const [savedIdeas, setSavedIdeas] = useState<Widget[]>([])
 
   const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null }) => {
     await fetch('/api/auth/itinerary', {
@@ -287,11 +301,67 @@ export default function TripHeader({ trip }: Props) {
             </button>
             <CalendarDays size={20} />
             <Map size={20} />
-            <Bookmark size={20} />
+            <button
+              onClick={() => setBookmarkPanel(true)}
+              className="hover:text-black transition relative"
+            >
+              <Bookmark size={20} />
+            </button>
           </div>
 
         </div>
 
+      {/* BOOKMARKS SIDE PANEL */}
+      {bookmarkPanel && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setBookmarkPanel(false)}
+          />
+
+          {/* Panel */}
+          <div className="relative z-10 w-full max-w-sm bg-white h-full shadow-2xl flex flex-col">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Bookmark size={18} className="text-gray-700" />
+                <h2 className="text-base font-semibold text-gray-900">Saved ideas</h2>
+              </div>
+              <button
+                onClick={() => setBookmarkPanel(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Ideas list */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              {loadingBookmarks ? (
+                <div className="flex items-center justify-center mt-8">
+                  <Loader2 size={20} className="animate-spin text-gray-400" />
+                </div>
+              ) : savedIdeas.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
+              ) : (
+                savedIdeas.map((idea) => (
+                  <BookmarkCard
+                    key={idea.id}
+                    idea={idea}
+                    tripId={trip.id}
+                    onAdded={() => router.refresh()}
+                  />
+                ))
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+        
+        
         {/* Buttons */}
         <div className="flex flex-col gap-2 items-end">
           <div className="flex gap-3">

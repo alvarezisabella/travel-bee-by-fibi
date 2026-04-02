@@ -56,3 +56,10 @@ export const emptyEvent = {
   upvotes: 0,
   downvotes: 0
 } as Event;
+
+export interface Widget {
+  id: string
+  title: string
+  location?: string
+  description?: string
+}
