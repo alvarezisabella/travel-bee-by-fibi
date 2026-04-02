@@ -63,3 +63,10 @@ export interface Message {
   sender: "user" | "bot";
   timestamp: Date;
 }
+
+export interface Widget {
+  id: string
+  title: string
+  location?: string
+  description?: string
+}
