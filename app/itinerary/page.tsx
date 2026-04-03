@@ -1,6 +1,6 @@
 import TripHeader from "./components/TripHeader";
 import AddDay from "./components/AddDay";
-import { Trip } from "./types/trips";
+import { Trip } from "./types/types";
 import TripList from "./components/TripCard";
 import {Event} from "./event"
 import {Day} from "./day"

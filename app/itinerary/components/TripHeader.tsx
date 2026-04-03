@@ -45,22 +45,49 @@ export default function TripHeader({ trip }: Props) {
   const [startDate, setStartDate] = useState(trip.startDate || "")
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
+  const [dateError, setDateError] = useState<string | null>(null)
+  const [startForwardConflict, setStartForwardConflict] = useState<{ newStart: string; suggestedEnd: string } | null>(null)
 
   const [loadingBookmarks, setLoadingBookmarks] = useState(false)
   const [bookmarkPanel, setBookmarkPanel] = useState(false)
   const [savedIdeas, setSavedIdeas] = useState<Widget[]>([])
 
-  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null }) => {
-    await fetch('/api/auth/itinerary', {
+  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null; confirm_date_shift?: boolean }) => {
+    setDateError(null)
+    const res = await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: trip.id, ...fields }),
     })
-    if (fields.start_date || fields.end_date) {
+    if (!res.ok) {
+      const data = await res.json()
+      if (data.code === 'START_FORWARD') {
+        setStartForwardConflict({ newStart: fields.start_date!, suggestedEnd: data.suggested_end })
+        setStartDate(trip.startDate || "")
+        return
+      }
+      if (data.code === 'EVENTS_ON_CUT_DAYS') {
+        setDateError("Can't shorten the trip — some days being removed still have events.")
+        setEndDate(trip.endDate || "")
+        return
+      }
+      return
+    }
+    if (fields.start_date !== undefined || fields.end_date !== undefined) {
       window.location.reload()
     } else {
       router.refresh()
     }
+  }
+
+  const handleConfirmStartForward = async () => {
+    if (!startForwardConflict) return
+    setStartForwardConflict(null)
+    await saveItinerary({
+      start_date: startForwardConflict.newStart,
+      end_date: startForwardConflict.suggestedEnd,
+      confirm_date_shift: true,
+    })
   }
 
   const [coverImage, setCoverImage] = useState<string | null>(trip.cover_photo_url || null)
@@ -258,28 +285,33 @@ export default function TripHeader({ trip }: Props) {
             </div>
 
             {/* DATES */}
-            <div className="flex items-center gap-1">
-              <Calendar size={16} />
-              {editingDates ? (
-                <div className="flex gap-1">
-                  <input
-                    type="date"
-                    className="border rounded px-1 text-sm"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  <input
-                    type="date"
-                    className="border rounded px-1 text-sm"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    onBlur={() => { setEditingDates(false); saveItinerary({ start_date: startDate, end_date: endDate }) }}
-                  />
-                </div>
-              ) : (
-                <span className="cursor-pointer hover:text-black" onClick={() => setEditingDates(true)}>
-                  {startDate ? `${startDate} – ${endDate}` : "Add dates"}
-                </span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1">
+                <Calendar size={16} />
+                {editingDates ? (
+                  <div className="flex gap-1">
+                    <input
+                      type="date"
+                      className="border rounded px-1 text-sm"
+                      value={startDate}
+                      onChange={(e) => { setStartDate(e.target.value); setDateError(null) }}
+                    />
+                    <input
+                      type="date"
+                      className="border rounded px-1 text-sm"
+                      value={endDate}
+                      onChange={(e) => { setEndDate(e.target.value); setDateError(null) }}
+                      onBlur={() => { setEditingDates(false); saveItinerary({ start_date: startDate, end_date: endDate }) }}
+                    />
+                  </div>
+                ) : (
+                  <span className="cursor-pointer hover:text-black" onClick={() => setEditingDates(true)}>
+                    {startDate ? `${startDate} – ${endDate}` : "Add dates"}
+                  </span>
+                )}
+              </div>
+              {dateError && (
+                <p className="text-xs text-red-500 ml-5">{dateError}</p>
               )}
             </div>
 
@@ -511,6 +543,35 @@ export default function TripHeader({ trip }: Props) {
                 className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {clearing ? <><Loader2 size={14} className="animate-spin" /> Clearing...</> : "Yes, clear it"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* START FORWARD CONFIRMATION MODAL */}
+      {startForwardConflict && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-bold text-gray-900">Adjust trip dates?</h2>
+              <p className="text-sm text-gray-500">
+                Moving the start date forward will shift all events to maintain their relative position.
+                The end date will be adjusted to <span className="font-medium text-gray-700">{startForwardConflict.suggestedEnd}</span>.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setStartForwardConflict(null); setStartDate(trip.startDate || "") }}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmStartForward}
+                className="flex-1 py-2.5 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-xl transition-all"
+              >
+                Adjust end date
               </button>
             </div>
           </div>

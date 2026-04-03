@@ -4,7 +4,7 @@ import {Event} from "./event"
 import {EventCard} from './components/event_card'
 import AddEvent from './add_event'
 import EditEvent from './components/edit_event'
-import { Traveler } from './types/trips'
+import { Traveler } from './types/types'
 
 export interface Day{
     id: string

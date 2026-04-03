@@ -2,7 +2,7 @@
 import {useState} from "react"
 import {Event, EventLabel} from "./event"
 import { EventCard, EventStatus} from "./event"
-import { Traveler } from "./types/trips"
+import { Traveler } from "./types/types"
 import LocationSearch from "./components/LocationSearch"
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,

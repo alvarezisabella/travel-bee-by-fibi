@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Widget } from "../types/trips";
+import { Widget } from "../types/types";
 import { X, Loader2 } from "lucide-react";
 
 export function BookmarkCard({ idea, tripId, onAdded }: {
