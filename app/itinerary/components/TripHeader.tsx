@@ -4,7 +4,7 @@ import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
   X, Copy, Check, Loader2, UserPlus
 } from "lucide-react"
-import { Trip } from "../types/types"
+import { Trip, Widget } from "../types/types"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LocationSearch from "./LocationSearch"
@@ -32,7 +32,7 @@ export default function TripHeader({ trip }: Props) {
 
   useEffect(() => {
   setLoadingBookmarks(true)
-  fetch(`/api/auth/bookmarks`)
+  fetch(`/api/auth/widgets?itinerary_id=${trip.id}`)
     .then(res => res.json())
     .then(data => setSavedIdeas(data))
     .catch(err => console.error("Failed to fetch bookmarks:", err))
