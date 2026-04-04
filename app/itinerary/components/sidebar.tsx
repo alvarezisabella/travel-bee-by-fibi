@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, KeyboardEvent } from "react";
 import { chat } from "./chat";
-import { Message } from "../types/types";
+import { Message, Trip } from "../types/types";
 import styles from "../../../styles/chat.module.css";
 
 const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
@@ -23,9 +23,13 @@ const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => (
   </div>
 );
 
-export const ChatSidebar: React.FC = () => {
-  const { isCollapsed, toggle, messages, input, setInput, sendMessage } =
-    chat();
+interface ChatSidebarProps {
+  trip: Trip;
+}
+
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip }) => {
+  const { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading } =
+    chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +68,12 @@ export const ChatSidebar: React.FC = () => {
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} />
             ))}
+            {/* Typing indicator shown while Claude is responding */}
+            {isLoading && (
+              <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
+                <span>Atlas is typing…</span>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 
@@ -77,11 +87,12 @@ export const ChatSidebar: React.FC = () => {
               placeholder="Type a message…"
               rows={1}
               aria-label="Chat message input"
+              disabled={isLoading}
             />
             <button
               className={styles.sendBtn}
               onClick={sendMessage}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               aria-label="Send message"
             >
               ↑
