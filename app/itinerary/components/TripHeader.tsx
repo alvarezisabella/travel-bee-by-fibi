@@ -41,6 +41,11 @@ export default function TripHeader({ trip }: Props) {
     .finally(() => setLoadingBookmarks(false))
 }, [])
 
+  async function handleDeleteWidget(ideaId: string) {
+    await fetch(`/api/auth/widgets?id=${ideaId}`, { method: 'DELETE' })
+    setSavedIdeas(prev => prev.filter(i => i.id !== ideaId))
+  }
+
   const [location, setLocation] = useState(trip.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
 
@@ -360,8 +365,8 @@ export default function TripHeader({ trip }: Props) {
             onClick={() => setBookmarkPanel(false)}
           />
 
-          {/* Panel */}
-          <div className="relative z-10 w-full max-w-sm bg-white h-full shadow-2xl flex flex-col">
+            {/* Panel */}
+            <div className="relative z-10 w-full max-w-sm bg-white h-full shadow-2xl flex flex-col overflow-y-auto">
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -378,7 +383,7 @@ export default function TripHeader({ trip }: Props) {
             </div>
 
             {/* Ideas list */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            <div className="flex-1 p-4 flex flex-col gap-3">
               {loadingBookmarks ? (
                 <div className="flex items-center justify-center mt-8">
                   <Loader2 size={20} className="animate-spin text-gray-400" />
@@ -387,12 +392,17 @@ export default function TripHeader({ trip }: Props) {
                 <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
               ) : (
                 savedIdeas.map((idea) => (
-                  <BookmarkCard
-                    key={idea.id}
-                    idea={idea}
-                    tripId={trip.id}
-                    onAdded={() => router.refresh()}
-                  />
+              <BookmarkCard
+                key={idea.id}
+                idea={idea}
+                tripId={trip.id}
+                days={trip.days}
+                onAdded={() => {
+                  setBookmarkPanel(false)
+                  router.refresh()
+                }}
+                onDelete={() => handleDeleteWidget(idea.id)}
+              />
                 ))
               )}
             </div>

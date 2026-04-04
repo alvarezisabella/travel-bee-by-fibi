@@ -85,4 +85,8 @@ export interface Widget {
   title: string
   location?: string
   description?: string
+  type: EventLabel
+  image_url?: string
+  rating?: number
+  price?: number
 }

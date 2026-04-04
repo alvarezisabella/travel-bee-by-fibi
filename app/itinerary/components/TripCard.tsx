@@ -1,5 +1,5 @@
 "use client"
-import {useState, useCallback} from 'react'
+import {useState, useCallback, useEffect} from 'react'
 import {EventCard} from './event_card'
 import {Day, DayCell} from './../day'
 import { Trip, Event } from '../types/types'
@@ -43,6 +43,14 @@ export default function TripList({trip }: TripProps) {
                 )
             );
         }, []);
+
+        useEffect(() => {
+        function onBookmarkAdded(e: CustomEvent) {
+            handleAddEvent(e.detail)
+        }
+        window.addEventListener('bookmark-added', onBookmarkAdded as EventListener)
+        return () => window.removeEventListener('bookmark-added', onBookmarkAdded as EventListener)
+        }, [handleAddEvent])
     
         const handleEdit = (alteredEvent: Event) => {
             console.log("edited event being rendered: id - ", alteredEvent.type)
