@@ -7,7 +7,7 @@ export async function POST(req: NextRequest){
     // Collects event variables from json request
     // If title or tripid not provided, throws error
     const {itineraryid, title, description, status, startTime, duration, day, location, type, travelers, lat, lng} = await req.json()
-    if(!title || !itineraryid) {return NextResponse.json({ error: 'Title and trip ID are required.' }, { status: 400 })}
+    if(!title || !itineraryid || !day) {return NextResponse.json({ error: 'Title, trip ID, and day are required.' }, { status: 400 })}
 
     // Creates supabase client
     const cookieStore = await cookies()

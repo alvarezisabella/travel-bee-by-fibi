@@ -144,15 +144,7 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
       dayCounter++
     }
 
-    // Any events outside the range are added to a final "leftover" day at the end
-    const leftover: Event[] = []
-    for (const evs of dateGroups.values()) {
-      const dayId = String(dayCounter)
-      for (const ev of evs) leftover.push(mapEvent(ev, dayId))
-    }
-    if (leftover.length > 0) {
-      days.push({ id: String(dayCounter), itineraryid: tripId, events: leftover })
-    }
+
   } else {
     // Fallback: build days from grouped events (no date range set)
     let dayCounter = 1
