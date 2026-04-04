@@ -1,4 +1,4 @@
-import { Trip } from "@/app/itinerary/types/trips"
+import { Trip } from "@/app/itinerary/types/types"
 
 // Builds the "system prompt" — background context given to Claude before the
 // conversation starts. Claude reads this to understand its role and the trip.

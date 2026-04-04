@@ -5,9 +5,9 @@ import { getEventsByItinerary } from '@/lib/supabase/event'
 import { getItineraryMembers } from '@/lib/supabase/itineraryMembers'
 import TripHeader from '../components/TripHeader'
 import TripList from '../components/TripCard'
-import { Trip } from '../types/trips'
+import { Trip } from '../types/types'
 import { Day } from '../day'
-import { Event, EventLabel, EventStatus } from '../event'
+import { Event, EventLabel, EventStatus } from '../types/types'
 
 // calculates ends_at time based on start_at and duration 
 function timeDiffMinutes(start: string, end: string): number{
@@ -120,6 +120,8 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
       hasUpvoted: voteMap.get(ev.id)?.vote_type === 'upvote',
       hasDownvoted: voteMap.get(ev.id)?.vote_type === 'downvote',
       voteId: voteMap.get(ev.id)?.id,
+      lat: ev.lat,
+      lng: ev.lng
     }
   }
 
@@ -180,7 +182,6 @@ export default async function ItineraryPage({params}: {params: Promise<{ tripId:
   return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
-      <TripList trip={trip} />
     </main>
   )
 }

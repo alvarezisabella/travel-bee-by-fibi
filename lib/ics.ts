@@ -1,4 +1,4 @@
-import { Trip } from "@/app/itinerary/types/trips"
+import { Trip } from "@/app/itinerary/types/types"
 
 function formatICSDate(date: string, time: string): string {
   // date: YYYY-MM-DD, time: HH:MM → YYYYMMDDTHHMMSS (local/floating)

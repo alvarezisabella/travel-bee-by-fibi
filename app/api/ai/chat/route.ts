@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { anthropic } from "@/lib/ai/anthropic"
 import { buildChatSystemPrompt } from "@/lib/ai/prompts"
 import { ChatMessage } from "@/lib/ai/types"
-import { Trip } from "@/app/itinerary/types/trips"
+import { Trip } from "@/app/itinerary/types/types"
 
 // 
 export async function POST(req: NextRequest) {
