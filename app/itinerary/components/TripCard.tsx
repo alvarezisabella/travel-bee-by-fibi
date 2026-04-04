@@ -1,12 +1,11 @@
 "use client"
 import {useState, useCallback, useEffect} from 'react'
-import {Event} from "./../event"
-import {EventCard} from './../event'
-import AddEvent from './../add_event'
+import {EventCard} from './event_card'
 import {Day, DayCell} from './../day'
-import { Trip } from '../types/types'
+import { Trip, Event } from '../types/types'
 import { Plus } from "lucide-react"
 import { ChatSidebar } from './sidebar'
+import EditEvent  from "./edit_event"
 
 interface TripProps {
     trip: Trip;
@@ -83,10 +82,6 @@ export default function TripList({trip }: TripProps) {
                 )
             );
         };
-    
-        const handleOpenEvent = (event: Event) => {
-            setEvent(event)
-        }
 
         // When adding a day, calculates the next date based on the trip's start date and the number of existing days. 
         // If the new date exceeds the itinerary's end date, updates the itinerary's end date accordingly.
@@ -234,7 +229,7 @@ export default function TripList({trip }: TripProps) {
             
             // Display of Days
             <div className="pt-16 px-4">
-                <div className="w-full max-w-7xl mx-auto grid grid-cols-4 ">
+                <div className="w-full max-w-8xl mx-auto grid grid-cols-4 ">
 
                     {/* Sidebar */}
                     <div className="hidden md:block shrink-0">
@@ -258,26 +253,16 @@ export default function TripList({trip }: TripProps) {
                         ))}
                   </div>
                   {showAdd && (
-                    <AddEvent
+                    <EditEvent
                         day = {dayid}
                         date = {dayDate}
                         trip = {trip.id}
                         members = {trip.travelers}
                         onClose={() => setShowAdd(false)}
-                        onAdd={handleAddEvent}
+                        onSave={handleAddEvent}
                     />
                     )}
-    
-                    {selectEvent && (
-                        <AddEvent
-                            day = {selectEvent.dayid}
-                            trip = {trip.id}
-                            event = {selectEvent}
-                            members = {trip.travelers}
-                            onClose={() => setEvent(null)}
-                            onAdd={handleEdit}
-                        />
-                    )}
+
                 <div className="col-span-3 col-start-2 relative center">
 
                     {/* Add Day Button */}

@@ -1,8 +1,11 @@
 import TripHeader from "./components/TripHeader";
+<<<<<<< HEAD
+=======
 import AddDay from "./components/AddDay";
+>>>>>>> 52012adbe79bb96a4d5c7f6a84d4d05a3dee737d
 import { Trip } from "./types/types";
 import TripList from "./components/TripCard";
-import {Event} from "./event"
+import {Event} from "./types/types"
 import {Day} from "./day"
 
 

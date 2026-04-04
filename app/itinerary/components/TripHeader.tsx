@@ -11,6 +11,8 @@ import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
 import { BookmarkCard } from "./BookmarkCard"
+import TripList from "./TripCard"
+import CaliforniaMap from "@/app/map/map_view"
 
 interface Props {
   trip: Trip
@@ -19,9 +21,9 @@ interface Props {
 type InviteTab = "link" | "email" | "travelers"
 
 export default function TripHeader({ trip }: Props) {
-
+  const [list, setList] = useState(true)
+  const [map, setMap] = useState(false)
   const router = useRouter()
-
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -212,6 +214,7 @@ export default function TripHeader({ trip }: Props) {
   const handleRemoveTraveler = (id: string) => setTravelers((prev) => prev.filter((t) => t.id !== id))
 
   return (
+    <div>
     <div className="w-full mx-auto rounded-2xl shadow-lg bg-white">
 
       {/* HERO IMAGE */}
@@ -326,13 +329,18 @@ export default function TripHeader({ trip }: Props) {
           {/* Bottom Icons */}
           <div className="flex gap-5 mt-5 text-gray-600">
             <button
-              onClick={() => router.push(`/itinerary/${trip.id}`)}
+              onClick={() => {setMap(false);setList(true)}}
               className="hover:text-black transition"
             >
               <List size={20} />
             </button>
             <CalendarDays size={20} />
+            <button
+            className="cursor-pointer"
+            onClick={() => {setList(false);setMap(true);}}
+            >  
             <Map size={20} />
+            </button>
             <button
               onClick={() => setBookmarkPanel(true)}
               className="hover:text-black transition relative"
@@ -582,6 +590,13 @@ export default function TripHeader({ trip }: Props) {
         </div>
       )}
 
+  </div>
+      {list && (
+        <TripList trip = {trip}/>
+      )}
+      {map && (
+        <CaliforniaMap events={trip.days.flatMap(Day => Day.events)}/>
+      )}
     </div>
-  )
+  );
 }

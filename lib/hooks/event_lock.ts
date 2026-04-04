@@ -20,7 +20,6 @@ export function useEventLock(eventId: string) {
 
   // if lock is expired or empty, give current requesting user the lock
   const acquireLock = useCallback(async () => {
-    console.log(user)
     if (!user) return false;
 
     const { error } = await supabase.from('event_locks').upsert({
@@ -34,9 +33,9 @@ export function useEventLock(eventId: string) {
 
     // keeps lock while user is still editing
     heartbeatRef.current = setInterval(async () => {
-    await supabase
+    const {error} = await supabase
         .from('event_locks')
-        .update({ expires_at: new Date(Date.now() + 30_000).toISOString() })
+        .update({ expires: new Date(Date.now() + 30_000).toISOString() })
         .eq('event_id', eventId)
         .eq('locked_by', user.id);
     }, 15_000);
@@ -86,9 +85,7 @@ export function useEventLock(eventId: string) {
             lockedBy: data.locked_by,
             isLockedByMe: data.locked_by === user?.id,
           });
-          //console.log("table user: ", data.locked_by)
         }
-        console.log("session user: ", user?.id)
       });
 
     return () => {

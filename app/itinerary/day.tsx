@@ -1,8 +1,7 @@
 "use client"
 import {useState, useCallback} from 'react'
-import {Event} from "./event"
+import {Event} from "./types/types"
 import {EventCard} from './components/event_card'
-import AddEvent from './add_event'
 import EditEvent from './components/edit_event'
 import { Traveler } from './types/types'
 
