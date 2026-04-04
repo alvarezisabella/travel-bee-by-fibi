@@ -330,7 +330,7 @@ export default function TripHeader({ trip }: Props) {
           <div className="flex gap-5 mt-5 text-gray-600">
             <button
               onClick={() => {setMap(false);setList(true)}}
-              className="hover:text-black transition"
+              className="hover:text-black transition cursor-pointer"
             >
               <List size={20} />
             </button>
@@ -343,7 +343,7 @@ export default function TripHeader({ trip }: Props) {
             </button>
             <button
               onClick={() => setBookmarkPanel(true)}
-              className="hover:text-black transition relative"
+              className="hover:text-black transition relative cursor-pointer"
             >
               <Bookmark size={20} />
             </button>
