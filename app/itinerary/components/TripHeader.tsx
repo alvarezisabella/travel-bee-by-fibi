@@ -379,12 +379,16 @@ export default function TripHeader({ trip }: Props) {
                 <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
               ) : (
                 savedIdeas.map((idea) => (
-                  <BookmarkCard
-                    key={idea.id}
-                    idea={idea}
-                    tripId={trip.id}
-                    onAdded={() => router.refresh()}
-                  />
+              <BookmarkCard
+                key={idea.id}
+                idea={idea}
+                tripId={trip.id}
+                days={trip.days}
+                onAdded={() => {
+                  setBookmarkPanel(false)
+                  router.refresh()
+                }}
+              />
                 ))
               )}
             </div>
