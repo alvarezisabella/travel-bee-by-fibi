@@ -263,6 +263,7 @@ export default function TripList({trip }: TripProps) {
                     className="
                         w-full
                         flex items-center justify-center gap-2
+                        bg-gray-100
                         border border-orange-400
                         rounded-xl
                         py-4
