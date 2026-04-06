@@ -12,7 +12,9 @@ import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
 import { BookmarkCard } from "./BookmarkCard"
 import TripList from "./TripCard"
-import CaliforniaMap from "@/app/map/map_view"
+import dynamic from "next/dynamic"
+import CalendarGrid from "./CalendarGrid"
+const CaliforniaMap = dynamic(() => import("@/app/map/map_view"), { ssr: false })
 
 interface Props {
   trip: Trip
@@ -23,6 +25,8 @@ type InviteTab = "link" | "email" | "travelers"
 export default function TripHeader({ trip }: Props) {
   const [list, setList] = useState(true)
   const [map, setMap] = useState(false)
+  const [calendar, setCalendar] = useState(false)
+
   const router = useRouter()
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
@@ -334,17 +338,22 @@ export default function TripHeader({ trip }: Props) {
           {/* Bottom Icons */}
           <div className="flex gap-5 mt-5 text-gray-600">
             <button
-              onClick={() => {setMap(false);setList(true)}}
+              onClick={() => { setList(true); setMap(false); setCalendar(false) }}
               className="hover:text-black transition"
             >
               <List size={20} />
             </button>
-            <CalendarDays size={20} />
             <button
-            className="cursor-pointer"
-            onClick={() => {setList(false);setMap(true);}}
-            >  
-            <Map size={20} />
+              onClick={() => { setCalendar(true); setList(false); setMap(false) }}
+              className="hover:text-black transition"
+            >
+              <CalendarDays size={20} />
+            </button>
+            <button
+              className="cursor-pointer hover:text-black transition"
+              onClick={() => { setMap(true); setList(false); setCalendar(false) }}
+            >
+              <Map size={20} />
             </button>
             <button
               onClick={() => setBookmarkPanel(true)}
@@ -598,10 +607,17 @@ export default function TripHeader({ trip }: Props) {
 
   </div>
       {list && (
-        <TripList trip = {trip}/>
+        <TripList trip={trip} />
       )}
       {map && (
-        <CaliforniaMap events={trip.days.flatMap(Day => Day.events)}/>
+        <CaliforniaMap events={trip.days.flatMap(day => day.events)} />
+      )}
+      {calendar && (
+        <CalendarGrid
+          days={trip.days.filter(d => d.date).map(d => ({ id: d.id, date: d.date!, events: d.events }))}
+          tripId={trip.id}
+          members={trip.travelers}
+        />
       )}
     </div>
   );
