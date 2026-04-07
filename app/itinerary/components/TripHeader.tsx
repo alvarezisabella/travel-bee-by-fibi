@@ -4,17 +4,12 @@ import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
   X, Copy, Check, Loader2, UserPlus
 } from "lucide-react"
-import { Trip, Widget } from "../types/types"
+import { Trip } from "../types/types"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
-import { BookmarkCard } from "./BookmarkCard"
-import TripList from "./TripCard"
-import dynamic from "next/dynamic"
-import CalendarGrid from "./CalendarGrid"
-const CaliforniaMap = dynamic(() => import("@/app/map/map_view"), { ssr: false })
 
 interface Props {
   trip: Trip
@@ -23,11 +18,9 @@ interface Props {
 type InviteTab = "link" | "email" | "travelers"
 
 export default function TripHeader({ trip }: Props) {
-  const [list, setList] = useState(true)
-  const [map, setMap] = useState(false)
-  const [calendar, setCalendar] = useState(false)
 
   const router = useRouter()
+
   const [title, setTitle] = useState(trip.title)
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -36,69 +29,24 @@ export default function TripHeader({ trip }: Props) {
     if (editing) inputRef.current?.select()
   }, [editing])
 
-  useEffect(() => {
-  setLoadingBookmarks(true)
-  fetch(`/api/auth/widgets?itinerary_id=${trip.id}`)
-    .then(res => res.json())
-    .then(data => setSavedIdeas(data))
-    .catch(err => console.error("Failed to fetch bookmarks:", err))
-    .finally(() => setLoadingBookmarks(false))
-}, [])
-
-  async function handleDeleteWidget(ideaId: string) {
-    await fetch(`/api/auth/widgets?id=${ideaId}`, { method: 'DELETE' })
-    setSavedIdeas(prev => prev.filter(i => i.id !== ideaId))
-  }
-
   const [location, setLocation] = useState(trip.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
 
   const [startDate, setStartDate] = useState(trip.startDate || "")
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
-  const [dateError, setDateError] = useState<string | null>(null)
-  const [startForwardConflict, setStartForwardConflict] = useState<{ newStart: string; suggestedEnd: string } | null>(null)
 
-  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
-  const [bookmarkPanel, setBookmarkPanel] = useState(false)
-  const [savedIdeas, setSavedIdeas] = useState<Widget[]>([])
-
-  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null; confirm_date_shift?: boolean }) => {
-    setDateError(null)
-    const res = await fetch('/api/auth/itinerary', {
+  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null }) => {
+    await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: trip.id, ...fields }),
     })
-    if (!res.ok) {
-      const data = await res.json()
-      if (data.code === 'START_FORWARD') {
-        setStartForwardConflict({ newStart: fields.start_date!, suggestedEnd: data.suggested_end })
-        setStartDate(trip.startDate || "")
-        return
-      }
-      if (data.code === 'EVENTS_ON_CUT_DAYS') {
-        setDateError("Can't shorten the trip — some days being removed still have events.")
-        setEndDate(trip.endDate || "")
-        return
-      }
-      return
-    }
-    if (fields.start_date !== undefined || fields.end_date !== undefined) {
+    if (fields.start_date || fields.end_date) {
       window.location.reload()
     } else {
       router.refresh()
     }
-  }
-
-  const handleConfirmStartForward = async () => {
-    if (!startForwardConflict) return
-    setStartForwardConflict(null)
-    await saveItinerary({
-      start_date: startForwardConflict.newStart,
-      end_date: startForwardConflict.suggestedEnd,
-      confirm_date_shift: true,
-    })
   }
 
   const [coverImage, setCoverImage] = useState<string | null>(trip.cover_photo_url || null)
@@ -154,24 +102,47 @@ export default function TripHeader({ trip }: Props) {
   const handleClearItinerary = async () => {
     setClearing(true)
     try {
-      await fetch('/api/auth/event/clear', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itinerary_id: trip.id }),
-      })
+      const supabase = createClient()
 
-      await fetch('/api/auth/itinerary', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: trip.id,
+      // 1. Delete all events
+      await supabase
+        .from('events')
+        .delete()
+        .eq('itinerary_id', trip.id)
+
+      // 2. Find chat sessions for this itinerary
+      const { data: sessions } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('itinerary_id', trip.id)
+
+      const sessionIds = sessions?.map((s) => s.id) ?? []
+
+      // 3. Delete chat messages for those sessions
+      if (sessionIds.length > 0) {
+        await supabase
+          .from('chat_messages')
+          .delete()
+          .in('session_id', sessionIds)
+      }
+
+      // 4. Delete the chat sessions themselves
+      await supabase
+        .from('chat_sessions')
+        .delete()
+        .eq('itinerary_id', trip.id)
+
+      // 5. Reset itinerary fields
+      await supabase
+        .from('itineraries')
+        .update({
           title: 'New Trip',
           location: null,
           start_date: null,
           end_date: null,
           cover_photo_url: null,
-        }),
-      })
+        })
+        .eq('id', trip.id)
 
       setShowClearModal(false)
       window.location.reload()
@@ -223,8 +194,7 @@ export default function TripHeader({ trip }: Props) {
   const handleRemoveTraveler = (id: string) => setTravelers((prev) => prev.filter((t) => t.id !== id))
 
   return (
-    <div>
-    <div className="w-full mx-auto rounded-2xl shadow-lg bg-white">
+    <div className="w-full max-w-6xl mx-auto rounded-2xl shadow-lg bg-white">
 
       {/* HERO IMAGE */}
       <div className="relative w-full h-[280px]">
@@ -297,33 +267,28 @@ export default function TripHeader({ trip }: Props) {
             </div>
 
             {/* DATES */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1">
-                <Calendar size={16} />
-                {editingDates ? (
-                  <div className="flex gap-1">
-                    <input
-                      type="date"
-                      className="border rounded px-1 text-sm"
-                      value={startDate}
-                      onChange={(e) => { setStartDate(e.target.value); setDateError(null) }}
-                    />
-                    <input
-                      type="date"
-                      className="border rounded px-1 text-sm"
-                      value={endDate}
-                      onChange={(e) => { setEndDate(e.target.value); setDateError(null) }}
-                      onBlur={() => { setEditingDates(false); saveItinerary({ start_date: startDate, end_date: endDate }) }}
-                    />
-                  </div>
-                ) : (
-                  <span className="cursor-pointer hover:text-black" onClick={() => setEditingDates(true)}>
-                    {startDate ? `${startDate} – ${endDate}` : "Add dates"}
-                  </span>
-                )}
-              </div>
-              {dateError && (
-                <p className="text-xs text-red-500 ml-5">{dateError}</p>
+            <div className="flex items-center gap-1">
+              <Calendar size={16} />
+              {editingDates ? (
+                <div className="flex gap-1">
+                  <input
+                    type="date"
+                    className="border rounded px-1 text-sm"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className="border rounded px-1 text-sm"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    onBlur={() => { setEditingDates(false); saveItinerary({ start_date: startDate, end_date: endDate }) }}
+                  />
+                </div>
+              ) : (
+                <span className="cursor-pointer hover:text-black" onClick={() => setEditingDates(true)}>
+                  {startDate ? `${startDate} – ${endDate}` : "Add dates"}
+                </span>
               )}
             </div>
 
@@ -337,90 +302,14 @@ export default function TripHeader({ trip }: Props) {
 
           {/* Bottom Icons */}
           <div className="flex gap-5 mt-5 text-gray-600">
-            <button
-              onClick={() => { setList(true); setMap(false); setCalendar(false) }}
-              className="hover:text-black transition"
-            >
-              <List size={20} />
-            </button>
-            <button
-              onClick={() => { setCalendar(true); setList(false); setMap(false) }}
-              className="hover:text-black transition"
-            >
-              <CalendarDays size={20} />
-            </button>
-            <button
-              className="cursor-pointer hover:text-black transition"
-              onClick={() => { setMap(true); setList(false); setCalendar(false) }}
-            >
-              <Map size={20} />
-            </button>
-            <button
-              onClick={() => setBookmarkPanel(true)}
-              className="hover:text-black transition relative"
-            >
-              <Bookmark size={20} />
-            </button>
+            <List size={20} />
+            <CalendarDays size={20} />
+            <Map size={20} />
+            <Bookmark size={20} />
           </div>
 
         </div>
 
-      {/* BOOKMARKS SIDE PANEL */}
-      {bookmarkPanel && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/30"
-            onClick={() => setBookmarkPanel(false)}
-          />
-
-            {/* Panel */}
-            <div className="relative z-10 w-full max-w-sm bg-white h-full shadow-2xl flex flex-col overflow-y-auto">
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <Bookmark size={18} className="text-gray-700" />
-                <h2 className="text-base font-semibold text-gray-900">Saved ideas</h2>
-              </div>
-              <button
-                onClick={() => setBookmarkPanel(false)}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Ideas list */}
-            <div className="flex-1 p-4 flex flex-col gap-3">
-              {loadingBookmarks ? (
-                <div className="flex items-center justify-center mt-8">
-                  <Loader2 size={20} className="animate-spin text-gray-400" />
-                </div>
-              ) : savedIdeas.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
-              ) : (
-                savedIdeas.map((idea) => (
-              <BookmarkCard
-                key={idea.id}
-                idea={idea}
-                tripId={trip.id}
-                days={trip.days}
-                onAdded={() => {
-                  setBookmarkPanel(false)
-                  router.refresh()
-                }}
-                onDelete={() => handleDeleteWidget(idea.id)}
-              />
-                ))
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
-        
-        
         {/* Buttons */}
         <div className="flex flex-col gap-2 items-end">
           <div className="flex gap-3">
@@ -554,7 +443,7 @@ export default function TripHeader({ trip }: Props) {
             <div className="flex flex-col gap-1">
               <h2 className="text-lg font-bold text-gray-900">Clear itinerary?</h2>
               <p className="text-sm text-gray-500">
-                This will remove all events, dates, location, and the cover photo. This cannot be undone.
+                This will remove all events, dates, location, the cover photo, and the chat history. This cannot be undone.
               </p>
             </div>
             <div className="flex gap-3">
@@ -576,49 +465,6 @@ export default function TripHeader({ trip }: Props) {
         </div>
       )}
 
-      {/* START FORWARD CONFIRMATION MODAL */}
-      {startForwardConflict && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-bold text-gray-900">Adjust trip dates?</h2>
-              <p className="text-sm text-gray-500">
-                Moving the start date forward will shift all events to maintain their relative position.
-                The end date will be adjusted to <span className="font-medium text-gray-700">{startForwardConflict.suggestedEnd}</span>.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setStartForwardConflict(null); setStartDate(trip.startDate || "") }}
-                className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmStartForward}
-                className="flex-1 py-2.5 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-xl transition-all"
-              >
-                Adjust end date
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-  </div>
-      {list && (
-        <TripList trip={trip} />
-      )}
-      {map && (
-        <CaliforniaMap events={trip.days.flatMap(day => day.events)} />
-      )}
-      {calendar && (
-        <CalendarGrid
-          days={trip.days.filter(d => d.date).map(d => ({ id: d.id, date: d.date!, events: d.events }))}
-          tripId={trip.id}
-          members={trip.travelers}
-        />
-      )}
     </div>
-  );
+  )
 }
