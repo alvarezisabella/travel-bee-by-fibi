@@ -36,7 +36,14 @@ export default function TripHeader({ trip }: Props) {
   const [endDate, setEndDate] = useState(trip.endDate || "")
   const [editingDates, setEditingDates] = useState(false)
 
-  const saveItinerary = async (fields: { title?: string; location?: string; start_date?: string; end_date?: string; cover_photo_url?: string | null }) => {
+  const saveItinerary = async (fields: {
+    title?: string
+    location?: string
+    start_date?: string
+    end_date?: string
+    cover_photo_url?: string | null
+    cover_photo_position?: number | null
+  }) => {
     await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -49,9 +56,50 @@ export default function TripHeader({ trip }: Props) {
     }
   }
 
+  // Cover photo state
   const [coverImage, setCoverImage] = useState<string | null>(trip.cover_photo_url || null)
+  const [coverPosition, setCoverPosition] = useState<number>(trip.cover_photo_position ?? 50)
+  const [isRepositioning, setIsRepositioning] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartY, setDragStartY] = useState(0)
+  const [dragStartPos, setDragStartPos] = useState(50)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const heroRef = useRef<HTMLDivElement>(null)
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    setDragStartY(e.clientY)
+    setDragStartPos(coverPosition)
+  }
+
+  const handleDragMove = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    const heroHeight = heroRef.current?.clientHeight ?? 280
+    const delta = e.clientY - dragStartY
+    const newPos = Math.min(100, Math.max(0, dragStartPos - (delta / heroHeight) * 100))
+    setCoverPosition(newPos)
+  }
+
+  const handleDragEnd = () => {
+    if (!isDragging) return
+    setIsDragging(false)
+  }
+
+  const handleSavePosition = async () => {
+    setIsRepositioning(false)
+    const supabase = createClient()
+    await supabase
+      .from('itineraries')
+      .update({ cover_photo_position: coverPosition })
+      .eq('id', trip.id)
+  }
+
+  const handleCancelReposition = () => {
+    setIsRepositioning(false)
+    setCoverPosition(trip.cover_photo_position ?? 50)
+  }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -80,12 +128,13 @@ export default function TripHeader({ trip }: Props) {
       const res = await fetch('/api/auth/itinerary', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: trip.id, cover_photo_url: bustUrl }),
+        body: JSON.stringify({ id: trip.id, cover_photo_url: bustUrl, cover_photo_position: 50 }),
       })
 
       if (!res.ok) throw new Error('Failed to save cover photo')
 
       setCoverImage(bustUrl)
+      setCoverPosition(50)
 
     } catch (err) {
       console.error("Upload failed:", err)
@@ -104,13 +153,8 @@ export default function TripHeader({ trip }: Props) {
     try {
       const supabase = createClient()
 
-      // 1. Delete all events
-      await supabase
-        .from('events')
-        .delete()
-        .eq('itinerary_id', trip.id)
+      await supabase.from('events').delete().eq('itinerary_id', trip.id)
 
-      // 2. Find chat sessions for this itinerary
       const { data: sessions } = await supabase
         .from('chat_sessions')
         .select('id')
@@ -118,21 +162,12 @@ export default function TripHeader({ trip }: Props) {
 
       const sessionIds = sessions?.map((s) => s.id) ?? []
 
-      // 3. Delete chat messages for those sessions
       if (sessionIds.length > 0) {
-        await supabase
-          .from('chat_messages')
-          .delete()
-          .in('session_id', sessionIds)
+        await supabase.from('chat_messages').delete().in('session_id', sessionIds)
       }
 
-      // 4. Delete the chat sessions themselves
-      await supabase
-        .from('chat_sessions')
-        .delete()
-        .eq('itinerary_id', trip.id)
+      await supabase.from('chat_sessions').delete().eq('itinerary_id', trip.id)
 
-      // 5. Reset itinerary fields
       await supabase
         .from('itineraries')
         .update({
@@ -141,6 +176,7 @@ export default function TripHeader({ trip }: Props) {
           start_date: null,
           end_date: null,
           cover_photo_url: null,
+          cover_photo_position: 50,
         })
         .eq('id', trip.id)
 
@@ -197,17 +233,71 @@ export default function TripHeader({ trip }: Props) {
     <div className="w-full max-w-6xl mx-auto rounded-2xl shadow-lg bg-white">
 
       {/* HERO IMAGE */}
-      <div className="relative w-full h-[280px]">
+      <div
+        ref={heroRef}
+        className={`group relative w-full h-[280px] overflow-hidden rounded-t-2xl ${isRepositioning && !isDragging ? "cursor-grab" : ""} ${isDragging ? "cursor-grabbing" : ""}`}
+        onMouseDown={isRepositioning ? handleDragStart : undefined}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+      >
         {coverImage ? (
           <>
-            <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover rounded-t-2xl" />
-            <label className={`absolute bottom-3 right-3 cursor-pointer bg-white bg-opacity-80 text-gray-700 text-xs px-3 py-1.5 rounded-full shadow hover:bg-opacity-100 transition-all flex items-center gap-1.5 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-              {uploading ? <><Loader2 size={12} className="animate-spin" /> Uploading...</> : "Change photo"}
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
-            </label>
+            <img
+              src={coverImage}
+              alt="Trip cover"
+              className="w-full h-full object-cover select-none"
+              style={{ objectPosition: `center ${coverPosition}%` }}
+              draggable={false}
+            />
+
+            {/* Reposition overlay */}
+            {isRepositioning && (
+              <div className="absolute inset-0 bg-black/20 pointer-events-none flex items-center justify-center">
+                <div className="bg-black/50 text-white text-xs px-3 py-1.5 rounded-full">
+                  ↕ Drag anywhere to reposition
+                </div>
+              </div>
+            )}
+
+            {/* Controls */}
+            <div
+              className={`absolute bottom-3 right-3 flex gap-2 transition-opacity duration-200 ${isRepositioning ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {isRepositioning ? (
+                <>
+                  <button
+                    onClick={handleCancelReposition}
+                    className="bg-white/90 text-gray-600 text-xs px-3 py-1.5 rounded-full shadow hover:bg-white transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSavePosition}
+                    className="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-full shadow hover:bg-gray-700 transition-all"
+                  >
+                    Save position
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsRepositioning(true)}
+                    className="bg-white/80 hover:bg-white text-gray-700 text-xs px-3 py-1.5 rounded-full shadow transition-all"
+                  >
+                    ↕ Reposition
+                  </button>
+                  <label className={`cursor-pointer bg-white/80 hover:bg-white text-gray-700 text-xs px-3 py-1.5 rounded-full shadow transition-all flex items-center gap-1.5 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+                    {uploading ? <><Loader2 size={12} className="animate-spin" /> Uploading...</> : "Change photo"}
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                  </label>
+                </>
+              )}
+            </div>
           </>
         ) : (
-          <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors rounded-t-2xl ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+          <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
             {uploading ? (
               <><Loader2 size={24} className="animate-spin text-gray-400" /><span>Uploading...</span></>
             ) : (
