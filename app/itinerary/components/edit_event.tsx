@@ -74,7 +74,7 @@ export default function EditEvent({day, date, trip, event, members, onClose, onS
         const res = await fetch("/api/auth/event", {
         method: event ? "PUT" : "POST",
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: event?.id, itineraryid: trip, day: date, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers, lat:geo.lat, lng:geo.lng})})
+        body: JSON.stringify({id: event?.id, itineraryid: trip, day: date, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers, lat:geo?.lat, lng:geo?.lng})})
 
         // If unsuccessful, logs error. If successful, calls onAdd with new event details and closes add event card
         const data = await res.json()

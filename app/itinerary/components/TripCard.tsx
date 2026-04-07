@@ -1,5 +1,7 @@
 "use client"
 import {useState, useCallback, useEffect} from 'react'
+import { useRouter } from 'next/navigation'
+import { useItineraryRealtime } from '@/lib/hooks/useItineraryRealtime'
 import {EventCard} from './event_card'
 import {Day, DayCell} from './../day'
 import { Trip, Event } from '../types/types'
@@ -22,6 +24,7 @@ const SAMPLE_EVENTS:Event[] = [
 const MOCK_DAYS:Day[] = [{id: "1", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events: SAMPLE_EVENTS}, {id: "2", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events:[]}]
 
 export default function TripList({trip }: TripProps) {
+        const router = useRouter()
         const [days, setDays] = useState<Day[]>(trip.days)
         const [showAdd, setShowAdd] = useState(false)
         const [dayid, setDayId] = useState<string>("")
@@ -29,6 +32,14 @@ export default function TripList({trip }: TripProps) {
         const [selectEvent, setEvent] = useState<Event | null>(null)
         const [open, setOpen] = useState(false)
     
+        // Re-sync local days when the server refreshes with new data from other users
+        useEffect(() => {
+            setDays(trip.days)
+        }, [trip])
+
+        // Subscribe to real-time event changes so other users' edits appear automatically
+        useItineraryRealtime(trip.id, () => router.refresh())
+
         const initAddHandler = (dayid: string) => {
             setDayId(dayid)
             setShowAdd(true)
@@ -65,6 +76,7 @@ export default function TripList({trip }: TripProps) {
                         : day
                 )
             )
+            router.refresh()
         }
     
         const handleDeleteEvent = async (dayId: string, eventId: string) => {
@@ -229,7 +241,7 @@ export default function TripList({trip }: TripProps) {
             
             // Display of Days
             <div className="pt-16 px-4">
-                <div className="w-full max-w-8xl mx-auto grid grid-cols-4 ">
+                <div className="w-full max-w-6xl mx-auto">
 
                     {/* Sidebar */}
                     <div className="hidden md:block shrink-0">
