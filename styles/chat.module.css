@@ -177,3 +177,49 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* Markdown formatting inside bot messages */
+.markdownBody {
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.markdownBody h1,
+.markdownBody h2,
+.markdownBody h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.markdownBody p {
+  margin: 4px 0;
+}
+
+.markdownBody ul,
+.markdownBody ol {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.markdownBody li {
+  margin: 2px 0;
+}
+
+.markdownBody strong {
+  font-weight: 600;
+}
+
+.markdownBody hr {
+  border: none;
+  border-top: 0.5px solid var(--color-border-tertiary, #e5e5e5);
+  margin: 8px 0;
+}
+
+.markdownBody code {
+  background: var(--color-background-tertiary, #f0f0f0);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
