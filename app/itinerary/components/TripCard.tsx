@@ -241,7 +241,7 @@ export default function TripList({trip }: TripProps) {
             
             // Display of Days
             <div className="pt-16 px-4">
-                <div className="w-full max-w-8xl mx-auto grid grid-cols-4 ">
+                <div className="w-full max-w-6xl mx-auto">
 
                     {/* Sidebar */}
                     <div className="hidden md:block shrink-0">
