@@ -50,6 +50,7 @@ export default function TripHeader({ trip }: Props) {
       body: JSON.stringify({ id: trip.id, ...fields }),
     })
     if (fields.start_date || fields.end_date) {
+      window.scrollTo(0,0)
       window.location.reload()
     } else {
       router.refresh()
@@ -181,6 +182,7 @@ export default function TripHeader({ trip }: Props) {
         .eq('id', trip.id)
 
       setShowClearModal(false)
+      window.scrollTo(0, 0)
       window.location.reload()
     } catch (err) {
       console.error("Failed to clear itinerary:", err)
