@@ -10,6 +10,10 @@ import { useRouter } from "next/navigation"
 import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { BookmarkCard } from "./BookmarkCard"
+
 
 interface Props {
   trip: Trip
@@ -231,6 +235,31 @@ export default function TripHeader({ trip }: Props) {
 
   const handleRemoveTraveler = (id: string) => setTravelers((prev) => prev.filter((t) => t.id !== id))
 
+  const pathname = usePathname()
+
+  const [bookmarkModal, setBookmarkModal] = useState(false)
+
+  const widgets = [
+    {
+      id: "1",
+      title: "Try local coffee shop",
+      description: "Find a cute coffee spot nearby",
+      type: "Activity",
+    },
+    {
+      id: "2",
+      title: "Visit museum",
+      description: "Explore art and culture",
+      type: "Activity",
+    },
+    {
+      id: "3",
+      title: "Sunset beach walk",
+      description: "Relax by the ocean",
+      type: "Activity",
+    }
+  ]
+
   return (
     <div className="w-full max-w-6xl mx-auto rounded-2xl shadow-lg bg-white">
 
@@ -393,11 +422,47 @@ export default function TripHeader({ trip }: Props) {
           </div>
 
           {/* Bottom Icons */}
-          <div className="flex gap-5 mt-5 text-gray-600">
-            <List size={20} />
-            <CalendarDays size={20} />
-            <Map size={20} />
-            <Bookmark size={20} />
+          <div className="flex gap-5 mt-5">
+            <Link
+              href={`/itinerary/${trip.id}`}
+              className={`p-2 rounded-lg transition-all ${
+                pathname === `/itinerary/${trip.id}`
+                  ? "text-yellow-500 bg-yellow-50"
+                  : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
+              }`}
+            >
+              <List size={20} />
+            </Link>
+
+            <Link
+              href={`/itinerary/${trip.id}/calendar`}
+              className={`p-2 rounded-lg transition-all ${
+                pathname === `/itinerary/${trip.id}/calendar`
+                  ? "text-yellow-500 bg-yellow-50"
+                  : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
+              }`}
+            >
+              <CalendarDays size={20} />
+            </Link>
+
+            <Link
+              href={`/map?tripId=${trip.id}`}
+              className={`p-2 rounded-lg transition-all ${
+                pathname.startsWith(`/map`)
+                  ? "text-yellow-500 bg-yellow-50"
+                  : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
+              }`}
+            >
+              <Map size={20} />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setBookmarkModal(true)}
+              className="p-2 rounded-lg transition-all text-gray-400 hover:text-yellow-500 hover:bg-yellow-50"
+            >
+              <Bookmark size={20} />
+            </button>
           </div>
 
         </div>
@@ -426,6 +491,52 @@ export default function TripHeader({ trip }: Props) {
           </button>
         </div>
       </div>
+
+      {/* BOOKMARK MODAL */}
+      {bookmarkModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setBookmarkModal(false)
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4 mx-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Bookmarks</h2>
+              <button
+                onClick={() => setBookmarkModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              Your bookmarked places and ideas will show here.
+            </p>
+
+            <div className="flex flex-col gap-3 max-h-80 overflow-y-auto">
+              {widgets.map((idea) => (
+                <BookmarkCard
+                  key={idea.id}
+                  idea={idea as any}
+                  tripId={trip.id}
+                  days={[]} // you can connect real days later
+                  onAdded={() => {}}
+                  onDelete={() => {}}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={() => setBookmarkModal(false)}
+              className="self-end px-4 py-2 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-sm font-medium text-gray-900 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* INVITE MODAL */}
       {inviteModal && (
