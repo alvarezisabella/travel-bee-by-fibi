@@ -16,12 +16,36 @@ export async function getItinerary(supabase: SupabaseClient, id: string) {
     .single()
 }
 
-// Gets all itineraries created by a user, returns array of itinerary objects
+// Gets all itineraries created by or joined by a user
 export async function getItinerariesByUser(supabase: SupabaseClient, userId: string) {
-  return supabase
+  // Get trips created by user
+  const { data: created } = await supabase
     .from('itineraries')
     .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, location')
     .eq('created_by', userId)
+
+  // Get itinerary IDs where user is a member
+  const { data: memberships } = await supabase
+    .from('itinerary_members')
+    .select('itinerary_id')
+    .eq('user_id', userId)
+
+  const memberItineraryIds = memberships?.map((m) => m.itinerary_id) ?? []
+
+  // Exclude trips already fetched as creator
+  const createdIds = new Set(created?.map((t) => t.id) ?? [])
+  const memberOnlyIds = memberItineraryIds.filter((id) => !createdIds.has(id))
+
+  // Fetch joined trips
+  const { data: joined } = memberOnlyIds.length > 0
+    ? await supabase
+        .from('itineraries')
+        .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, location')
+        .in('id', memberOnlyIds)
+    : { data: [] }
+
+  const all = [...(created ?? []), ...(joined ?? [])]
+  return { data: all, error: null }
 }
 
 // Updates itinerary row with provided fields, returns success or error
