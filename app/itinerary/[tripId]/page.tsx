@@ -4,7 +4,6 @@ import { getItinerary } from '@/lib/supabase/itinerary'
 import { getEventsByItinerary } from '@/lib/supabase/event'
 import { getItineraryMembers } from '@/lib/supabase/itineraryMembers'
 import TripHeader from '../components/TripHeader'
-import TripList from '../components/TripCard'
 import { Trip } from '../types/types'
 import { Day } from '../day'
 import { Event, EventLabel, EventStatus } from '../types/types'
@@ -158,7 +157,6 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
   return (
     <main className="bg-gray-100 min-h-screen p-10">
       <TripHeader trip={trip} />
-      <TripList trip={trip} />
     </main>
   )
 }

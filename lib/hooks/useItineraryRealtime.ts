@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
  * Calls onRemoteChange whenever any event is inserted, updated, or deleted.
  */
 export function useItineraryRealtime(tripId: string, onRemoteChange: () => void) {
-  const supabase = createClient()
+  // Use a ref so the client is created only once and stays stable across renders
+  const supabaseRef = useRef(createClient())
   // Use a ref so the callback is always current without re-subscribing
   const callbackRef = useRef(onRemoteChange)
   useEffect(() => {
@@ -15,6 +16,7 @@ export function useItineraryRealtime(tripId: string, onRemoteChange: () => void)
   })
 
   useEffect(() => {
+    const supabase = supabaseRef.current
     const channel = supabase
       .channel(`events:itinerary:${tripId}`)
       .on(
@@ -34,5 +36,5 @@ export function useItineraryRealtime(tripId: string, onRemoteChange: () => void)
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [tripId, supabase])
+  }, [tripId])
 }
