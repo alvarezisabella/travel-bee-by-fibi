@@ -23,7 +23,7 @@ interface Trip {
   members: TripMember[]
 }
 
-function formatDate(dateStr: string) {
+export function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
     month: "short", day: "numeric", year: "numeric",
   })
