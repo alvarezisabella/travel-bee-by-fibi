@@ -8,7 +8,7 @@ import { Traveler } from './types/types'
 export interface Day{
     id: string
     itineraryid: string;
-    date: string;
+    date?: string;
     events: Event[];
 }
 interface DayProps {
