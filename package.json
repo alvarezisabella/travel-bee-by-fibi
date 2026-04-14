@@ -9,15 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
+    "@anthropic-ai/sdk": "^0.82.0",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.0",
+    "anthropic": "^0.0.0",
+    "anthropic-ai": "^0.0.10",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
     "next": "^16.2.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
     "resend": "^6.10.0"
   },
   "devDependencies": {

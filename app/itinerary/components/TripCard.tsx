@@ -1,12 +1,13 @@
 "use client"
-import {useState, useCallback} from 'react'
-import {Event} from "./../event"
-import {EventCard} from './../event'
-import AddEvent from './../add_event'
+import {useState, useCallback, useEffect} from 'react'
+import { useRouter } from 'next/navigation'
+import { useItineraryRealtime } from '@/lib/hooks/useItineraryRealtime'
+import {EventCard} from './event_card'
 import {Day, DayCell} from './../day'
-import AddDayButton from './AddDay'
-import { Trip } from './../types/trips'
+import { Trip, Event } from '../types/types'
 import { Plus } from "lucide-react"
+import { ChatSidebar } from './sidebar'
+import EditEvent  from "./edit_event"
 
 interface TripProps {
     trip: Trip;
@@ -23,6 +24,7 @@ const SAMPLE_EVENTS:Event[] = [
 const MOCK_DAYS:Day[] = [{id: "1", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events: SAMPLE_EVENTS}, {id: "2", itineraryid: "165f0341-9cab-456f-97f8-c727b09fa36b", events:[]}]
 
 export default function TripList({trip }: TripProps) {
+        const router = useRouter()
         const [days, setDays] = useState<Day[]>(trip.days)
         const [showAdd, setShowAdd] = useState(false)
         const [dayid, setDayId] = useState<string>("")
@@ -30,6 +32,14 @@ export default function TripList({trip }: TripProps) {
         const [selectEvent, setEvent] = useState<Event | null>(null)
         const [open, setOpen] = useState(false)
     
+        // Re-sync local days when the server refreshes with new data from other users
+        useEffect(() => {
+            setDays(trip.days)
+        }, [trip])
+
+        // Subscribe to real-time event changes so other users' edits appear automatically
+        useItineraryRealtime(trip.id, () => router.refresh())
+
         const initAddHandler = (dayid: string) => {
             setDayId(dayid)
             setShowAdd(true)
@@ -44,6 +54,14 @@ export default function TripList({trip }: TripProps) {
                 )
             );
         }, []);
+
+        useEffect(() => {
+        function onBookmarkAdded(e: CustomEvent) {
+            handleAddEvent(e.detail)
+        }
+        window.addEventListener('bookmark-added', onBookmarkAdded as EventListener)
+        return () => window.removeEventListener('bookmark-added', onBookmarkAdded as EventListener)
+        }, [handleAddEvent])
     
         const handleEdit = (alteredEvent: Event) => {
             console.log("edited event being rendered: id - ", alteredEvent.type)
@@ -58,6 +76,7 @@ export default function TripList({trip }: TripProps) {
                         : day
                 )
             )
+            router.refresh()
         }
     
         const handleDeleteEvent = async (dayId: string, eventId: string) => {
@@ -75,10 +94,6 @@ export default function TripList({trip }: TripProps) {
                 )
             );
         };
-    
-        const handleOpenEvent = (event: Event) => {
-            setEvent(event)
-        }
 
         // When adding a day, calculates the next date based on the trip's start date and the number of existing days. 
         // If the new date exceeds the itinerary's end date, updates the itinerary's end date accordingly.
@@ -226,9 +241,14 @@ export default function TripList({trip }: TripProps) {
             
             // Display of Days
             <div className="pt-16 px-4">
-                <div className="w-full max-w-5xl mx-auto ">
+                <div className="w-full max-w-6xl mx-auto">
+
+                    {/* Sidebar */}
+                    <div className="hidden md:block shrink-0">
+                        <ChatSidebar trip={trip} />
+                    </div>
     
-                    <div className="space-y-2.5">
+                    <div className="space-y-2.5 col-span-3">
                         {days.map((day) => (
                             <DayCell
                                 key={day.id}
@@ -243,48 +263,38 @@ export default function TripList({trip }: TripProps) {
                         ))}
                   </div>
                   {showAdd && (
-                    <AddEvent
+                    <EditEvent
                         day = {dayid}
                         date = {dayDate}
                         trip = {trip.id}
                         members = {trip.travelers}
                         onClose={() => setShowAdd(false)}
-                        onAdd={handleAddEvent}
+                        onSave={handleAddEvent}
                     />
                     )}
-    
-                    {selectEvent && (
-                        <AddEvent
-                            day = {selectEvent.dayid}
-                            trip = {trip.id}
-                            event = {selectEvent}
-                            members = {trip.travelers}
-                            onClose={() => setEvent(null)}
-                            onAdd={handleEdit}
-                        />
-                    )}
-                    <div className="mt-6">
 
-                {/* Add Day Button */}
-                <button
-                  onClick={handleAddDay}
-                  className="
-                     w-full max-w-6xl mx-auto
-                     flex items-center justify-center gap-2
-                     bg-gray-100
-                     border border-orange-400
-                     rounded-xl
-                     py-4
-                     text-lg font-medium
-                     hover:bg-yellow-400
-                     transition
-                    "
-                     >
-                <Plus size={20} className="text-orange-500" />
-                 Add Day
-                 </button>
+                <div className="col-span-3 col-start-2 relative center">
 
-            </div>
+                    {/* Add Day Button */}
+                    <button
+                    onClick={handleAddDay}
+                    className="
+                        w-full
+                        flex items-center justify-center gap-2
+                        bg-gray-100
+                        border border-orange-400
+                        rounded-xl
+                        py-4
+                        text-lg font-medium
+                        hover:bg-yellow-400
+                        transition
+                        "
+                        >
+                    <Plus size={20} className="text-orange-500" />
+                    Add Day
+                    </button>
+
+                </div>
                     
                 </div>
             </div>

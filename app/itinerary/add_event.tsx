@@ -2,7 +2,7 @@
 import {useState} from "react"
 import {Event, EventLabel} from "./event"
 import { EventCard, EventStatus} from "./event"
-import { Traveler } from "./types/trips"
+import { Traveler } from "./types/types"
 import LocationSearch from "./components/LocationSearch"
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
@@ -15,18 +15,19 @@ interface AddEventProps {
   date?: string
   trip: string
   event?: Event
+  initialStartTime?: string
   members?: Traveler[]
   onClose: () =>void;
   onAdd: (event: Event) => void;
 }
 
 // Design for add event card and routing for adding an event 
-export default function AddEvent({day, date, trip, event, members, onClose, onAdd}: AddEventProps) {
+export default function AddEvent({day, date, trip, event, initialStartTime, members, onClose, onAdd}: AddEventProps) {
   // variables that can be entered when adding an event
   // title is required
   const [title, setTitle] = useState(event?.title || "")
   const [description, setDescription] = useState(event?.description || "")
-  const [startTime, setStartTime] = useState(event?.startTime || "09:00")
+  const [startTime, setStartTime] = useState(event?.startTime || initialStartTime || "09:00")
   const [duration, setDuration] = useState(event?.duration || 60)
   const [type, setType] = useState<EventLabel>(event?.type || "Activity")
   const [status, setStatus] = useState(event?.status || "Pending")

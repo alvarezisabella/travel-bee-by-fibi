@@ -3,7 +3,7 @@ import {useState} from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 
 
-import { Traveler } from "./types/trips";
+import { Traveler } from "./types/types";
 export interface Event {
     id: string
     itineraryid: string

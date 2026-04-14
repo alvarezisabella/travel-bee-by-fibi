@@ -1,9 +1,9 @@
 "use client"
 import {useState} from "react"
-import {Event, EventStatus, EventLabel} from "../types/trips"
-import { emptyEvent } from "../types/trips"
-import { Traveler } from "../types/trips"
-import { Trip } from "../types/trips"
+import {Event, EventStatus, EventLabel} from "../types/types"
+import { emptyEvent } from "../types/types"
+import { Traveler } from "../types/types"
+import { Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
 import {
   MapPin, Users, Tag, CalendarCheck, Clock, TimerIcon
@@ -34,17 +34,6 @@ const STATUS_COLORS: {value: EventStatus; bg: string}[] = [
     {value: "Pending", bg: "bg-[#ffcd59]"},
     {value: "Confirmed", bg: "bg-[#98d99f]"}
 ]
-const STATUS_MAP: Record<EventStatus, string> = {
-  Confirmed: "bg-[#98d99f]",
-  Pending: "bg-[#ffcd59]",
-  Idea:     "bg-[#9c8a8a]"
-}
-const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: string; time: string }> = {
-  Activity:  { bg: "bg-[#eef4f0]", bar: "bg-[#8fad9b]", text: "text-[#3a5a46]", time: "text-[#6a9078]" },
-  Transit: { bg: "bg-[#edf0f4]", bar: "bg-[#7a8fa6]", text: "text-[#2a3d52]", time: "text-[#5a7090]" },
-  Reservation: { bg: "bg-[#f8f3e6]", bar: "bg-[#c9a84c]", text: "text-[#5a420a]", time: "text-[#8a6820]" },
-  Food:  { bg: "bg-[#f8eff2]", bar: "bg-[#b87a8a]", text: "text-[#5a2234]", time: "text-[#905060]" },
-};
 
 export default function EditEvent({day, date, trip, event, members, onClose, onSave}: EditEventProps) {
     // variables that can be entered when adding an event
@@ -65,15 +54,27 @@ export default function EditEvent({day, date, trip, event, members, onClose, onS
             [field]: value,
         }));
     };
-    
+
     const handleSubmit = async () => {
         if (!altEvent.title.trim()) return;
 
+        let geo = null  // get coordinates of location
+        if(altEvent.location.trim()) {
+          let city = altEvent.location.trim()
+          const res2 = await fetch("/api/geocode", {
+            method: "POST",
+            body: JSON.stringify({city}),
+          });
+          geo = await res2.json();
+
+          if (!res2.ok) throw new Error(geo.error);
+        }
+        
         // Calls POST (insert) or PUT (update) function from api/auth/event with event variables and trip id
         const res = await fetch("/api/auth/event", {
         method: event ? "PUT" : "POST",
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: event?.id, itineraryid: trip, day: date, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers})})
+        body: JSON.stringify({id: event?.id, itineraryid: trip, day: date, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers, lat:geo?.lat, lng:geo?.lng})})
 
         // If unsuccessful, logs error. If successful, calls onAdd with new event details and closes add event card
         const data = await res.json()
@@ -105,7 +106,7 @@ export default function EditEvent({day, date, trip, event, members, onClose, onS
                     style={{fontFamily:"Helvetica"}}
                 >
                 <span className="px-2 py-1 text-white text-xs">{c.value}</span>
-                </button>
+       \         </button>
                 </div>
                 ))}                
             </div>

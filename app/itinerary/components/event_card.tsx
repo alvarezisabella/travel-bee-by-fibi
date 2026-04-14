@@ -2,8 +2,9 @@
 import {useState} from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react"
 import EditEvent from "./edit_event"
-import { Event, EventLabel, EventStatus } from "../types/trips";
-import { Traveler } from "../types/trips";
+import { Event, EventLabel, EventStatus, cardColor, STATUS_MAP, LABEL_MAP} from "../types/types";
+import { Traveler } from "../types/types";
+import { useEventLock } from "@/lib/hooks/event_lock";
 
 
 interface EventCardProp {
@@ -15,36 +16,45 @@ interface EventCardProp {
     onDownvote: (eventid: string) => void
 }
 
-const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: string; time: string }> = {
-  Activity:  { bg: "bg-[#eef4f0]", bar: "bg-[#8fad9b]", text: "text-[#3a5a46]", time: "text-[#6a9078]" },
-  Transit: { bg: "bg-[#edf0f4]", bar: "bg-[#7a8fa6]", text: "text-[#2a3d52]", time: "text-[#5a7090]" },
-  Reservation: { bg: "bg-[#f8f3e6]", bar: "bg-[#c9a84c]", text: "text-[#5a420a]", time: "text-[#8a6820]" },
-  Food:  { bg: "bg-[#f8eff2]", bar: "bg-[#b87a8a]", text: "text-[#5a2234]", time: "text-[#905060]" },
-};
-const cardColor = {bg: "bg-[#fcfcfc]", bar: "bg-[#dbdbdb]", text: "text-[#262626]", time: "text-[#3a4042]"}
-const STATUS_MAP: Record<EventStatus, string> = {
-  Confirmed: "bg-[#98d99f]",
-  Pending: "bg-[#ffcd59]",
-  Idea:     "bg-[#9c8a8a]"
-}
-
 
 export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvote }: EventCardProp) {
   const [hovered, setHovered] = useState(false)
   const [isEditing, setEditing] = useState(false)
+  const { lock, acquireLock, releaseLock } = useEventLock(event.id);
   const colors = LABEL_MAP[event.type];
   const status_bg = STATUS_MAP[event.status]
 
+  // only allow one user to edit event at a time
+  const handleEdit = async () => {
+    const acquired = await acquireLock()
+    if(acquired) setEditing(true)
+  }
+  const handleClose = async () => {
+    await releaseLock()
+    setEditing(false)
+  }
+  const isLockedByOther = lock.lockedBy && !lock.isLockedByMe;
+
   return(
     <div className="event-card">
+    
+    {/* indicate that another user is editing*/}
+    {isLockedByOther && (
+        <div className="mb-2 flex items-center gap-2 text-sm text-amber-600">
+            <span>This is being edited</span>
+        </div>
+    )}
+    {lock.isLockedByMe && isEditing && (
+        <div className="mb-2 text-sm text-green-600"> You are editing</div>
+    )}    
     {isEditing ? (
-        <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={() => setEditing(false)} onSave={onSave}></EditEvent>
+        <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={handleClose} onSave={onSave}></EditEvent>
 
     ) : (
     <div
         className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
-        style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none" }}
-        onClick={() => setEditing(true)}
+        style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none", pointerEvents:isLockedByOther? "none" : "all"}}
+        onClick={handleEdit}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
     >
