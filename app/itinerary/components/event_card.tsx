@@ -1,6 +1,6 @@
 "use client"
 import {useState} from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Trash2 } from "lucide-react"
 import EditEvent from "./edit_event"
 import { Event, EventLabel, EventStatus, cardColor, STATUS_MAP, LABEL_MAP} from "../types/types";
 import { Traveler } from "../types/types";
@@ -51,15 +51,17 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
         <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={handleClose} onSave={onSave}></EditEvent>
 
     ) : (
-    <div
-        className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
-        style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none", pointerEvents:isLockedByOther? "none" : "all"}}
+    <div // EVENT CARD:
+        className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow cursor-pointer`}
+        style={{ boxShadow: hovered ? "0 4px 20px rgba(0,0,0,0.08)" : "none", pointerEvents:isLockedByOther? "none" : "all"}}
         onClick={handleEdit}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
     >
-        <div className={`w-1 rounded-full ${cardColor.bar} flex-shrink-0`} />
+        {/* left side bar*/}
+        <div className={`w-1 rounded-full ${status_bg} flex-shrink-0`} />
 
+        {/* event status: confirmed, pending, idea */}
         <div 
         style={{fontFamily:"Helvetica"}}
         className={`absolute top-2 right-8 max-w-24 rounded-xl ${status_bg} shadow-sm items-center justify-center`}>
@@ -68,9 +70,9 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
 
 
         {/*Event Title*/}
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 min-w-0 space-y-1.5 ">
         <div className="flex items-start justify-between gap-2">
-            <h4 className={`font-medium text-md ${cardColor.text} truncate`} style={{ fontFamily: "Helvetica, serif" }}>
+            <h4 className={`font-medium text-lg ${cardColor.text} truncate`} style={{ fontFamily: "Helvetica, serif" }}>
             {event.title}
             </h4>
 
@@ -81,9 +83,9 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
                 onDelete(event.id)
             }}
             style={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s" }}
-            className="text-[#b0a48a] hover:text-[#c17c6e] text-lg leading-none flex-shrink-0 -mt-0.5"
+            className="leading-none flex-shrink-0 -mt-0.5"
             >
-            ×
+            <Trash2 size={16} />
             </button>
         </div>
 
