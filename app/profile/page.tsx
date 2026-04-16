@@ -52,6 +52,8 @@ export default async function ProfilePage() {
       end_date: trip.end_date ?? null,
       cover_photo_url: trip.cover_photo_url ?? null,
       updated_at: trip.updated_at ?? null,
+      lat: trip.lat ?? null,
+      lng: trip.lng ?? null,
       members: members.map((m) => {
         const profile = profileMap.get(m.user_id)
         return {
@@ -71,6 +73,8 @@ export default async function ProfilePage() {
     startDate: t.start_date ?? undefined,
     endDate: t.end_date ?? undefined,
     coverPhoto: t.cover_photo_url ?? undefined,
+    lat: t.lat ?? undefined,
+    lng: t.lng ?? undefined
   }))
 
   return (
