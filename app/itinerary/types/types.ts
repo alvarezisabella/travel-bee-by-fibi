@@ -18,6 +18,8 @@ export interface Trip {
   cover_photo_url?: string | null
   cover_photo_position?: number | null
   days: Day[]
+  lat: number | null
+  lng: number | null
 }
 
 export interface Event {

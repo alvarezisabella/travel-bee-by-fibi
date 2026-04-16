@@ -8,7 +8,7 @@ export async function insertItinerary(supabase: SupabaseClient,
 export async function getItinerary(supabase: SupabaseClient, id: string) {
   return supabase
     .from('itineraries')
-    .select('id, title, start_date, end_date, location, created_by, created_at, cover_photo_url, cover_photo_position')
+    .select('id, title, start_date, end_date, location, created_by, created_at, cover_photo_url, cover_photo_position, lat, lng')
     .eq('id', id)
     .single()
 }
@@ -16,7 +16,7 @@ export async function getItinerary(supabase: SupabaseClient, id: string) {
 export async function getItinerariesByUser(supabase: SupabaseClient, userId: string) {
   const { data: created } = await supabase
     .from('itineraries')
-    .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, cover_photo_position, location')
+    .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, cover_photo_position, location, lat, lng')
     .eq('created_by', userId)
 
   const { data: memberships } = await supabase
@@ -31,7 +31,7 @@ export async function getItinerariesByUser(supabase: SupabaseClient, userId: str
   const { data: joined } = memberOnlyIds.length > 0
     ? await supabase
         .from('itineraries')
-        .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, cover_photo_position, location')
+        .select('id, title, start_date, end_date, created_by, created_at, cover_photo_url, cover_photo_position, location, lat, lng')
         .in('id', memberOnlyIds)
     : { data: [] }
 
@@ -47,6 +47,8 @@ export async function updateItinerary(supabase: SupabaseClient, id: string,
     location?: string | null
     cover_photo_url?: string | null
     cover_photo_position?: number | null
+    lat?: number | null
+    lng?: number | null
   }) {
   return supabase.from('itineraries').update(data).eq('id', id)
 }
