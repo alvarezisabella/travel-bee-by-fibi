@@ -40,21 +40,28 @@ export default function AllTripsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
+      // ✅ Fetch all itineraries the user is a member of (created + joined)
+      const { data: memberRows } = await supabase
+        .from("itinerary_members")
+        .select("itinerary_id")
+        .eq("user_id", user.id)
+
+      const itineraryIds = memberRows?.map((m) => m.itinerary_id) ?? []
+
+      if (itineraryIds.length === 0) { setLoading(false); return }
+
       const { data: itineraries } = await supabase
         .from("itineraries")
-        .select("id, title, location, start_date, end_date, cover_photo_url")
-        .eq("created_by", user.id)
+        .select("id, title, location, start_date, end_date, cover_photo_url, updated_at")
+        .in("id", itineraryIds)
+        .order("updated_at", { ascending: false })
 
       if (!itineraries) { setLoading(false); return }
 
-      const itineraryIds = itineraries.map((t) => t.id)
-
-      const { data: allMembers } = itineraryIds.length > 0
-        ? await supabase
-            .from("itinerary_members")
-            .select("itinerary_id, user_id")
-            .in("itinerary_id", itineraryIds)
-        : { data: [] }
+      const { data: allMembers } = await supabase
+        .from("itinerary_members")
+        .select("itinerary_id, user_id")
+        .in("itinerary_id", itineraryIds)
 
       const memberUserIds = [...new Set(allMembers?.map((m) => m.user_id) ?? [])]
 
@@ -72,7 +79,7 @@ export default function AllTripsPage() {
         membersByItinerary.set(m.itinerary_id, [...existing, m])
       }
 
-      const mapped = itineraries.map((trip) => {
+      setTrips(itineraries.map((trip) => {
         const members = membersByItinerary.get(trip.id) ?? []
         return {
           id: trip.id,
@@ -91,9 +98,7 @@ export default function AllTripsPage() {
             }
           }),
         }
-      })
-
-      setTrips(mapped)
+      }))
       setLoading(false)
     }
 
@@ -106,9 +111,9 @@ export default function AllTripsPage() {
     setDeleting(true)
     try {
       const supabase = createClient()
-      await supabase.from('events').delete().eq('itinerary_id', tripId)
-      await supabase.from('itinerary_members').delete().eq('itinerary_id', tripId)
-      await supabase.from('itineraries').delete().eq('id', tripId)
+      await supabase.from("events").delete().eq("itinerary_id", tripId)
+      await supabase.from("itinerary_members").delete().eq("itinerary_id", tripId)
+      await supabase.from("itineraries").delete().eq("id", tripId)
       setTrips((prev) => prev.filter((t) => t.id !== tripId))
       setConfirmDelete(null)
     } catch (err) {
@@ -122,7 +127,6 @@ export default function AllTripsPage() {
     <div className="min-h-screen bg-[#F5F5F5] p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
 
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">All Trips</h1>
@@ -138,7 +142,6 @@ export default function AllTripsPage() {
           </Link>
         </div>
 
-        {/* Grid */}
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 size={24} className="animate-spin text-gray-400" />
@@ -151,24 +154,20 @@ export default function AllTripsPage() {
         ) : (
           <div className="grid grid-cols-3 gap-4">
             {trips.map((trip) => {
-              const visible = trip.members.slice(0, 3)
+              const visible  = trip.members.slice(0, 3)
               const overflow = trip.members.length - visible.length
-
               return (
                 <div key={trip.id} className="relative group rounded-xl overflow-hidden border border-gray-100 bg-white hover:shadow-md transition-shadow">
-
-                  {/* Delete button */}
                   <button
                     onClick={() => setConfirmDelete(trip.id)}
                     className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 hover:bg-red-50 border border-gray-200 hover:border-red-300 flex items-center justify-center text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
                   >
                     <Trash2 size={13} />
                   </button>
-
                   <Link href={`/itinerary/${trip.id}`} className="block">
                     <div className="w-full h-32 bg-gray-200 overflow-hidden">
                       {trip.cover_photo_url ? (
-                        <img src={trip.cover_photo_url} className="w-full h-full object-cover" />
+                        <img src={trip.cover_photo_url} className="w-full h-full object-cover" alt={trip.title} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
                           No Cover Photo
@@ -189,29 +188,22 @@ export default function AllTripsPage() {
                             const initials = [m.first_name?.[0], m.last_name?.[0]]
                               .filter(Boolean).join("").toUpperCase() || "?"
                             return m.avatar_url ? (
-                              <img
-                                key={m.user_id}
-                                src={m.avatar_url}
+                              <img key={m.user_id} src={m.avatar_url}
                                 title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
                                 className="w-6 h-6 rounded-full object-cover border-2 border-white"
-                                style={{ marginLeft: i === 0 ? 0 : -8 }}
-                              />
+                                style={{ marginLeft: i === 0 ? 0 : -8 }} />
                             ) : (
-                              <div
-                                key={m.user_id}
+                              <div key={m.user_id}
                                 title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
                                 className="w-6 h-6 rounded-full bg-yellow-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-800"
-                                style={{ marginLeft: i === 0 ? 0 : -8 }}
-                              >
+                                style={{ marginLeft: i === 0 ? 0 : -8 }}>
                                 {initials}
                               </div>
                             )
                           })}
                           {overflow > 0 && (
-                            <div
-                              className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[9px] font-semibold text-gray-500"
-                              style={{ marginLeft: -8 }}
-                            >
+                            <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[9px] font-semibold text-gray-500"
+                              style={{ marginLeft: -8 }}>
                               +{overflow}
                             </div>
                           )}
@@ -226,12 +218,9 @@ export default function AllTripsPage() {
         )}
       </div>
 
-      {/* Delete confirmation modal */}
       {confirmDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmDelete(null) }}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={(e) => { if (e.target === e.currentTarget) setConfirmDelete(null) }}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
             <div className="flex flex-col gap-1">
               <h2 className="text-lg font-bold text-gray-900">Delete trip?</h2>
@@ -240,17 +229,12 @@ export default function AllTripsPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
-              >
+              <button onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">
                 Cancel
               </button>
-              <button
-                onClick={() => handleDelete(confirmDelete)}
-                disabled={deleting}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-              >
+              <button onClick={() => handleDelete(confirmDelete)} disabled={deleting}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5">
                 {deleting ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : "Yes, delete it"}
               </button>
             </div>

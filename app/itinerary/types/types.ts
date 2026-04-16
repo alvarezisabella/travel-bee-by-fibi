@@ -82,6 +82,7 @@ export const emptyEvent = {
 export interface Message {
   id: string
   text: string
+  widgets?: Widget[]
   sender: "user" | "bot"
   timestamp: Date
 }

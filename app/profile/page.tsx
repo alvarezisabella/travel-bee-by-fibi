@@ -4,17 +4,8 @@ import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ProfileHeader from "./components/ProfileHeader"
 import TripHistory from "./components/TripHistory"
 import ProfileMap from "./components/profile_map"
-
-
-function UpcomingCalendar() {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-3">
-      <p className="text-sm font-semibold text-gray-800">Upcoming Trips</p>
-      <p className="text-xs text-gray-400 -mt-1">Your next planned adventures</p>
-      <div className="w-full h-64 bg-gray-100 rounded-xl mt-2" />
-    </div>
-  )
-}
+import UpcomingTripsCalendar from "./components/UpcomingTripsCalendar"
+export const dynamic = "force-dynamic"
 
 export default async function ProfilePage() {
   const cookieStore = await cookies()
@@ -60,8 +51,7 @@ export default async function ProfilePage() {
       start_date: trip.start_date ?? null,
       end_date: trip.end_date ?? null,
       cover_photo_url: trip.cover_photo_url ?? null,
-      lat: trip.lat ?? null,
-      lng: trip.lng ?? null,
+      updated_at: trip.updated_at ?? null,
       members: members.map((m) => {
         const profile = profileMap.get(m.user_id)
         return {
@@ -74,22 +64,38 @@ export default async function ProfilePage() {
     }
   })
 
+  const calendarTrips = trips.map((t) => ({
+    id: t.id,
+    title: t.title,
+    location: t.location ?? undefined,
+    startDate: t.start_date ?? undefined,
+    endDate: t.end_date ?? undefined,
+    coverPhoto: t.cover_photo_url ?? undefined,
+  }))
+
   return (
-    
     <div className="min-h-screen bg-[#F5F5F5] p-6">
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         <ProfileHeader />
         <div className="flex gap-6 items-start">
-          <div className="w-80 shrink-0">
-            <UpcomingCalendar />
-            <ProfileMap trips={trips}/>
+
+          {/* Left sidebar */}
+          <div className="w-80 shrink-0 flex flex-col gap-4">
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <p className="text-sm font-semibold text-gray-800 mb-0.5">Upcoming Trips</p>
+              <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
+              <UpcomingTripsCalendar trips={calendarTrips} />
+            </div>
+            <ProfileMap trips={trips} />
           </div>
+
+          {/* Main content */}
           <div className="flex-1">
             <TripHistory trips={trips} />
           </div>
+
         </div>
       </div>
     </div>
-    
   )
 }

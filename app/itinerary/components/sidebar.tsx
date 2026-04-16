@@ -3,6 +3,7 @@ import { chat } from "./chat";
 import { Message, Trip } from "../types/types";
 import styles from "../../../styles/chat.module.css";
 import ReactMarkdown from "react-markdown"
+import { EventWidget } from "./EventWidget";
 
 const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
   <svg
@@ -17,14 +18,19 @@ const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
 
 const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => (
   <div className={`${styles.msg} ${styles[msg.sender]}`}>
-    <div className={styles.markdownBody}>
-      <ReactMarkdown>{msg.text}</ReactMarkdown>
-    </div>
+    {msg.text && (
+      <div className={styles.markdownBody}>
+        <ReactMarkdown>{msg.text}</ReactMarkdown>
+      </div>
+    )}
+    {msg.widgets?.map((widget) => (
+      <EventWidget key={widget.id} widget={widget} />
+    ))}
     <time className={styles.timestamp}>
       {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
     </time>
   </div>
-)
+);
 
 interface ChatSidebarProps {
   trip: Trip;
