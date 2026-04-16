@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Trash2, Loader2 } from "lucide-react"
+import { ChevronRight, Trash2, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -20,6 +20,7 @@ interface Trip {
   start_date: string | null
   end_date: string | null
   cover_photo_url: string | null
+  updated_at?: string | null
   members: TripMember[]
 }
 
@@ -29,44 +30,100 @@ export function formatDate(dateStr: string) {
   })
 }
 
-const PAGE_SIZE = 3
+function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => void }) {
+  const visible  = trip.members.slice(0, 3)
+  const overflow = trip.members.length - visible.length
+
+  return (
+    <div className="relative group rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
+      <button
+        onClick={(e) => { e.preventDefault(); onDelete(trip.id) }}
+        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 hover:bg-red-50 border border-gray-200 hover:border-red-300 flex items-center justify-center text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+      >
+        <Trash2 size={13} />
+      </button>
+
+      <Link href={`/itinerary/${trip.id}`} className="block">
+        <div className="w-full h-24 bg-gray-200 overflow-hidden">
+          {trip.cover_photo_url ? (
+            <img src={trip.cover_photo_url} className="w-full h-full object-cover" alt={trip.title} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+              No Cover Photo
+            </div>
+          )}
+        </div>
+        <div className="p-3 flex flex-col gap-1">
+          <p className="text-sm font-semibold text-gray-700 truncate">{trip.title}</p>
+          <p className="text-xs text-gray-400 truncate">{trip.location ?? "No location"}</p>
+          <p className="text-xs text-gray-400">
+            {trip.start_date && trip.end_date
+              ? `${formatDate(trip.start_date)} – ${formatDate(trip.end_date)}`
+              : "No dates set"}
+          </p>
+          {trip.members.length > 0 && (
+            <div className="flex items-center mt-1">
+              {visible.map((m, i) => {
+                const initials = [m.first_name?.[0], m.last_name?.[0]]
+                  .filter(Boolean).join("").toUpperCase() || "?"
+                return m.avatar_url ? (
+                  <img
+                    key={m.user_id}
+                    src={m.avatar_url}
+                    title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
+                    className="w-6 h-6 rounded-full object-cover border-2 border-white"
+                    style={{ marginLeft: i === 0 ? 0 : -8 }}
+                  />
+                ) : (
+                  <div
+                    key={m.user_id}
+                    title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
+                    className="w-6 h-6 rounded-full bg-yellow-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-800"
+                    style={{ marginLeft: i === 0 ? 0 : -8 }}
+                  >
+                    {initials}
+                  </div>
+                )
+              })}
+              {overflow > 0 && (
+                <div
+                  className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[9px] font-semibold text-gray-500"
+                  style={{ marginLeft: -8 }}
+                >
+                  +{overflow}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Link>
+    </div>
+  )
+}
 
 function TripHistoryCarousel({ trips: initialTrips }: { trips: Trip[] }) {
-  const router = useRouter()
-  const [trips, setTrips] = useState(initialTrips)
-  const [page, setPage] = useState(0)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [trips, setTrips]                   = useState(initialTrips)
+  const [confirmDelete, setConfirmDelete]   = useState<string | null>(null)
+  const [deleting, setDeleting]             = useState(false)
 
-  const totalPages = Math.ceil(trips.length / PAGE_SIZE)
-  const start = page * PAGE_SIZE
-  const pageTrips = trips.slice(start, start + PAGE_SIZE)
-  const isLastPage = page === totalPages - 1
-  const showSeeAll = trips.length > PAGE_SIZE
+  // Sort by most recently edited, show top 2
+  const sorted    = [...trips].sort((a, b) => {
+    const at = a.updated_at ? new Date(a.updated_at).getTime() : 0
+    const bt = b.updated_at ? new Date(b.updated_at).getTime() : 0
+    return bt - at
+  })
+  const displayed = sorted.slice(0, 2)
+  const hasMore   = trips.length > 2
 
   const handleDelete = async (tripId: string) => {
     setDeleting(true)
     try {
       const supabase = createClient()
-
-      // Delete all events first
-      await supabase.from('events').delete().eq('itinerary_id', tripId)
-
-      // Delete itinerary members
-      await supabase.from('itinerary_members').delete().eq('itinerary_id', tripId)
-
-      // Delete the itinerary
-      await supabase.from('itineraries').delete().eq('id', tripId)
-
-      // Remove from local state so UI updates instantly
+      await supabase.from("events").delete().eq("itinerary_id", tripId)
+      await supabase.from("itinerary_members").delete().eq("itinerary_id", tripId)
+      await supabase.from("itineraries").delete().eq("id", tripId)
       setTrips((prev) => prev.filter((t) => t.id !== tripId))
       setConfirmDelete(null)
-
-      // If current page is now empty, go back one page
-      const newTrips = trips.filter((t) => t.id !== tripId)
-      const newTotalPages = Math.ceil(newTrips.length / PAGE_SIZE)
-      if (page >= newTotalPages && page > 0) setPage((p) => p - 1)
-
     } catch (err) {
       console.error("Failed to delete trip:", err)
     } finally {
@@ -78,125 +135,25 @@ function TripHistoryCarousel({ trips: initialTrips }: { trips: Trip[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative">
+      <div className="grid grid-cols-3 gap-3">
+        {displayed.map((trip) => (
+          <TripCard key={trip.id} trip={trip} onDelete={setConfirmDelete} />
+        ))}
 
-        {/* Left arrow */}
-        {page > 0 && (
-          <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:bg-[#F5C842] hover:text-gray-900 hover:border-[#F5C842] active:scale-95 transition-all shadow-sm"
+        {/* See all — always the third slot when there are more than 2 trips */}
+        {hasMore && (
+          <Link
+            href="/profile/trips"
+            className="rounded-xl border border-dashed border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all flex flex-col items-center justify-center gap-2 p-4 text-center min-h-[160px]"
           >
-            <ChevronLeft size={16} />
-          </button>
-        )}
-
-        {/* Grid */}
-        <div className="grid grid-cols-3 gap-3">
-          {pageTrips.map((trip) => {
-            const visible = trip.members.slice(0, 3)
-            const overflow = trip.members.length - visible.length
-
-            return (
-              <div key={trip.id} className="relative group rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
-
-                {/* Delete button */}
-                <button
-                  onClick={(e) => { e.preventDefault(); setConfirmDelete(trip.id) }}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 hover:bg-red-50 border border-gray-200 hover:border-red-300 flex items-center justify-center text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
-                >
-                  <Trash2 size={13} />
-                </button>
-
-                <Link href={`/itinerary/${trip.id}`} className="block">
-                  <div className="w-full h-24 bg-gray-200 overflow-hidden">
-                    {trip.cover_photo_url ? (
-                      <img src={trip.cover_photo_url} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                        No Cover Photo
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3 flex flex-col gap-1">
-                    <p className="text-sm font-semibold text-gray-700 truncate">{trip.title}</p>
-                    <p className="text-xs text-gray-400 truncate">{trip.location ?? "No location"}</p>
-                    <p className="text-xs text-gray-400">
-                      {trip.start_date && trip.end_date
-                        ? `${formatDate(trip.start_date)} – ${formatDate(trip.end_date)}`
-                        : "No dates set"}
-                    </p>
-                    {trip.members.length > 0 && (
-                      <div className="flex items-center mt-1">
-                        {visible.map((m, i) => {
-                          const initials = [m.first_name?.[0], m.last_name?.[0]]
-                            .filter(Boolean).join("").toUpperCase() || "?"
-                          return m.avatar_url ? (
-                            <img
-                              key={m.user_id}
-                              src={m.avatar_url}
-                              title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
-                              className="w-6 h-6 rounded-full object-cover border-2 border-white"
-                              style={{ marginLeft: i === 0 ? 0 : -8 }}
-                            />
-                          ) : (
-                            <div
-                              key={m.user_id}
-                              title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
-                              className="w-6 h-6 rounded-full bg-yellow-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-800"
-                              style={{ marginLeft: i === 0 ? 0 : -8 }}
-                            >
-                              {initials}
-                            </div>
-                          )
-                        })}
-                        {overflow > 0 && (
-                          <div
-                            className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[9px] font-semibold text-gray-500"
-                            style={{ marginLeft: -8 }}
-                          >
-                            +{overflow}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </div>
-            )
-          })}
-
-          {/* See all card */}
-          {isLastPage && showSeeAll && (
-            <Link
-              href="/profile/trips"
-              className="rounded-xl border border-dashed border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all flex flex-col items-center justify-center gap-2 p-4 text-center min-h-[160px]"
-            >
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                <ChevronRight size={20} className="text-gray-400" />
-              </div>
-              <p className="text-sm font-semibold text-gray-600">See all trips</p>
-              <p className="text-xs text-gray-400">{trips.length} total</p>
-            </Link>
-          )}
-        </div>
-
-        {/* Right arrow */}
-        {page < totalPages - 1 && (
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            className="absolute -right-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:bg-[#F5C842] hover:text-gray-900 hover:border-[#F5C842] active:scale-95 transition-all shadow-sm"
-          >
-            <ChevronRight size={16} />
-          </button>
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+              <ChevronRight size={20} className="text-gray-400" />
+            </div>
+            <p className="text-sm font-semibold text-gray-600">See all trips</p>
+            <p className="text-xs text-gray-400">{trips.length} total</p>
+          </Link>
         )}
       </div>
-
-      {/* Page indicator */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-1">
-          <span className="text-xs text-gray-400">{page + 1} / {totalPages}</span>
-        </div>
-      )}
 
       {/* Delete confirmation modal */}
       {confirmDelete && (

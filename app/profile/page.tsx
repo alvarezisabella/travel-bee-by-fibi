@@ -5,7 +5,7 @@ import ProfileHeader from "./components/ProfileHeader"
 import TripHistory from "./components/TripHistory"
 import ProfileMap from "./components/profile_map"
 import UpcomingTripsCalendar from "./components/UpcomingTripsCalendar"
-
+export const dynamic = "force-dynamic"
 
 export default async function ProfilePage() {
   const cookieStore = await cookies()
@@ -51,8 +51,7 @@ export default async function ProfilePage() {
       start_date: trip.start_date ?? null,
       end_date: trip.end_date ?? null,
       cover_photo_url: trip.cover_photo_url ?? null,
-      lat: trip.lat ?? null,
-      lng: trip.lng ?? null,
+      updated_at: trip.updated_at ?? null,
       members: members.map((m) => {
         const profile = profileMap.get(m.user_id)
         return {
@@ -79,7 +78,7 @@ export default async function ProfilePage() {
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         <ProfileHeader />
         <div className="flex gap-6 items-start">
- 
+
           {/* Left sidebar */}
           <div className="w-80 shrink-0 flex flex-col gap-4">
             <div className="bg-white rounded-2xl shadow-sm p-5">
@@ -89,12 +88,12 @@ export default async function ProfilePage() {
             </div>
             <ProfileMap trips={trips} />
           </div>
- 
+
           {/* Main content */}
           <div className="flex-1">
             <TripHistory trips={trips} />
           </div>
- 
+
         </div>
       </div>
     </div>

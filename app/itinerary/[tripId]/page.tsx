@@ -33,6 +33,11 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
     return <div className="p-10 text-center text-gray-500">Trip not found.</div>
   }
 
+  await supabase
+    .from("itineraries")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", tripId)
+
   const rawEvents = dbEvents ?? []
 
   const voteMap = new Map<string, { id: string; vote_type: string }>()
