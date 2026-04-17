@@ -1,9 +1,11 @@
 import React, { useRef, useEffect, KeyboardEvent } from "react";
 import { chat } from "./chat";
-import { Message, Trip } from "../types/types";
+import { Message, Trip, Widget } from "../types/types";
 import styles from "../../../styles/chat.module.css";
-import ReactMarkdown from "react-markdown"
+import ReactMarkdown from "react-markdown";
 import { EventWidget } from "./EventWidget";
+import { Day } from "../day";
+import { useBookmarks } from "./useBookmarks";
 
 const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
   <svg
@@ -16,30 +18,20 @@ const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
   </svg>
 );
 
-const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => (
-  <div className={`${styles.msg} ${styles[msg.sender]}`}>
-    {msg.text && (
-      <div className={styles.markdownBody}>
-        <ReactMarkdown>{msg.text}</ReactMarkdown>
-      </div>
-    )}
-    {msg.widgets?.map((widget) => (
-      <EventWidget key={widget.id} widget={widget} />
-    ))}
-    <time className={styles.timestamp}>
-      {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-    </time>
-  </div>
-);
-
 interface ChatSidebarProps {
   trip: Trip;
+  days: Day[];
 }
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip }) => {
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   const { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading } =
     chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id)
+
+  useEffect(() => {
+    refetch()
+  }, [messages, refetch])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,6 +43,29 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip }) => {
       sendMessage();
     }
   };
+
+  const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => (
+    <div className={`${styles.msg} ${styles[msg.sender]}`}>
+      {msg.text && (
+        <div className={styles.markdownBody}>
+          <ReactMarkdown>{msg.text}</ReactMarkdown>
+        </div>
+      )}
+      {msg.widgets?.map((widget) => (
+        <EventWidget
+          key={widget.id}
+          widget={widget}
+          tripId={trip.id}
+          days={days}
+          isBookmarked={isBookmarked(widget.title, widget.location)}
+          onToggleBookmark={toggleBookmark}
+        />
+      ))}
+      <time className={styles.timestamp}>
+        {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      </time>
+    </div>
+  );
 
   return (
     <aside
@@ -77,7 +92,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip }) => {
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} />
             ))}
-            {/* Typing indicator shown while Claude is responding */}
             {isLoading && (
               <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
                 <span>Atlas is typing…</span>

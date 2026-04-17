@@ -7,6 +7,11 @@ import { insertEvent } from "@/lib/supabase/event";
 import w from "@/styles/widgets.module.css";
 import styles from "@/styles/bookmarkcard.module.css";
 
+function extractHex(twClass: string): string {
+  const match = twClass.match(/#([0-9a-fA-F]{3,6})/)
+  return match ? `#${match[1]}` : "#e5e7eb"
+}
+
 export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
   idea: Widget
   tripId: string
@@ -19,7 +24,7 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
-  const bannerColor = LABEL_MAP[idea.type as keyof typeof LABEL_MAP]?.bar ?? "#9ca3af";
+  const bannerColor = extractHex(LABEL_MAP[idea.type as keyof typeof LABEL_MAP]?.bar ?? "#9ca3af");
 
   async function handleAdd() {
     if (!selectedDay) return;
