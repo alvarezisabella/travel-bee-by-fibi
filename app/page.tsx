@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ItineraryDemo from '@/components/landing/ItineraryDemo';
+import TripSearchForm from '@/components/landing/TripSearchForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,9 +30,8 @@ export default async function LandingPage() {
           AI meets collaboration. Your perfect itinerary, crafted together.
         </p>
 
-        <div className="flex gap-4 mt-4">
-          <div className="w-32 h-10 bg-[#F5C842] rounded" />
-          <div className="w-32 h-10 bg-gray-200 rounded" />
+        <div className="w-full max-w-[1000px] mt-4">
+          <TripSearchForm />
         </div>
 
         <div className="w-full mt-8 flex justify-center">
