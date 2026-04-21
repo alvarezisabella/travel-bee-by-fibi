@@ -1,30 +1,38 @@
-import { useState } from "react";
 import { Widget, LABEL_MAP } from "../types/types";
-import { X, Loader2, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Check, Loader2, Bookmark, X } from "lucide-react";
 import { Day } from "../day";
 import { createClient } from "@/lib/supabase/client";
 import { insertEvent } from "@/lib/supabase/event";
 import w from "@/styles/widgets.module.css";
 import styles from "@/styles/bookmarkcard.module.css";
 
+interface EventWidgetProps {
+  widget: Widget;
+  tripId: string;
+  days: Day[];
+  isBookmarked: boolean;
+  onToggleBookmark: (widget: Widget) => void;
+}
+
 function extractHex(twClass: string): string {
   const match = twClass.match(/#([0-9a-fA-F]{3,6})/)
   return match ? `#${match[1]}` : "#e5e7eb"
 }
 
-export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
-  idea: Widget
-  tripId: string
-  days: Day[]
-  onAdded: () => void
-  onDelete: () => void
-}) {
+export const EventWidget: React.FC<EventWidgetProps> = ({
+  widget, tripId, days, isBookmarked, onToggleBookmark
+}) => {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+  const bannerColor = extractHex(LABEL_MAP[widget.type]?.bar ?? "")
 
-  const bannerColor = extractHex(LABEL_MAP[idea.type as keyof typeof LABEL_MAP]?.bar ?? "#9ca3af");
+  function handleBookmarkToggle(e: React.MouseEvent) {
+    e.stopPropagation()
+    onToggleBookmark(widget)
+  }
 
   async function handleAdd() {
     if (!selectedDay) return;
@@ -37,9 +45,9 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
       const { data, error } = await insertEvent(supabase, {
         itinerary_id: tripId,
         day: selectedDay,
-        title: idea.title,
-        description: idea.description ?? "",
-        type: "Activity",
+        title: widget.title,
+        description: widget.description ?? "",
+        type: widget.type,
         status: "Pending",
         created_by: user.id,
       });
@@ -51,14 +59,14 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
           id: data.id,
           itineraryid: tripId,
           dayid: days.find(d => d.date === selectedDay)?.id,
-          title: idea.title,
-          description: idea.description ?? "",
+          title: widget.title,
+          description: widget.description ?? "",
           status: "Pending",
           startTime: "",
           duration: 0,
-          location: "",
+          location: widget.location ?? "",
           travelers: "",
-          type: "Activity",
+          type: widget.type,
           upvotes: 0,
           downvotes: 0,
         }
@@ -69,7 +77,6 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
         setOpen(false);
         setAdded(false);
         setSelectedDay(null);
-        onAdded();
       }, 1000);
     } finally {
       setAdding(false);
@@ -83,53 +90,68 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
 
         {/* Banner */}
         <div className={w.banner} style={{ backgroundColor: bannerColor }}>
-          {idea.image_url && (
-            <img src={idea.image_url} className={w.bannerImg} alt={idea.title} />
+          {widget.image_url && (
+            <img src={widget.image_url} className={w.bannerImg} alt={widget.title} />
           )}
-          {idea.type && (
+          {widget.type && (
             <div className={w.bannerBadge}>
-              <span className={w.bannerBadgeText}>{idea.type}</span>
+              <span className={w.bannerBadgeText}>{widget.type}</span>
             </div>
           )}
         </div>
 
         {/* Body */}
         <div className={w.body}>
-          <p className={w.title}>{idea.title}</p>
-          {idea.description && (
-            <p className={w.description}>{idea.description}</p>
+          <p className={w.title}>{widget.title}</p>
+          {widget.description && (
+            <p className={w.description}>{widget.description}</p>
           )}
-          {idea.location && (
-            <p className={w.location}>{idea.location}</p>
+          {widget.location && (
+            <p className={w.location}>{widget.location}</p>
+          )}
+          {(widget.rating !== undefined || widget.price !== undefined) && (
+            <div className={w.footer}>
+              {widget.rating !== undefined && (
+                <span className={w.rating}>★ {widget.rating}</span>
+              )}
+              {widget.price !== undefined && (
+                <span className={w.price}>
+                  {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Delete button */}
+        {/* Bookmark button */}
         <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onClick={handleBookmarkToggle}
           className={w.deleteBtn}
+          aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}
         >
-          <X size={12} className={w.deleteBtnIcon} />
+          <Bookmark
+            size={12}
+            fill={isBookmarked ? "#000000" : "none"}
+            stroke={isBookmarked ? "#000000" : "currentColor"}
+          />
         </button>
 
       </div>
 
-      {/* Detail modal */}
+      {/* Detail modal — reuses BookmarkCard modal styles */}
       {open && (
         <div className={styles.modal}>
-
           <div className={styles.modalHandle}>
             <div className={styles.modalHandleBar} />
           </div>
 
           <div className={styles.modalBody}>
 
-            {/* Header */}
             <div className={styles.modalHeader}>
               <div>
-                <h3 className={styles.modalTitle}>{idea.title}</h3>
-                {idea.location && (
-                  <p className={styles.modalLocation}>{idea.location}</p>
+                <h3 className={styles.modalTitle}>{widget.title}</h3>
+                {widget.location && (
+                  <p className={styles.modalLocation}>{widget.location}</p>
                 )}
               </div>
               <button onClick={() => setOpen(false)} className={styles.modalCloseBtn}>
@@ -137,12 +159,23 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
               </button>
             </div>
 
-            {/* Description */}
-            {idea.description && (
-              <p className={styles.modalDescription}>{idea.description}</p>
+            {widget.description && (
+              <p className={styles.modalDescription}>{widget.description}</p>
             )}
 
-            {/* Day picker */}
+            {(widget.rating !== undefined || widget.price !== undefined) && (
+              <div className={w.footer}>
+                {widget.rating !== undefined && (
+                  <span className={w.rating}>★ {widget.rating}</span>
+                )}
+                {widget.price !== undefined && (
+                  <span className={w.price}>
+                    {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className={styles.dayPicker}>
               <p className={styles.dayPickerLabel}>Add to day</p>
               <div className={styles.dayPickerScroll}>
@@ -163,7 +196,6 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
               </div>
             </div>
 
-            {/* Add button */}
             <button
               onClick={handleAdd}
               disabled={adding || !selectedDay || added}
@@ -182,4 +214,4 @@ export function BookmarkCard({ idea, tripId, days, onAdded, onDelete }: {
       )}
     </>
   );
-}
+};

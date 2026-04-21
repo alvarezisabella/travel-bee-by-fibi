@@ -33,6 +33,11 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
     return <div className="p-10 text-center text-gray-500">Trip not found.</div>
   }
 
+  await supabase
+    .from("itineraries")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", tripId)
+
   const rawEvents = dbEvents ?? []
 
   const voteMap = new Map<string, { id: string; vote_type: string }>()
@@ -151,11 +156,13 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
     cover_photo_url: itinerary.cover_photo_url ?? null,
     cover_photo_position: itinerary.cover_photo_position ?? 50,
     travelers: members ?? [],
-    days,
+    days, 
+    lat: itinerary.lat || undefined, 
+    lng: itinerary.lng || undefined
   }
 
   return (
-    <main className="bg-gray-100 min-h-screen p-10">
+    <main className="bg-gray-100 min-h-screen p-5">
       <TripHeader trip={trip} />
     </main>
   )

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Rectangle, Marker, Popup } from 'react-leaflet';
 import { fixLeafletIcons } from '../../lib/map/leaflet-fix';
-import { LatLngBoundsExpression, map } from 'leaflet';
+import { LatLngBoundsExpression} from 'leaflet';
 import {Event} from '@/app/itinerary/types/types'
 import {ShowEvent} from './show_event';
 const CALIFORNIA_BOUNDS: LatLngBoundsExpression = [[32.5, -124.5], [42.0, -114.1]] as const;

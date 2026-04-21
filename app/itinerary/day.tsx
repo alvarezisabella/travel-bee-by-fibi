@@ -30,9 +30,9 @@ export function DayCell({ day, members, onAddEvent, onDeleteEvent, onEditEvent, 
     }
     return(
 
-        <div className="group border border-[#c9c9c9] rounded-2xl p-6 mb-10 shadow-lg ">
+        <div className="w-full group border-[0.5] border-[#c9c9c9] rounded-2xl p-6 mb-10 shadow-lg bg-[#fafafa]">
             <div className='mb-8'>
-                <h1 className="text-[#1a1812] text-3xl">Day {day.id}</h1>
+                <h1 className="text-gray-800 text-3xl font-semibold mb-0.5">Day {day.id}</h1>
             </div>
                 
             <div className='space-y-5'>
@@ -47,7 +47,7 @@ export function DayCell({ day, members, onAddEvent, onDeleteEvent, onEditEvent, 
                 <div className='max-w-24 border border-[#c9c9c9] rounded-2xl shadow-md 
                 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'>
                     <button
-                    className="text-md text-yellow-500 py-1"
+                    className="text-md text-yellow-500 py-1 cursor-pointer"
                     onClick={() => setAdd(true)}
                     > Add Event
                     </button>
