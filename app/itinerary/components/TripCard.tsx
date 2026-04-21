@@ -216,9 +216,10 @@ export default function TripList({ trip }: TripProps) {
         )
     }
 
+    const [hovered, setHovered] = useState(false)
     return (
-        <div className="pt-16 px-4">
-            <div className="w-full max-w-8xl mx-auto grid grid-cols-8">
+        <div className="pt-16 px-4 text-gray-800">
+            <div className="w-full max-w-8xl mx-auto grid grid-cols-auto">
 
                 {/* Sidebar */}
                 <div className="hidden md:block shrink-0 col-span-2">
@@ -228,7 +229,7 @@ export default function TripList({ trip }: TripProps) {
                     />
                 </div>
 
-                <div className="space-y-2.5 col-span-6 col-start-4">
+                <div className=" col-span-7 col-start-4">
                     {days.map((day) => (
                         <DayCell
                             key={day.id}
@@ -241,7 +242,6 @@ export default function TripList({ trip }: TripProps) {
                             onDownvote={handleDownvote}
                         />
                     ))}
-                
 
                 {showAdd && (
                     <EditEvent
@@ -253,24 +253,25 @@ export default function TripList({ trip }: TripProps) {
                         onSave={handleAddEvent}
                     />
                 )}
-
-                
                     <button
                         onClick={handleAddDay}
                         className="
-                            w-full
+                            w-full bg-[#fafafa] cursor-pointer
                             flex items-center justify-center gap-2
-                            bg-gray-100
-                            border border-orange-400
-                            rounded-xl
-                            py-4
-                            text-lg font-medium
-                            hover:bg-yellow-400
-                            transition
+                            py-4 shadow-md inset-shadow
+                            text-xl font-semibold
+                            transition rounded-xl
                         "
+                        style={{
+                            borderWidth: "0.5px",
+                            borderColor: hovered? "rgba(250, 197, 37, 0.5)" : "#c9c9c9",
+                            boxShadow: hovered ? "0 2px 10px rgba(250, 197, 37, 0.7)" : "0 2px 16px rgba(0,0,0,0.07)",
+                        }}
+                        onMouseEnter={() => setHovered(true)}
+                        onMouseLeave={() => setHovered(false)}
                     >
-                        <Plus size={20} className="text-orange-500" />
-                        Add Day
+                        <Plus size={20} strokeWidth={4} className="text-yellow-400" />
+                        <span className='px-2 pt-1'>Add Day</span>
                     </button>
                 </div>
 

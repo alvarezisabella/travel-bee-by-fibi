@@ -55,11 +55,20 @@ export const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: stri
   Food: { bg: "bg-[#f8eff2]", bar: "bg-[#b87a8a]", text: "text-[#5a2234]", time: "text-[#905060]" },
 }
 
-export const STATUS_MAP: Record<EventStatus, string> = {
-  Confirmed: "bg-[#98d99f]",
-  Pending: "bg-[#ffcd59]",
-  Idea: "bg-[#9c8a8a]"
-}
+export const STATUS_MAP: Record<EventStatus, { dot: string; bg: string }> = {
+  Confirmed: {
+    dot: "text-[rgb(85,217,85)]",
+    bg: "179 230 188", // #b3e6bc
+  },
+  Pending: {
+    dot: "text-[rgb(255,212,0)]",
+    bg: "247 228 193", // #f7e4c1
+  },
+  Idea: {
+    dot: "text-[rgb(146,123,123)]",
+    bg: "216 211 222", // #d8d3de
+  },
+};
 
 export const emptyEvent = {
   id: "",
