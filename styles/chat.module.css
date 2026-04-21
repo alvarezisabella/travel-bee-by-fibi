@@ -1,6 +1,6 @@
 .sidebar {
   width: 380px;
-  max-height: 15%;
+  height:80dvh;
   top: 15px;
   left: 40px;
   bottom: 80px;
