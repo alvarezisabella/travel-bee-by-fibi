@@ -218,17 +218,17 @@ export default function TripList({ trip }: TripProps) {
 
     return (
         <div className="pt-16 px-4">
-            <div className="w-full max-w-6xl mx-auto">
+            <div className="w-full max-w-8xl mx-auto grid grid-cols-8">
 
                 {/* Sidebar */}
-                <div className="hidden md:block shrink-0">
+                <div className="hidden md:block shrink-0 col-span-2">
                     <ChatSidebar
                         trip={trip}
                         days={days}
                     />
                 </div>
 
-                <div className="space-y-2.5 col-span-3">
+                <div className="space-y-2.5 col-span-6 col-start-4">
                     {days.map((day) => (
                         <DayCell
                             key={day.id}
@@ -241,7 +241,7 @@ export default function TripList({ trip }: TripProps) {
                             onDownvote={handleDownvote}
                         />
                     ))}
-                </div>
+                
 
                 {showAdd && (
                     <EditEvent
@@ -254,7 +254,7 @@ export default function TripList({ trip }: TripProps) {
                     />
                 )}
 
-                <div className="col-span-3 col-start-2 relative center">
+                
                     <button
                         onClick={handleAddDay}
                         className="

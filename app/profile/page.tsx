@@ -5,6 +5,7 @@ import ProfileHeader from "./components/ProfileHeader"
 import TripHistory from "./components/TripHistory"
 import ProfileMap from "./components/profile_map"
 import UpcomingTripsCalendar from "./components/UpcomingTripsCalendar"
+import { ShowGeneratedItinerary } from "./components/sample_itin"
 export const dynamic = "force-dynamic"
 
 export default async function ProfilePage() {
@@ -96,8 +97,10 @@ export default async function ProfilePage() {
           {/* Main content */}
           <div className="flex-1">
             <TripHistory trips={trips} />
+            <div className="py-13">
+              <ShowGeneratedItinerary />
+            </div>
           </div>
-
         </div>
       </div>
     </div>
