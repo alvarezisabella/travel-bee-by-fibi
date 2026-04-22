@@ -26,16 +26,34 @@ interface ChatSidebarProps {
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   const { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading } =
     chat(trip);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null)
   const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id)
+  const prevMessageCount = useRef(messages.length);
+  const lastMessageText = messages[messages.length - 1]?.text ?? "";
+  
 
   useEffect(() => {
     refetch()
   }, [messages, refetch])
 
+  const scrollToBottom = (behavior: ScrollBehavior) => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
+  };
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (messages.length !== prevMessageCount.current) {
+      prevMessageCount.current = messages.length;
+      scrollToBottom("smooth");
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (isLoading) {
+      scrollToBottom("instant");
+    }
+  }, [lastMessageText, isLoading]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -88,16 +106,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
       {/* Messages */}
       {!isCollapsed && (
         <>
-          <div className={styles.messages} role="log" aria-live="polite">
+        
+          <div ref={messagesRef} className={styles.messages} role="log" aria-live="polite">
             {messages.map((msg) => (
               <MessageBubble key={msg.id} msg={msg} />
             ))}
+            
             {isLoading && (
               <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
                 <span>Atlas is typing…</span>
               </div>
             )}
-            <div ref={bottomRef} />
+            
           </div>
 
           {/* Input */}
