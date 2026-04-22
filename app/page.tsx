@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ItineraryDemo from '@/components/landing/ItineraryDemo';
 import TripSearchForm from '@/components/landing/TripSearchForm'
+import ItinerariesSection from '@/components/landing/GeneratedItineraries'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,10 @@ export default async function LandingPage() {
               className="w-full h-full border-0 block"
             />
           </div>
+        </div>
+        
+        <div>
+          <ItinerariesSection />
         </div>
       </section>
     </main>
