@@ -1,3 +1,4 @@
+// lib/supabase/itinerary.ts
 import { SupabaseClient } from '@supabase/supabase-js'
 
 export async function insertItinerary(supabase: SupabaseClient,
@@ -16,7 +17,7 @@ export async function getItinerary(supabase: SupabaseClient, id: string) {
 export async function getItinerariesByUser(supabase: SupabaseClient, userId: string) {
   const { data: created } = await supabase
     .from('itineraries')
-    .select('id, title, start_date, end_date, created_by, created_at, updated_at, cover_photo_url, cover_photo_position, location, lat, lng')
+    .select('id, title, start_date, end_date, created_by, created_at, updated_at, cover_photo_url, cover_photo_position, location, lat, lng, is_recommendation')
     .eq('created_by', userId)
 
   const { data: memberships } = await supabase
@@ -31,11 +32,10 @@ export async function getItinerariesByUser(supabase: SupabaseClient, userId: str
   const { data: joined } = memberOnlyIds.length > 0
     ? await supabase
         .from('itineraries')
-        .select('id, title, start_date, end_date, created_by, created_at, updated_at, cover_photo_url, cover_photo_position, location, lat, lng')
+        .select('id, title, start_date, end_date, created_by, created_at, updated_at, cover_photo_url, cover_photo_position, location, lat, lng, is_recommendation')
         .in('id', memberOnlyIds)
     : { data: [] }
 
-  // Sort combined list by most recently updated
   const all = [...(created ?? []), ...(joined ?? [])].sort((a, b) => {
     const at = a.updated_at ? new Date(a.updated_at).getTime() : 0
     const bt = b.updated_at ? new Date(b.updated_at).getTime() : 0
