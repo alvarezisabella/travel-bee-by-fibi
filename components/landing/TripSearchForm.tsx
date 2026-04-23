@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 const budgetTiers = [
   { signs: "$",    label: "Budget",    range: "Under $500"      },
@@ -18,6 +19,9 @@ export default function TripSearchForm() {
   const [budgetTier, setBudgetTier] = useState(1)
   const [description, setDescription] = useState("")
   const [nights, setNights] = useState<number | null>(7)
+  // Loading/error state for the "Plan my trip" action
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const taRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -36,17 +40,77 @@ export default function TripSearchForm() {
     }
   }, [startDate, endDate])
 
-  function handlePlan() {
+  async function handlePlan() {
     if (!destination.trim()) return
-    const params = new URLSearchParams({
-      destination,
-      travelers: String(travelers),
-      startDate,
-      endDate,
-      budget: budgetTiers[budgetTier].label,
-      description,
-    })
-    router.push(`/plan?${params.toString()}`)
+    setError("")
+
+    // Validate dates before calling the API — Claude cannot generate a sensible
+    // itinerary for a zero-length or reversed date range
+    if (!startDate || !endDate) {
+      setError("Please select a start and end date.")
+      return
+    }
+    if (endDate <= startDate) {
+      setError("End date must be after start date.")
+      return
+    }
+
+    setLoading(true)
+
+    // Check if the user is logged in before calling the AI — the generate API
+    // requires auth so the itinerary can be attributed to a user when saved.
+    // If not logged in, redirect to login and return here after.
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      router.push("/login?redirect=/")
+      setLoading(false)
+      return
+    }
+
+    // Fold the budget tier into the description so Claude can factor it in
+    // when choosing activities, restaurants, and accommodations.
+    const budgetNote = `Budget: ${budgetTiers[budgetTier].label} (${budgetTiers[budgetTier].range})`
+    const enrichedDescription = [description.trim(), budgetNote].filter(Boolean).join(". ")
+
+    try {
+      const res = await fetch("/api/ai/generate-itinerary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location: destination,
+          startDate,
+          endDate,
+          numTravelers: travelers,
+          description: enrichedDescription,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong. Please try again.")
+        return
+      }
+
+      // Store the generated itinerary + form metadata in sessionStorage so
+      // the /ai-template page can read it without a round-trip to the database.
+      // Nothing is saved to Supabase until the user clicks "Save to My Trips".
+      sessionStorage.setItem("travelbee_draft", JSON.stringify({
+        itinerary: data.itinerary,
+        location: destination,
+        startDate,
+        endDate,
+        numTravelers: travelers,
+        description: enrichedDescription,
+      }))
+
+      router.push("/ai-template")
+    } catch {
+      setError("A network error occurred. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const labelCls = "block text-[10px] font-medium tracking-widest uppercase text-gray-400 mb-1.5"
@@ -174,16 +238,28 @@ export default function TripSearchForm() {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between p-4 px-6">
-        <p className="text-[13px] text-gray-400">
-          🐝 <strong className="text-gray-500 font-medium">Agent Atlas</strong> will craft your itinerary in seconds
-        </p>
+      <div className="flex items-center justify-between p-4 px-6 gap-4">
+        <div className="flex flex-col gap-1 min-w-0">
+          <p className="text-[13px] text-gray-400">
+            🐝 <strong className="text-gray-500 font-medium">Agent Atlas</strong> will craft your itinerary in seconds
+          </p>
+          {/* Error message shown inline if generation fails */}
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
         <button
           onClick={handlePlan}
-          disabled={!destination.trim()}
-          className="flex items-center gap-2 bg-[#f5c300] disabled:opacity-40 hover:bg-[#d4a800] text-[#3d3000] font-medium text-sm px-7 py-3 rounded-xl transition-colors whitespace-nowrap"
+          disabled={!destination.trim() || loading}
+          className="flex items-center gap-2 bg-[#f5c300] disabled:opacity-40 hover:bg-[#d4a800] text-[#3d3000] font-medium text-sm px-7 py-3 rounded-xl transition-colors whitespace-nowrap flex-shrink-0"
         >
-          ✈ Plan my trip
+          {loading ? (
+            <>
+              {/* Spinner while Claude is generating */}
+              <span className="w-4 h-4 border-2 border-[#3d3000] border-t-transparent rounded-full animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>✈ Plan my trip</>
+          )}
         </button>
       </div>
 
