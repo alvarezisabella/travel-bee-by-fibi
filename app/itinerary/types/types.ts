@@ -106,3 +106,6 @@ export interface Widget {
   rating?: number
   price?: number
 }
+
+/**   background: var(--color-background-info, #dbeafe); 
+  color: var(--color-text-info, #1d4ed8); */

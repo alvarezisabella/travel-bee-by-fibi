@@ -222,7 +222,7 @@ export default function TripList({ trip }: TripProps) {
             <div className="w-full max-w-8xl mx-auto grid grid-cols-auto">
 
                 {/* Sidebar */}
-                <div className="hidden md:block shrink-0 col-span-2">
+                <div className="shrink-0 col-span-3 ">
                     <ChatSidebar
                         trip={trip}
                         days={days}
