@@ -1,6 +1,9 @@
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
+import ItineraryDemo from '@/components/landing/ItineraryDemo';
+import TripSearchForm from '@/components/landing/TripSearchForm'
+import ItinerariesSection from '@/components/landing/GeneratedItineraries'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +19,7 @@ export default async function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
-
-      {/* HERO SECTION */}
       <section className="w-full flex flex-col items-center justify-center text-center px-8 py-24 gap-6">
-        {/* Headline */}
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
           Plan together,
         </h1>
@@ -27,21 +27,29 @@ export default async function LandingPage() {
           travel smarter
         </h1>
 
-        {/* Subtext */}
         <p className="text-gray-500 text-lg mt-2">
           AI meets collaboration. Your perfect itinerary, crafted together.
         </p>
 
-        {/* CTAs */}
-        <div className="flex gap-4 mt-4">
-          <div className="w-32 h-10 bg-[#F5C842] rounded" />
-          <div className="w-32 h-10 bg-gray-200 rounded" />
+        <div className="w-full max-w-[1000px] mt-4">
+          <TripSearchForm />
         </div>
 
-        {/* Hero image */}
-        <div className="w-full max-w-3xl h-72 bg-gray-300 rounded-2xl mt-8" />
+        <div className="w-full mt-8 flex justify-center">
+          <div className="w-full max-w-[1100px] aspect-[16/10]">
+            <iframe
+              src="/demo/ItineraryDemo.html"
+              title="TravelBee demo"
+              scrolling="no"
+              className="w-full h-full border-0 block"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <ItinerariesSection />
+        </div>
       </section>
-
     </main>
   );
 }

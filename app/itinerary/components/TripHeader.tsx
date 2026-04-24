@@ -91,10 +91,23 @@ export default function TripHeader({ trip }: Props) {
     confirm_date_shift?: boolean
   }) => {
     setDateError(null)
+
+    let geo = null  // get coordinates of location
+    if(location.trim()) {
+      let city = location.trim()
+      const res2 = await fetch("/api/geocode", {
+          method: "POST",
+          body: JSON.stringify({city}),
+      });
+          geo = await res2.json();
+
+          if (!res2.ok) throw new Error(geo.error);
+    }
+    console.log(geo)
     const res = await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: trip.id, ...fields }),
+      body: JSON.stringify({ id: trip.id, ...fields, lat:geo?.lat, lng:geo?.lng }),
     })
     if (!res.ok) {
       const data = await res.json()
