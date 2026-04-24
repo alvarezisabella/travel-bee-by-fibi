@@ -3,8 +3,11 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 
+// This hook is used to get the current authenticated user from Supabase and listen for authentication state changes. 
+// It returns the user object or null if there is no authenticated user.
+const supabase = createClient();
+
 export function useUser() {
-  const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
