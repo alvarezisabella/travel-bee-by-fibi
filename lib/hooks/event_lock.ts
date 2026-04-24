@@ -8,8 +8,9 @@ type LockState = {
   isLockedByMe: boolean;
 };
 
+const supabase = createClient();
+
 export function useEventLock(eventId: string) {
-  const supabase = createClient();
   const user = useUser();
   const heartbeatRef = useRef<NodeJS.Timeout>(undefined);
 
@@ -33,14 +34,14 @@ export function useEventLock(eventId: string) {
 
     // keeps lock while user is still editing
     heartbeatRef.current = setInterval(async () => {
-    const {error} = await supabase
+    await supabase
         .from('event_locks')
         .update({ expires: new Date(Date.now() + 30_000).toISOString() })
         .eq('event_id', eventId)
         .eq('locked_by', user.id);
     }, 15_000);
   return true;
-}, [eventId, user, supabase]);
+}, [eventId, user]);
 
 
   // Release lock when user is finished editing event
@@ -50,7 +51,7 @@ export function useEventLock(eventId: string) {
       .delete()
       .eq('event_id', eventId)
       .eq('locked_by', user?.id);
-  }, [eventId, user, supabase]);
+  }, [eventId, user]);
 
   // Subscribe to lock changes for this event
   useEffect(() => {
@@ -91,7 +92,7 @@ export function useEventLock(eventId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId, user, supabase]);
+  }, [eventId, user]);
 
   // Release lock if user closes tab
   useEffect(() => {

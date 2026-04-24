@@ -9,8 +9,8 @@ type Presence = {
   editingEventId: string | null;
 };
 
+const supabase = createClient();
 export function useTripPresence(tripId: string) {
-  const supabase = createClient();
   const user = useUser();
   const [collaborators, setCollaborators] = useState<Presence[]>([]);
 
@@ -40,7 +40,7 @@ export function useTripPresence(tripId: string) {
       });
 
     return () => { supabase.removeChannel(channel); };
-  }, [tripId, user, supabase]);
+  }, [tripId, user]);
 
   return { collaborators };
 }
