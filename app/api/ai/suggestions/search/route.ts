@@ -6,13 +6,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { Widget, EventLabel } from "@/app/itinerary/types/types"
 
 const TA_BASE = "https://api.content.tripadvisor.com/api/v1"
+const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
 
-// Step 1 — search for locations by query + category
 async function searchTripAdvisor(
   query: string,
   location: string,
   category: "restaurants" | "attractions",
-  intentIndex: number,
   limit: number = 5
 ): Promise<{ locationId: string; name: string }[]> {
   const key = process.env.TRIPADVISOR_KEY
@@ -46,7 +45,6 @@ async function searchTripAdvisor(
   }))
 }
 
-// Step 2 — get full details for a location (rating, price, address, description, hours)
 async function getLocationDetails(locationId: string): Promise<any> {
   const key = process.env.TRIPADVISOR_KEY
   if (!key) return null
@@ -70,7 +68,6 @@ async function getLocationDetails(locationId: string): Promise<any> {
   return data
 }
 
-// Step 3 — get the best available photo for a location
 async function getLocationPhoto(locationId: string): Promise<string | undefined> {
   const key = process.env.TRIPADVISOR_KEY
   if (!key) return undefined
@@ -94,37 +91,31 @@ async function getLocationPhoto(locationId: string): Promise<string | undefined>
   const photo = data.data?.[0]
   console.log("TA PHOTO:", JSON.stringify(photo, null, 2))
 
-  // Prefer large, fall back to original
   return photo?.images?.large?.url ?? photo?.images?.original?.url ?? undefined
 }
 
-// Maps TripAdvisor price level string to a number
 function parsePriceLevel(priceLevel: string | undefined): number | undefined {
   if (!priceLevel) return undefined
   return priceLevel.replace(/[^$]/g, "").length || undefined
 }
 
-// Quality filter — only return places that are open, described, and rated
 function isGoodLocation(details: any): boolean {
-  // Must have a meaningful description
   const description = (details.description ?? "").trim()
   if (description.length < 20) {
     console.log("FILTERED OUT (no description):", details.name)
     return false
   }
 
-  // Must have a rating
   if (!details.rating) {
     console.log("FILTERED OUT (no rating):", details.name)
     return false
   }
 
-  // Check if currently open using hours data if available
   const periods = details.hours?.periods
   if (periods?.length) {
     const now = new Date()
-    const dayOfWeek = now.getDay()           // 0 = Sunday
-    const currentTime = now.getHours() * 100 + now.getMinutes() // e.g. 1430
+    const dayOfWeek = now.getDay()
+    const currentTime = now.getHours() * 100 + now.getMinutes()
 
     const todayHours = periods.find((p: any) => p.open?.day === dayOfWeek)
     if (todayHours) {
@@ -141,7 +132,6 @@ function isGoodLocation(details: any): boolean {
   return true
 }
 
-// Full pipeline: search → filter → details + photo → Widget[]
 async function searchTripAdvisorWidgets(
   query: string,
   location: string,
@@ -149,20 +139,16 @@ async function searchTripAdvisorWidgets(
   intentIndex: number
 ): Promise<Widget[]> {
   const category = type === "Food" ? "restaurants" : "attractions"
-
-  // Fetch 5 candidates so we have backups after filtering
-  const locations = await searchTripAdvisor(query, location, category, intentIndex, 5)
+  const locations = await searchTripAdvisor(query, location, category, 5)
   if (!locations.length) return []
 
   const widgets: Widget[] = []
 
   for (let i = 0; i < locations.length; i++) {
-    // Stop once we have 3 good widgets per intent
     if (widgets.length >= 3) break
 
     const { locationId, name } = locations[i]
     try {
-      // Fetch details and photo in parallel
       const [details, photoUrl] = await Promise.all([
         getLocationDetails(locationId),
         getLocationPhoto(locationId),
@@ -173,10 +159,8 @@ async function searchTripAdvisorWidgets(
         continue
       }
 
-      // Apply quality filters
       if (!isGoodLocation(details)) continue
 
-      // Require a photo
       if (!photoUrl) {
         console.log("FILTERED OUT (no photo):", name)
         continue
@@ -197,10 +181,119 @@ async function searchTripAdvisorWidgets(
         price: parsePriceLevel(details.price_level),
       })
 
-      console.log("TA WIDGET BUILT:", details.name, "| rating:", details.rating, "| photo:", photoUrl ? "yes" : "no")
+      console.log(
+        "TA WIDGET BUILT:", details.name,
+        "| rating:", details.rating,
+        "| photo:", photoUrl ? "yes" : "no"
+      )
     } catch (e) {
       console.error("TA WIDGET FAILED FOR:", name, e)
     }
+  }
+
+  return widgets
+}
+
+function getBestTicketmasterImage(images: any[]): string | undefined {
+  if (!images.length) return undefined
+
+  // Prefer 16:9 ratio at largest width
+  const sixteenNine = images
+    .filter((img) => img.ratio === "16_9" && img.url)
+    .sort((a, b) => (b.width ?? 0) - (a.width ?? 0))
+
+  if (sixteenNine.length) return sixteenNine[0].url
+
+  // Fall back to any image with a URL
+  return images.find((img) => img.url)?.url
+}
+
+async function searchTicketmaster(
+  query: string,
+  location: string,
+  intentIndex: number
+): Promise<Widget[]> {
+  const key = process.env.TICKETMASTER_KEY
+  if (!key) {
+    console.error("TICKETMASTER_KEY not set")
+    return []
+  }
+
+  const url =
+    `${TM_BASE}/events.json` +
+    `?apikey=${key}` +
+    `&keyword=${encodeURIComponent(query)}` +
+    `&city=${encodeURIComponent(location)}` +
+    `&size=5` +
+    `&sort=relevance,desc`
+
+  console.log("TM SEARCH URL:", url)
+
+  const res = await fetch(url)
+  if (!res.ok) {
+    console.error("TM SEARCH ERROR:", res.status, await res.text())
+    return []
+  }
+
+  const data = await res.json()
+  console.log("TM RAW RESPONSE:", JSON.stringify(data, null, 2))
+  const events = data._embedded?.events ?? []
+  console.log("TM EVENTS FOUND:", events.length)
+
+  const widgets: Widget[] = []
+
+  for (let i = 0; i < events.length; i++) {
+    if (widgets.length >= 3) break
+
+    const e = events[i]
+
+    // Must have a venue and a date
+    const venue = e._embedded?.venues?.[0]
+    const date = e.dates?.start?.localDate
+    if (!venue || !date) {
+      console.log("FILTERED OUT (no venue or date):", e.name)
+      continue
+    }
+
+    // Must have an image
+    const image = getBestTicketmasterImage(e.images ?? [])
+    if (!image) {
+      console.log("FILTERED OUT (no image):", e.name)
+      continue
+    }
+
+    // Min ticket price if available
+    const priceRange = e.priceRanges?.[0]
+    const price = priceRange ? Math.round(priceRange.min) : undefined
+
+    // Build description from date + time + genre
+    const startTime = e.dates?.start?.localTime
+      ? e.dates.start.localTime.slice(0, 5)
+      : ""
+    const description = [
+      date,
+      startTime,
+      e.classifications?.[0]?.segment?.name,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+
+    widgets.push({
+      id: `${e.id}-${intentIndex}-${i}`,
+      title: e.name,
+      location: [venue.name, venue.city?.name].filter(Boolean).join(", "),
+      description,
+      type: "Reservation",
+      image_url: image,
+      rating: undefined,
+      price,
+    })
+
+    console.log(
+      "TM WIDGET BUILT:", e.name,
+      "| date:", date,
+      "| image:", image
+    )
   }
 
   return widgets
@@ -235,12 +328,18 @@ export async function POST(req: NextRequest) {
     console.log("PROCESSING INTENT:", intent.query, intent.type, intent.location)
 
     try {
-      const results = await searchTripAdvisorWidgets(
-        intent.query,
-        intent.location,
-        intent.type,
-        i
-      )
+      let results: Widget[] = []
+
+      if (intent.type === "Reservation") {
+        results = await searchTicketmaster(intent.query, intent.location, i)
+      } else {
+        results = await searchTripAdvisorWidgets(
+          intent.query,
+          intent.location,
+          intent.type,
+          i
+        )
+      }
 
       if (!results.length) {
         console.log("NO RESULTS for:", intent.query)
@@ -252,6 +351,57 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.error("INTENT FAILED:", intent.query, e)
     }
+  }
+
+  // If no widgets found at all, ask Claude for a fallback message
+  if (!widgets.length) {
+    console.log("NO WIDGETS FOUND — generating fallback message")
+
+    try {
+      const fallbackRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_KEY!,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 200,
+          system:
+            "You are a helpful travel assistant. Keep responses to 2-3 sentences, plain text only, no markdown, no bullet points, no emojis.",
+          messages: [
+            {
+              role: "user",
+              content:
+                `No results were found for: ${intents
+                  .map((i) => `"${i.query}" in ${i.location}`)
+                  .join(", ")}. ` +
+                `Write a short friendly message telling the user no results were found and suggest they try different dates, a nearby major city, or a different type of event or activity.`,
+            },
+          ],
+        }),
+      })
+
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json()
+        const fallback =
+          fallbackData.content?.[0]?.text ??
+          "No results were found for your search. Try adjusting your dates or searching for a different type of event."
+
+        console.log("FALLBACK MESSAGE:", fallback)
+        return NextResponse.json({ widgets: [], fallback })
+      }
+    } catch (e) {
+      console.error("FALLBACK GENERATION FAILED:", e)
+    }
+
+    // Hard fallback if Claude call also fails
+    return NextResponse.json({
+      widgets: [],
+      fallback:
+        "No results were found for your search. Try searching for a different event type or a nearby major city.",
+    })
   }
 
   console.log("SEARCH DONE — intents:", intents.length, "widgets:", widgets.length)
