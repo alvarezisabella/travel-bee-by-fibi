@@ -1,11 +1,7 @@
-// app/itinerary/components/chat.ts
-
 import { useState, useCallback, useEffect } from "react";
 import { Message, Widget } from "../types/types";
 import { Trip } from "../types/types";
 import { ChatMessage } from "@/lib/ai/types";
-
-// chat.ts — replace parseWidgets with this
 
 function parseSearch(raw: string): {
   text: string
@@ -31,6 +27,8 @@ function stripSearchBlock(text: string): string {
   return text
     .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")
     .replace(/<search>[\s\S]*$/, "")
+    .replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
+    .replace(/<widgets>[\s\S]*$/, "")
     .trim()
 }
 
@@ -138,12 +136,12 @@ export function chat(trip: Trip) {
         if (!botMsgAdded) {
           setMessages((prev) => [
             ...prev,
-            { id: botMsgId, text: displayText, sender: "bot", timestamp: new Date() },
+            { id: botMsgId, text: "", sender: "bot", timestamp: new Date() },
           ]);
           botMsgAdded = true;
         } else {
           setMessages((prev) =>
-            prev.map((m) => (m.id === botMsgId ? { ...m, text: displayText } : m))
+            prev.map((m) => (m.id === botMsgId ? { ...m, text: "" } : m))
           );
         }
       }
@@ -153,22 +151,37 @@ export function chat(trip: Trip) {
       console.log("PARSED INTENTS:", intents?.length)
 
       let widgets: Widget[] | undefined
+      let displayText = text
 
       if (intents?.length) {
-        const tripLocation = (trip as any).location || (trip as any).destination || ""
+        const tripLocation =
+          (trip as any).location ||
+          (trip as any).destination ||
+          ""
+
         console.log("TRIP LOCATION:", tripLocation)
 
         try {
+          console.log("CALLING SEARCH...")
           const searchRes = await fetch("/api/ai/suggestions/search", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ intents }),
           })
           console.log("SEARCH STATUS:", searchRes.status)
+
           if (searchRes.ok) {
-            const { widgets: real } = await searchRes.json()
+            const { widgets: real, fallback } = await searchRes.json()
             console.log("SEARCH RESULT:", real?.length, "widgets")
-            widgets = real
+
+            if (real?.length) {
+              // Results found — use them
+              widgets = real
+            } else if (fallback) {
+              // No results — show Claude's fallback message instead
+              displayText = fallback
+              console.log("USING FALLBACK:", fallback)
+            }
           }
         } catch (e) {
           console.error("SEARCH CALL FAILED:", e)
@@ -177,7 +190,9 @@ export function chat(trip: Trip) {
 
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === botMsgId ? { ...m, text, widgets } : m
+          m.id === botMsgId
+            ? { ...m, text: displayText, widgets }
+            : m
         )
       )
 
