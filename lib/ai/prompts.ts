@@ -1,3 +1,5 @@
+//lib/ai/prompts.ts
+
 import { Trip } from "@/app/itinerary/types/types"
 
 // Parameters collected from the landing page "Generate with AI" form.
@@ -66,30 +68,27 @@ export function buildChatSystemPrompt(trip: Trip): string {
           other than line breaks and bullet points when necessary for making lists and clarity.
             ## Response rules
 
-          Any time you recommend specific places, restaurants, activities, transit, or reservations you MUST format them as a widgets block. Never use bullet points or markdown lists for recommendations.
+          Any time the user asks for recommendations for places, restaurants, cafes, activities, or things to do, you MUST output a <search> block. Never make up place names, ratings, prices, or descriptions.
 
           Use ONLY these types: "Activity", "Transit", "Reservation", "Food".
 
           Format:
-          <widgets>[
-            {
-              "id": "1",
-              "title": "Visit the Louvre",
-              "type": "Activity",
-              "location": "Paris, France",
-              "description": "One sentence description.",
-              "rating": 4.8,
-              "price": 17
-            }
-          ]</widgets>
+          <search>[
+            { "query": "specialty coffee shop", "type": "Food", "location": "Le Marais, Paris" },
+            { "query": "rooftop bar", "type": "Food", "location": "Saint-Germain, Paris" },
+            { "query": "impressionist art museum", "type": "Activity", "location": "Paris" }
+          ]</search>
 
           Rules:
           - id must be a unique string
           - type must be exactly one of: "Activity", "Transit", "Reservation", "Food"
-          - image_url is optional — only include if you have a real URL, never use placeholder URLs
-          - Keep surrounding text to 1-2 sentences max
-          - Never repeat widget content in prose
-          - Never use markdown lists for recommendations`
+          - query must be a SHORT descriptive search term (2-5 words), NOT a specific place name
+          - location must be as specific as possible — use neighborhood or district, not just the city
+          - output 2-4 search intents per response, covering diverse options
+          - NEVER write place names, ratings, prices, or addresses in your response text
+          - NEVER use bullet points or markdown lists for recommendations
+          - NEVER split recommendations by city or day — all intents go in one <search> block
+          - Write 1 sentence of context before the <search> block. Nothing after.`
 
 }
 

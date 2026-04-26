@@ -44,28 +44,39 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     }
   };
 
-  const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => (
-    <div className={`${styles.msg} ${styles[msg.sender]}`}>
-      {msg.text && (
-        <div className={styles.markdownBody}>
-          <ReactMarkdown>{msg.text}</ReactMarkdown>
-        </div>
-      )}
-      {msg.widgets?.map((widget) => (
-        <EventWidget
-          key={widget.id}
-          widget={widget}
-          tripId={trip.id}
-          days={days}
-          isBookmarked={isBookmarked(widget.title, widget.location)}
-          onToggleBookmark={toggleBookmark}
-        />
-      ))}
-      <time className={styles.timestamp}>
-        {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-      </time>
-    </div>
-  );
+  const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => {
+    // Safety strip — ensures raw <widgets> block never renders even if
+    // parseWidgets hasn't run yet or returned early due to a parse error
+    const displayText = msg.text
+      ?.replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
+      .replace(/<widgets>[\s\S]*$/, "")
+      .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")  // ← add this
+      .replace(/<search>[\s\S]*$/, "")  
+      .trim()
+
+    return (
+      <div className={`${styles.msg} ${styles[msg.sender]}`}>
+        {displayText && (
+          <div className={styles.markdownBody}>
+            <ReactMarkdown>{displayText}</ReactMarkdown>
+          </div>
+        )}
+        {msg.widgets?.map((widget, idx) => (
+          <EventWidget
+            key={`${widget.id}-${idx}`}
+            widget={widget}
+            tripId={trip.id}
+            days={days}
+            isBookmarked={isBookmarked(widget.title, widget.location)}
+            onToggleBookmark={toggleBookmark}
+          />
+        ))}
+        <time className={styles.timestamp}>
+          {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </time>
+      </div>
+    )
+  }
 
   return (
     <aside
