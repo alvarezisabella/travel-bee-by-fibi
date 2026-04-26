@@ -98,3 +98,21 @@
 .deleteBtnIcon:hover {
   color: #4b5563;
 }
+.ticketLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #026CDF;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  text-decoration: none;
+}
+
+.ticketLink:hover {
+  text-decoration: underline;
+}
