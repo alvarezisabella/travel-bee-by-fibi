@@ -287,6 +287,7 @@ async function searchTicketmaster(
       image_url: image,
       rating: undefined,
       price,
+      url: e.url,
     })
 
     console.log(

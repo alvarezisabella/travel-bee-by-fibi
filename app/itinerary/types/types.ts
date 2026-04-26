@@ -105,4 +105,5 @@ export interface Widget {
   image_url?: string
   rating?: number
   price?: number
+  url?: string
 }

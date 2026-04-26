@@ -1,6 +1,6 @@
 import { Widget, LABEL_MAP } from "../types/types";
-import React, { useState, useEffect } from "react";
-import { Check, Loader2, Bookmark, X } from "lucide-react";
+import React, { useState } from "react";
+import { Check, Loader2, Bookmark, X, ExternalLink } from "lucide-react";
 import { Day } from "../day";
 import { createClient } from "@/lib/supabase/client";
 import { insertEvent } from "@/lib/supabase/event";
@@ -32,6 +32,11 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
   function handleBookmarkToggle(e: React.MouseEvent) {
     e.stopPropagation()
     onToggleBookmark(widget)
+  }
+
+  function handleTicketLink(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (widget.url) window.open(widget.url, "_blank", "noopener,noreferrer")
   }
 
   async function handleAdd() {
@@ -109,18 +114,27 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
           {widget.location && (
             <p className={w.location}>{widget.location}</p>
           )}
-          {(widget.rating !== undefined || widget.price !== undefined) && (
-            <div className={w.footer}>
-              {widget.rating !== undefined && (
-                <span className={w.rating}>★ {widget.rating}</span>
-              )}
-              {widget.price !== undefined && (
-                <span className={w.price}>
-                  {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
-                </span>
-              )}
-            </div>
-          )}
+          <div className={w.footer}>
+            {widget.rating !== undefined && (
+              <span className={w.rating}>★ {widget.rating}</span>
+            )}
+            {widget.price !== undefined && (
+              <span className={w.price}>
+                {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
+              </span>
+            )}
+            {/* Ticket link inline on card — only for Reservation type */}
+            {widget.url && widget.type === "Reservation" && (
+              <button
+                onClick={handleTicketLink}
+                className={w.ticketLink}
+                aria-label="Buy tickets on Ticketmaster"
+              >
+                <ExternalLink size={11} />
+                <span>Tickets</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Bookmark button */}
@@ -138,7 +152,7 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
 
       </div>
 
-      {/* Detail modal — reuses BookmarkCard modal styles */}
+      {/* Detail modal */}
       {open && (
         <div className={styles.modal}>
           <div className={styles.modalHandle}>
@@ -163,17 +177,27 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
               <p className={styles.modalDescription}>{widget.description}</p>
             )}
 
-            {(widget.rating !== undefined || widget.price !== undefined) && (
-              <div className={w.footer}>
-                {widget.rating !== undefined && (
-                  <span className={w.rating}>★ {widget.rating}</span>
-                )}
-                {widget.price !== undefined && (
-                  <span className={w.price}>
-                    {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
-                  </span>
-                )}
-              </div>
+            <div className={w.footer}>
+              {widget.rating !== undefined && (
+                <span className={w.rating}>★ {widget.rating}</span>
+              )}
+              {widget.price !== undefined && (
+                <span className={w.price}>
+                  {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
+                </span>
+              )}
+            </div>
+
+            {/* Ticket link in modal — full button for Reservation type */}
+            {widget.url && widget.type === "Reservation" && (
+              <button
+                onClick={handleTicketLink}
+                className={styles.ticketBtn}
+                aria-label="Buy tickets on Ticketmaster"
+              >
+                <ExternalLink size={14} />
+                <span>Buy Tickets</span>
+              </button>
             )}
 
             <div className={styles.dayPicker}>
