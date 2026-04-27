@@ -4,6 +4,7 @@ import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ItineraryDemo from '@/components/landing/ItineraryDemo';
 import TripSearchForm from '@/components/landing/TripSearchForm'
 import ItinerariesSection from '@/components/landing/GeneratedItineraries'
+import FeaturesCarousel from '@/components/landing/FeaturesCarousel'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,8 @@ export default async function LandingPage() {
             />
           </div>
         </div>
+
+        <FeaturesCarousel />
         
         <div>
           <ItinerariesSection />
