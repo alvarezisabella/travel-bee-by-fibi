@@ -125,7 +125,7 @@ export default function FeaturesCarousel() {
         <div className="flex items-center justify-center gap-3 mt-5">
           <button
             onClick={prev}
-            className="w-9 h-9 rounded-full border border-gray-200 hover:border-[#F5C300] hover:bg-yellow-50 bg-white flex items-center justify-center text-gray-400 hover:text-[#b8860b] text-lg transition-all"
+            className="w-9 h-9 rounded-full border border-gray-200 hover:border-[#F5C300] hover:bg-yellow-50 bg-white flex items-center justify-center text-gray-400 hover:text-[#b8860b] text-lg transition-all cursor-pointer"
           >
             ‹
           </button>
@@ -144,7 +144,7 @@ export default function FeaturesCarousel() {
 
           <button
             onClick={next}
-            className="w-9 h-9 rounded-full border border-gray-200 hover:border-[#F5C300] hover:bg-yellow-50 bg-white flex items-center justify-center text-gray-400 hover:text-[#b8860b] text-lg transition-all"
+            className="w-9 h-9 rounded-full border border-gray-200 hover:border-[#F5C300] hover:bg-yellow-50 bg-white flex items-center justify-center text-gray-400 hover:text-[#b8860b] text-lg transition-all cursor-pointer"
           >
             ›
           </button>
