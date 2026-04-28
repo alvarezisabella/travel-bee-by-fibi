@@ -40,7 +40,7 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
   const initials = profileName ? getInitials(profileName) : "?"
 
   return (
-    <nav className="w-full flex items-center justify-between px-10 py-4 bg-white border-b border-gray-100 shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-4 bg-gradient-to-r from-white via-white/40 to-white border-b border-white">
 
       {/* Logo - left */}
       <div className="flex-1">
@@ -49,21 +49,11 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
         </Link>
       </div>
 
-      {/* Nav Links - center */}
-      <div className="flex-1 flex items-center justify-center gap-8">
-        <Link href="/" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-          Home
-        </Link>
-        <Link href={tripsHref} className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+      {/* Auth + Trips*/}
+      <div className="flex-1 flex items-center justify-end gap-3">
+        <Link href={tripsHref} className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors px-4 py-2">
           Trips
         </Link>
-        <Link href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
-          Explore
-        </Link>
-      </div>
-
-      {/* Auth - right */}
-      <div className="flex-1 flex items-center justify-end gap-3">
         {user ? (
           <UserMenu
             profileName={profileName}

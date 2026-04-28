@@ -40,7 +40,9 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NavBar tripsHref={tripsHref} />
-        {children}
+        <div className="pt-20 bg-[#F5F5F5]">
+          {children}
+        </div>
       </body>
     </html>
   );

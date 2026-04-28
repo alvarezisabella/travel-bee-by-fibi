@@ -40,12 +40,12 @@ export default function GeneratedItineraries() {
           {itineraries.map((trip) => (
             <div
               key={trip.id}
-              className="group cursor-pointer transition-transform duration-300 ease-out hover:-translate-y-2"
+              className="group cursor-default transition-transform duration-300 ease-out hover:-translate-y-2"
             >
               <div className="relative h-[200px] overflow-hidden rounded-2xl">
                 <img
                   src={trip.img}
-                  alt={trip.location}
+                  alt={trip.title}
                   className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                 />
                 <div className="absolute top-3 right-3 bg-white text-gray-900 text-[12px] font-semibold px-3 py-1 rounded-full shadow-sm">
@@ -65,7 +65,7 @@ export default function GeneratedItineraries() {
                   </span>
                   <button
                     onClick={() => router.push(`/demo/${trip.id}`)}
-                    className="text-[13px] font-semibold text-[#b8860b] hover:text-[#F5C300] transition-colors"
+                    className="text-[13px] font-semibold text-[#b8860b] hover:text-[#F5C300] transition-colors cursor-pointer"
                   >
                     View →
                   </button>

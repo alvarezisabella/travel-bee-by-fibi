@@ -1,9 +1,10 @@
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
-import ItineraryDemo from '@/components/landing/ItineraryDemo';
 import TripSearchForm from '@/components/landing/TripSearchForm'
 import ItinerariesSection from '@/components/landing/GeneratedItineraries'
+import FeaturesCarousel from '@/components/landing/FeaturesCarousel'
+import CTASection from '@/components/landing/CTASection'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,37 +20,54 @@ export default async function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
-      <section className="w-full flex flex-col items-center justify-center text-center px-8 py-24 gap-6">
+
+      {/* Hero + search form */}
+      <section className="w-full flex flex-col items-center text-center px-8 pt-20 pb-12 gap-4">
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
           Plan together,
         </h1>
-        <h1 className="text-5xl md:text-6xl font-bold italic text-[#F5C842] leading-tight -mt-2">
-          travel smarter
-        </h1>
-
-        <p className="text-gray-500 text-lg mt-2">
+        <div style={{ filter: "drop-shadow(0 0 12px rgba(245,195,0,0.45))" }}>
+          <h1
+            className="text-5xl md:text-6xl font-bold italic leading-tight -mt-2"
+            style={{
+              background: "linear-gradient(to right, #F5C300, #FF8C00)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            travel smarter
+          </h1>
+        </div>
+        <p className="text-gray-500 text-lg mt-1">
           AI meets collaboration. Your perfect itinerary, crafted together.
         </p>
-
-        <div className="w-full max-w-[1000px] mt-4">
+        <div className="w-full max-w-[1000px] mt-2">
           <TripSearchForm />
         </div>
+      </section>
 
-        <div className="w-full mt-8 flex justify-center">
-          <div className="w-full max-w-[1100px] aspect-[16/10]">
-            <iframe
-              src="/demo/ItineraryDemo.html"
-              title="TravelBee demo"
-              scrolling="no"
-              className="w-full h-full border-0 block"
-            />
-          </div>
-        </div>
-        
-        <div>
-          <ItinerariesSection />
+      {/* Demo iframe */}
+      <section className="w-full flex justify-center px-8 pb-4">
+        <div className="w-full max-w-[1100px] aspect-[16/10]">
+          <iframe
+            src="/demo/ItineraryDemo.html"
+            title="TravelBee demo"
+            scrolling="no"
+            className="w-full h-full border-0 block"
+          />
         </div>
       </section>
+
+      {/* Features carousel */}
+      <FeaturesCarousel />
+
+      {/* Potential itineraries */}
+      <ItinerariesSection />
+
+      {/* CTA */}
+      <CTASection />
+
     </main>
-  );
+  )
 }
