@@ -45,7 +45,7 @@ export default function GeneratedItineraries() {
               <div className="relative h-[200px] overflow-hidden rounded-2xl">
                 <img
                   src={trip.img}
-                  alt={trip.city}
+                  alt={trip.location}
                   className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                 />
                 <div className="absolute top-3 right-3 bg-white text-gray-900 text-[12px] font-semibold px-3 py-1 rounded-full shadow-sm">
