@@ -52,16 +52,6 @@ export default function CTASection() {
         </button>
       </p>
 
-      {/* Trust signals */}
-      <div className="flex items-center gap-5 flex-wrap justify-center mt-1">
-        {["No credit card required", "Set up in 2 minutes"].map(label => (
-          <span key={label} className="flex items-center gap-1.5 text-[12px] text-gray-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F5C300] shrink-0" />
-            {label}
-          </span>
-        ))}
-      </div>
-
     </section>
   )
 }
