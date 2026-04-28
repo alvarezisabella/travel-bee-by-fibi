@@ -26,9 +26,19 @@ export default async function LandingPage() {
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
           Plan together,
         </h1>
-        <h1 className="text-5xl md:text-6xl font-bold italic text-[#F5C842] leading-tight -mt-2">
-          travel smarter
-        </h1>
+        <div style={{ filter: "drop-shadow(0 0 12px rgba(245,195,0,0.45))" }}>
+          <h1
+            className="text-5xl md:text-6xl font-bold italic leading-tight -mt-2"
+            style={{
+              background: "linear-gradient(to right, #F5C300, #FF8C00)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            travel smarter
+          </h1>
+        </div>
         <p className="text-gray-500 text-lg mt-1">
           AI meets collaboration. Your perfect itinerary, crafted together.
         </p>

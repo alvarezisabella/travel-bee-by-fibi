@@ -8,10 +8,15 @@ const features = [
     title: "Agent Atlas",
     desc: "AI assistant that builds your itinerary, refines ideas, and suggests activities based on your unique travel style.",
     icon: (
-      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" stroke="#F5C300" strokeWidth="2" strokeLinecap="round">
-        <circle cx="20" cy="14" r="6" />
-        <path d="M8 34c0-6.627 5.373-10 12-10s12 3.373 12 10" />
-        <path d="M26 10l3-3M14 10l-3-3" />
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <defs>
+          <linearGradient id="iconGrad0" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#F5C300"/>
+            <stop offset="100%" stopColor="#FF8C00"/>
+          </linearGradient>
+        </defs>
+        <rect x="7" y="7" width="10" height="10" rx="2" stroke="url(#iconGrad0)"/>
+        <path d="M7 9H4M7 12H4M7 15H4M17 9h3M17 12h3M17 15h3M9 7V4M12 7V4M15 7V4M9 17v3M12 17v3M15 17v3" stroke="url(#iconGrad0)"/>
       </svg>
     ),
   },
@@ -20,10 +25,17 @@ const features = [
     title: "Real-time collaboration",
     desc: "Invite friends, vote on activities, leave comments, and keep everyone on the same page — no more back-and-forth.",
     icon: (
-      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" stroke="#F5C300" strokeWidth="2" strokeLinecap="round">
-        <circle cx="14" cy="14" r="5" />
-        <circle cx="26" cy="14" r="5" />
-        <path d="M6 34c0-5 3.6-8 8-8h12c4.4 0 8 3 8 8" />
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <defs>
+          <linearGradient id="iconGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#F5C300"/>
+            <stop offset="100%" stopColor="#FF8C00"/>
+          </linearGradient>
+        </defs>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="url(#iconGrad1)"/>
+        <circle cx="9" cy="7" r="4" stroke="url(#iconGrad1)"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="url(#iconGrad1)"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="url(#iconGrad1)"/>
       </svg>
     ),
   },
@@ -32,10 +44,16 @@ const features = [
     title: "Document hub",
     desc: "Keep all your confirmations, tickets, and travel docs in one organized space. No more digging through email threads or lost PDFs.",
     icon: (
-      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" stroke="#F5C300" strokeWidth="2" strokeLinecap="round">
-        <rect x="8" y="6" width="24" height="30" rx="3" />
-        <path d="M14 14h12M14 20h12M14 26h8" />
-        <path d="M26 2v8h8" strokeWidth="1.5" />
+      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" strokeWidth="2" strokeLinecap="round">
+        <defs>
+          <linearGradient id="iconGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#F5C300"/>
+            <stop offset="100%" stopColor="#FF8C00"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="6" width="24" height="30" rx="3" stroke="url(#iconGrad2)"/>
+        <path d="M14 14h12M14 20h12M14 26h8" stroke="url(#iconGrad2)"/>
+        <path d="M26 2v8h8" strokeWidth="1.5" stroke="url(#iconGrad2)"/>
       </svg>
     ),
   },
@@ -44,8 +62,16 @@ const features = [
     title: "Smart recommendations",
     desc: "Discover hidden gems and curated suggestions powered by local insights. Move beyond generic tourist traps to authentic experiences.",
     icon: (
-      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" stroke="#F5C300" strokeWidth="2" strokeLinecap="round">
-        <path d="M20 6l3.5 7 7.5 1-5.5 5.5 1.5 7.5L20 23l-7 4 1.5-7.5L9 14l7.5-1z" />
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <defs>
+          <linearGradient id="iconGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#F5C300"/>
+            <stop offset="100%" stopColor="#FF8C00"/>
+          </linearGradient>
+        </defs>
+        <circle cx="10" cy="10" r="7" stroke="url(#iconGrad3)"/>
+        <path d="M21 21l-4.35-4.35" stroke="url(#iconGrad3)"/>
+        <path d="M10 7v6M7 10h6" stroke="url(#iconGrad3)"/>
       </svg>
     ),
   },
@@ -54,10 +80,16 @@ const features = [
     title: "Flexible scheduling",
     desc: "Adjust your plans on the fly with drag-and-drop simplicity. Rearrange days, swap activities, and adapt to changes without starting over.",
     icon: (
-      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" stroke="#F5C300" strokeWidth="2" strokeLinecap="round">
-        <rect x="6" y="8" width="28" height="26" rx="4" />
-        <path d="M6 18h28M13 6v4M27 6v4" />
-        <path d="M14 26h4v4h-4zM22 22h4v4h-4z" />
+      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" strokeWidth="2" strokeLinecap="round">
+        <defs>
+          <linearGradient id="iconGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#F5C300"/>
+            <stop offset="100%" stopColor="#FF8C00"/>
+          </linearGradient>
+        </defs>
+        <rect x="6" y="8" width="28" height="26" rx="4" stroke="url(#iconGrad4)"/>
+        <path d="M6 18h28M13 6v4M27 6v4" stroke="url(#iconGrad4)"/>
+        <path d="M14 26h4v4h-4zM22 22h4v4h-4z" stroke="url(#iconGrad4)"/>
       </svg>
     ),
   },
@@ -89,8 +121,14 @@ export default function FeaturesCarousel() {
                 key={feat.title}
                 className="flex-shrink-0 w-full bg-white border border-gray-100 rounded-2xl px-8 py-10 flex flex-col items-center text-center gap-4"
               >
-                {/* Icon */}
-                <div className="w-16 h-16 rounded-2xl bg-yellow-50 border border-yellow-100 flex items-center justify-center">
+                {/* Icon with gradient background */}
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: "linear-gradient(135deg, #fffbeb, #fff4e0)",
+                    border: "1px solid #fde68a",
+                  }}
+                >
                   {feat.icon}
                 </div>
 
@@ -116,8 +154,11 @@ export default function FeaturesCarousel() {
         {/* Progress bar */}
         <div className="mt-4 h-[2px] bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#F5C300] rounded-full transition-all duration-350 ease-in-out"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-all duration-350 ease-in-out"
+            style={{
+              width: `${progress}%`,
+              background: "linear-gradient(to right, #F5C300, #FF8C00)",
+            }}
           />
         </div>
 
@@ -135,9 +176,12 @@ export default function FeaturesCarousel() {
               <button
                 key={i}
                 onClick={() => setIdx(i)}
-                className={`h-1.5 rounded-full transition-all duration-250 ${
-                  i === idx ? "w-6 bg-[#F5C300]" : "w-1.5 bg-gray-300 hover:bg-gray-400"
+                className={`h-1.5 rounded-full transition-all duration-250 cursor-pointer ${
+                  i === idx ? "w-6" : "w-1.5 bg-gray-300 hover:bg-gray-400"
                 }`}
+                style={i === idx ? {
+                  background: "linear-gradient(to right, #F5C300, #FF8C00)",
+                } : {}}
               />
             ))}
           </div>
