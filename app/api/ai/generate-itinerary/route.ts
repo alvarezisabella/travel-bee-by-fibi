@@ -6,17 +6,16 @@ import { buildItineraryGenerationPrompt } from "@/lib/ai/prompts"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 // These mirror the JSON structure Claude is instructed to return.
-// They are file-local because only this route and save-itinerary need them;
-// the full Trip/Event types from types.ts include DB-specific fields (ids, votes, etc.)
-// that don't exist yet at generation time.
+// They are exported so the /plan page and /ai-template page can share them
+// without re-declaring the same shapes.
 
 export interface GeneratedEvent {
   title: string
   description?: string
-  type: string           // "Activity" | "Transit" | "Reservation" | "Food"
-  status: string         // "Confirmed"
-  startTime: string      // "HH:MM" 24-hour format
-  duration: number       // minutes
+  type: string      // "Activity" | "Transit" | "Reservation" | "Food"
+  status: string    // "Confirmed"
+  startTime: string // "HH:MM" 24-hour format
+  duration: number  // minutes
   location?: string
 }
 
@@ -30,16 +29,20 @@ export interface GeneratedItinerary {
   days: GeneratedDay[]
 }
 
+// ─── Module-level constants ───────────────────────────────────────────────────
+
+// Reused for every SSE write — TextEncoder is stateless so one instance is fine.
+const encoder = new TextEncoder()
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// Strips markdown code fences that Claude may add despite the prompt instructing
-// it not to (e.g. ```json ... ```). Falls back to slicing from the first '{' to
-// the last '}' so stray leading/trailing text doesn't break JSON.parse().
+// Strips markdown code fences that Claude occasionally adds despite the prompt
+// telling it not to (e.g. ```json ... ```). Falls back to slicing from the
+// outermost { ... } so stray leading/trailing text doesn't break JSON.parse().
 function extractJSON(raw: string): string {
   const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenceMatch) return fenceMatch[1].trim()
 
-  // If no fence, look for the outermost object braces
   const start = raw.indexOf('{')
   const end = raw.lastIndexOf('}')
   if (start !== -1 && end !== -1 && end > start) return raw.slice(start, end + 1)
@@ -47,24 +50,20 @@ function extractJSON(raw: string): string {
   return raw.trim()
 }
 
-// Validates that the parsed value matches the expected GeneratedItinerary shape.
-// Keeps the validation lightweight — we check the fields we actually rely on
-// when inserting events, rather than validating every possible key.
+// Lightweight structural check — we only validate the fields we actually use
+// when rendering and saving. Full exhaustive validation isn't needed here
+// because the downstream save route re-validates before writing to the DB.
 function validateGeneratedItinerary(parsed: unknown): parsed is GeneratedItinerary {
   if (typeof parsed !== 'object' || parsed === null) return false
   const obj = parsed as Record<string, unknown>
 
-  // Must have a non-empty string title
   if (typeof obj.title !== 'string' || !obj.title) return false
-
-  // Must have a days array
   if (!Array.isArray(obj.days)) return false
 
   for (const day of obj.days as unknown[]) {
     if (typeof day !== 'object' || day === null) return false
     const d = day as Record<string, unknown>
 
-    // Each day needs a date string and an events array
     if (typeof d.date !== 'string') return false
     if (!Array.isArray(d.events)) return false
 
@@ -72,7 +71,7 @@ function validateGeneratedItinerary(parsed: unknown): parsed is GeneratedItinera
       if (typeof ev !== 'object' || ev === null) return false
       const e = ev as Record<string, unknown>
 
-      // Each event needs the three fields we use when inserting
+      // Only check the three fields used during event rendering
       if (typeof e.title !== 'string' || !e.title) return false
       if (typeof e.startTime !== 'string') return false
       if (typeof e.duration !== 'number') return false
@@ -82,103 +81,132 @@ function validateGeneratedItinerary(parsed: unknown): parsed is GeneratedItinera
   return true
 }
 
+// Serialises a payload into the SSE wire format: "data: <json>\n\n"
+// The double newline is the SSE event delimiter — the client splits on "\n\n"
+// to separate events. The client never sees the raw bytes directly; it reads
+// the ReadableStream via getReader() and re-assembles events from the buffer.
+function sseEvent(payload: Record<string, unknown>): Uint8Array {
+  return encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)
+}
+
 // ─── Route Handler ────────────────────────────────────────────────────────────
 
 // POST /api/ai/generate-itinerary
-// Calls Claude with a structured JSON prompt and returns the generated itinerary.
-// IMPORTANT: This route does NOT write to the database. The client stores the
-// result in sessionStorage and the user reviews it on /ai-template before saving.
+//
+// Calls Claude and streams the response back to the client as SSE events:
+//
+//   { type: "chunk",   text: "..."       }  — raw text delta, emitted as Claude writes
+//   { type: "done",    itinerary: {...}  }  — validated JSON object when generation is complete
+//   { type: "error",   message: "..."    }  — sent on any failure before the stream closes
+//
+// Streaming (vs. the old blocking messages.create()) means the client gets the
+// first byte almost immediately, so it can show real progress instead of a
+// blank spinner for the full generation time (~10–20 s for a week-long trip).
 export async function POST(req: NextRequest) {
-  // Creates a Supabase client using the current request cookies
   const cookieStore = await cookies()
   const supabase = await createClient(cookieStore)
 
-  // Checks if the user is authenticated — generation requires an account so
-  // the itinerary can be attributed to a user when they later click Save
+  // Generation requires an account so the itinerary can be saved to a user later.
+  // Auth errors return plain JSON (not SSE) because the stream hasn't started yet.
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   }
 
-  // Reads the trip parameters sent by the landing page form
   const { location, startDate, endDate, numTravelers, description } = await req.json()
 
-  // All five fields are required to build a meaningful itinerary prompt
   if (!location || !startDate || !endDate || !numTravelers || !description) {
-    return NextResponse.json({ error: 'location, startDate, endDate, numTravelers, and description are all required.' }, { status: 400 })
-  }
-
-  // Calls Claude using the non-streaming create() method (not stream()) because
-  // we need to receive and parse the full JSON response before returning it.
-  // max_tokens: 8192 handles up to ~14-day trips with 5 events/day at comfortable
-  // description lengths. 4096 was too low — a 7-night trip with detailed output
-  // could truncate mid-JSON, causing JSON.parse to throw.
-  // Wrapped in try/catch because the Anthropic SDK throws on network errors,
-  // rate limits (429), or service outages — without this, the route returns
-  // a generic Next.js 500 with no useful error message for the client.
-  let rawText: string
-  try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 8192,
-      messages: [
-        {
-          role: 'user',
-          content: buildItineraryGenerationPrompt({
-            location,
-            startDate,
-            endDate,
-            numTravelers: Number(numTravelers), // coerce string → number if sent from a form
-            description,
-          }),
-        },
-      ],
-    })
-
-    // If Claude hit the output limit mid-response the JSON will be truncated
-    // and unparseable. Surface this as a specific error rather than a confusing
-    // parse failure so the user knows to try a shorter date range.
-    if (message.stop_reason === 'max_tokens') {
-      console.error('[generate-itinerary] Claude response was truncated (max_tokens reached)')
-      return NextResponse.json(
-        { error: 'The itinerary was too long to generate. Try a shorter date range.' },
-        { status: 500 }
-      )
-    }
-
-    // Concatenates all text blocks from the response (Claude may split across blocks)
-    rawText = message.content
-      .filter(block => block.type === 'text')
-      .map(block => (block as { type: 'text'; text: string }).text)
-      .join('')
-  } catch (err) {
-    console.error('[generate-itinerary] Anthropic API error:', err)
     return NextResponse.json(
-      { error: 'The AI service is temporarily unavailable. Please try again.' },
-      { status: 503 }
+      { error: 'location, startDate, endDate, numTravelers, and description are all required.' },
+      { status: 400 }
     )
   }
 
-  // Parses and validates the response. extractJSON handles cases where Claude
-  // wraps the JSON in a code fence despite being told not to.
-  let itinerary: GeneratedItinerary
-  try {
-    const cleaned = extractJSON(rawText)
-    const parsed: unknown = JSON.parse(cleaned)
-    if (!validateGeneratedItinerary(parsed)) {
-      throw new Error('Response did not match expected itinerary structure.')
-    }
-    itinerary = parsed
-  } catch (err) {
-    // Log the raw output so developers can debug prompt issues
-    console.error('[generate-itinerary] Failed to parse Claude output:', rawText, err)
-    return NextResponse.json(
-      { error: 'Failed to parse AI response. Please try again.' },
-      { status: 500 }
-    )
-  }
+  const prompt = buildItineraryGenerationPrompt({
+    location,
+    startDate,
+    endDate,
+    numTravelers: Number(numTravelers), // coerce string → number if sent from a form
+    description,
+  })
 
-  // Returns the structured itinerary JSON to the client.
-  // The client stores this in sessionStorage and navigates to /ai-template.
-  return NextResponse.json({ itinerary }, { status: 200 })
+  const readable = new ReadableStream({
+    async start(controller) {
+      try {
+        const stream = anthropic.messages.stream({
+          model: 'claude-sonnet-4-6',
+          // 8192 handles up to ~14-day trips with 5 events/day at comfortable description
+          // lengths. 4096 was too low — a 7-night trip with detailed output could truncate
+          // mid-JSON, causing JSON.parse to throw.
+          max_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        })
+
+        // Forward each text delta to the client immediately as a "chunk" event.
+        // This is what makes the progress bar on the /plan page advance in real time.
+        // We intentionally don't accumulate text here — finalMessage() below gives
+        // us the complete text once the loop drains, with no extra round trip.
+        for await (const chunk of stream) {
+          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+            controller.enqueue(sseEvent({ type: 'chunk', text: chunk.delta.text }))
+          }
+        }
+
+        // After the for-await loop exhausts the stream, finalMessage() returns the
+        // already-resolved Message object with no additional wait. We use it to:
+        //   1. Check if the response was truncated (stop_reason === 'max_tokens')
+        //   2. Extract the full text from content blocks for JSON parsing
+        const final = await stream.finalMessage()
+
+        if (final.stop_reason === 'max_tokens') {
+          // Truncated mid-JSON means JSON.parse would throw a confusing error.
+          // Surface the real cause so the user knows to try a shorter date range.
+          controller.enqueue(sseEvent({
+            type: 'error',
+            message: 'The itinerary was too long to generate. Try a shorter date range.',
+          }))
+          return
+        }
+
+        // Reconstruct the full response text from the content blocks.
+        // Claude can theoretically split output across multiple text blocks,
+        // so we join them all rather than assuming a single block.
+        const fullText = final.content
+          .filter(b => b.type === 'text')
+          .map(b => (b as { type: 'text'; text: string }).text)
+          .join('')
+
+        const cleaned = extractJSON(fullText)
+        const parsed: unknown = JSON.parse(cleaned)
+
+        if (!validateGeneratedItinerary(parsed)) {
+          throw new Error('Response did not match expected itinerary structure.')
+        }
+
+        // Send the validated itinerary as the final SSE event.
+        // The client stores this in sessionStorage and transitions to the review view.
+        controller.enqueue(sseEvent({ type: 'done', itinerary: parsed }))
+      } catch (err) {
+        console.error('[generate-itinerary] Error:', err)
+        controller.enqueue(sseEvent({
+          type: 'error',
+          message: 'Failed to generate itinerary. Please try again.',
+        }))
+      } finally {
+        // Always close the stream — this tells the client's reader that no more
+        // data is coming, breaking it out of the while(true) read loop.
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      // Keep-Alive prevents proxies and load balancers from closing the
+      // long-lived SSE connection before Claude finishes generating.
+      'Connection': 'keep-alive',
+    },
+  })
 }
