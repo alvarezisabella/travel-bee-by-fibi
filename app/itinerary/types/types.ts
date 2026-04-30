@@ -118,3 +118,6 @@ export interface Widget {
   price?: number
   url?: string
 }
+
+/**   background: var(--color-background-info, #dbeafe); 
+  color: var(--color-text-info, #1d4ed8); */

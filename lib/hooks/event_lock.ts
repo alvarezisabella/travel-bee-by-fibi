@@ -75,6 +75,7 @@ export function useEventLock(eventId: string) {
       })
       .subscribe();
 
+
     // Fetch current lock state on mount
     supabase.from('event_locks')
       .select('*')

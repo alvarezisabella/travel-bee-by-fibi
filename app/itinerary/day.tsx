@@ -4,6 +4,7 @@ import {Event} from "./types/types"
 import {EventCard} from './components/event_card'
 import EditEvent from './components/edit_event'
 import { Traveler } from './types/types'
+import { CalendarPlus } from "lucide-react"
 
 export interface Day{
     id: string
@@ -30,7 +31,7 @@ export function DayCell({ day, members, onAddEvent, onDeleteEvent, onEditEvent, 
     }
     return(
 
-        <div className="w-full group border-[0.5] border-[#c9c9c9] rounded-2xl p-6 mb-10 shadow-lg bg-[#fafafa]">
+        <div className="w-full group border-[0.5] border-[#e6e6e6] rounded-2xl p-6 mb-10 shadow-lg bg-[#fff]">
             <div className='mb-8'>
                 <h1 className="text-gray-800 text-3xl font-semibold mb-0.5">Day {day.id}</h1>
             </div>
@@ -44,12 +45,12 @@ export function DayCell({ day, members, onAddEvent, onDeleteEvent, onEditEvent, 
                     <EditEvent day={day.id} date={day.date} trip={day.itineraryid} members={members} onClose={() => setAdd(false)} onSave={onAddEvent}/>
                 )}
 
-                <div className='max-w-24 border border-[#c9c9c9] rounded-2xl shadow-md 
-                opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'>
+                <div className='max-w-24 border border-[#e6e6e6] rounded-xl shadow-md 
+                 group-hover:opacity-100 transition-opacity flex items-center justify-center font-semibold'>
                     <button
                     className="text-md text-yellow-500 py-1 cursor-pointer"
                     onClick={() => setAdd(true)}
-                    > Add Event
+                    > <CalendarPlus /> Add Event
                     </button>
                  </div>
             </div>
