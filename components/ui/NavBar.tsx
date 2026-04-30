@@ -51,9 +51,11 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
 
       {/* Auth + Trips*/}
       <div className="flex-1 flex items-center justify-end gap-3">
-        <Link href={tripsHref} className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors px-4 py-2">
-          Trips
-        </Link>
+        {user && (
+          <Link href={tripsHref} className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors px-4 py-2">
+            Trips
+          </Link>
+        )}
         {user ? (
           <UserMenu
             profileName={profileName}
