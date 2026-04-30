@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ItineraryDemo from '@/components/landing/ItineraryDemo';
 import TripSearchForm from '@/components/landing/TripSearchForm'
+import ChatUI from "./ChatUI";
 
 export const dynamic = 'force-dynamic'
 
@@ -45,21 +46,9 @@ export default async function LandingPage() {
           </div>
         </div>
 
-        <div>
-        <h3 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">Try Agent Atlas</h3>
-        <p className="text-gray-500 text-lg mt-2">Chat with our AI to plan your perfect trip</p>
-        </div>
-        <div className="w-[520px] mx-auto mt-10 border-4 border-blue-500 rounded-2xl overflow-hidden bg-white shadow-lg">
-          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-400">
-        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-          🤖
-        </div>
-        <div>
-          <p className="font-semibold text-sm">Agent Atlas</p>
-          <p className="text-xs text-gray-700">AI Travel Assistant</p>
-        </div>
-      </div>
-        </div>
+        <div className="mt-10 flex justify-center">
+  <ChatUI compact />
+</div>
       </section>
     </main>
   );

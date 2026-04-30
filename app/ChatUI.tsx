@@ -1,7 +1,7 @@
-"use client"; // ✅ REQUIRED (this component uses state)
+"use client"; // REQUIRED (this component uses state)
 
 import { useState } from "react";
-import { getAIResponse } from "@/lib/ai/anthropic"; // 🔹 your existing AI function
+//import { getAIResponse } from "@/lib/ai/anthropic"; //
 
 type Message = {
   role: "user" | "agent";
@@ -9,7 +9,7 @@ type Message = {
 };
 
 export default function ChatUI({
-  compact = false,   // ✅ NEW: controls size (landing vs full page)
+  compact = false,   //  NEW: controls size (landing vs full page)
 }: {
   compact?: boolean;
 }) {
@@ -22,21 +22,22 @@ export default function ChatUI({
 
     const userMsg: Message = { role: "user", text: input };
 
-    // ✅ ADD USER MESSAGE
+    // ADD USER MESSAGE
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
     try {
-      // ✅ CALL YOUR EXISTING ANTHROPIC FUNCTION
-    const res = await fetch("/api/chat", {
+      // call API route 
+    const res = await fetch("/api/ai/chat", {
   method: "POST",
   body: JSON.stringify({ message: input }),
 });
 
 const data = await res.json();
 const reply = data.reply;
-      // ✅ ADD AI RESPONSE
+
+      // ADD AI RESPONSE
       setMessages((prev) => [
         ...prev,
         { role: "agent", text: reply },
@@ -73,14 +74,14 @@ const reply = data.reply;
       {/* CHAT AREA */}
       <div className="flex-1 bg-gray-200 p-4 space-y-4 overflow-y-auto">
 
-        {/* ✅ EMPTY STATE (landing page helpful) */}
+        {/*  EMPTY STATE (landing page helpful) */}
         {messages.length === 0 && (
           <p className="text-sm text-gray-500 text-center">
             Ask Agent Atlas about your next trip ✈️
           </p>
         )}
 
-        {/* ✅ MESSAGES LOOP */}
+        {/*  MESSAGES LOOP */}
         {messages.map((msg, i) => (
           <div
             key={i}
@@ -112,7 +113,7 @@ const reply = data.reply;
           </div>
         ))}
 
-        {/* ✅ LOADING STATE */}
+        {/*  LOADING STATE */}
         {loading && (
           <div className="flex gap-2 items-center">
             <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
