@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { LABEL_MAP } from "@/app/itinerary/types/types"
 import { GeneratedItinerary, GeneratedEvent } from "@/app/api/ai/generate-itinerary/route"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Bookmark } from "lucide-react"
 
 const LOADING_MESSAGES = [
   "Mapping out your adventure...",
@@ -57,7 +57,58 @@ function formatShortDate(dateStr: string): string {
   })
 }
 
-function EventPreviewCard({ event, animationDelay }: { event: GeneratedEvent; animationDelay: number }) {
+function TripPickerModal({
+  trips,
+  onSelect,
+  onClose,
+  saving,
+}: {
+  trips: { id: string; title: string | null; location: string | null }[]
+  onSelect: (tripId: string) => void
+  onClose: () => void
+  saving: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-800">Save to a trip</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        {trips.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">No saved trips yet. Save this itinerary first!</p>
+        ) : (
+          <ul className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+            {trips.map(trip => (
+              <li key={trip.id}>
+                <button
+                  onClick={() => onSelect(trip.id)}
+                  disabled={saving}
+                  className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all disabled:opacity-50"
+                >
+                  <p className="text-sm font-medium text-gray-800">{trip.title ?? "Untitled Trip"}</p>
+                  {trip.location && <p className="text-xs text-gray-400">{trip.location}</p>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function EventPreviewCard({
+  event,
+  animationDelay,
+  onBookmark,
+  isBookmarked,
+}: {
+  event: GeneratedEvent
+  animationDelay: number
+  onBookmark?: () => void
+  isBookmarked?: boolean
+}) {
   const colors = LABEL_MAP[event.type as keyof typeof LABEL_MAP] ?? {
     bg: "bg-[#f5f5f5]", bar: "bg-[#aaaaaa]", text: "text-[#333333]", time: "text-[#666666]",
   }
@@ -75,7 +126,18 @@ function EventPreviewCard({ event, animationDelay }: { event: GeneratedEvent; an
 
       {/* Right content */}
       <div className="flex flex-col gap-1.5 px-5 py-4 flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-gray-900 leading-snug">{event.title}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[15px] font-semibold text-gray-900 leading-snug">{event.title}</p>
+          {onBookmark && (
+            <button
+              onClick={onBookmark}
+              aria-label="Save to trip"
+              className="flex-shrink-0 mt-0.5 text-gray-300 hover:text-yellow-500 transition-colors"
+            >
+              <Bookmark size={16} fill={isBookmarked ? "currentColor" : "none"} className={isBookmarked ? "text-yellow-500" : ""} />
+            </button>
+          )}
+        </div>
         <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full self-start ${colors.bar} text-white`}>
           {event.type}
         </span>
@@ -117,6 +179,10 @@ function PlanContent() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
+  const [userTrips, setUserTrips] = useState<{ id: string; title: string | null; location: string | null }[]>([])
+  const [bookmarkModal, setBookmarkModal] = useState<{ event: GeneratedEvent; key: string } | null>(null)
+  const [bookmarkedKeys, setBookmarkedKeys] = useState<Set<string>>(new Set())
+  const [bookmarkSaving, setBookmarkSaving] = useState(false)
 
   const toggleDay = (index: number) => {
     setCollapsedDays(prev => {
@@ -141,6 +207,14 @@ function PlanContent() {
         router.push(`/login?redirect=${encodeURIComponent(`/plan?${searchParams.toString()}`)}`)
         return
       }
+
+      supabase
+        .from("itineraries")
+        .select("id, title, location")
+        .eq("created_by", session.user.id)
+        .eq("is_recommendation", false)
+        .order("updated_at", { ascending: false })
+        .then(({ data }) => setUserTrips(data ?? []))
 
       const abort = new AbortController()
       abortRef.current = abort
@@ -226,6 +300,28 @@ function PlanContent() {
     return () => { abortRef.current?.abort() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const handleBookmarkSave = async (tripId: string) => {
+    if (!bookmarkModal) return
+    setBookmarkSaving(true)
+    try {
+      await fetch("/api/auth/widgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itinerary_id: tripId,
+          title: bookmarkModal.event.title,
+          type: bookmarkModal.event.type,
+          location: bookmarkModal.event.location ?? null,
+          description: bookmarkModal.event.description ?? null,
+        }),
+      })
+      setBookmarkedKeys(prev => new Set(prev).add(bookmarkModal.key))
+      setBookmarkModal(null)
+    } finally {
+      setBookmarkSaving(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!itinerary) return
@@ -416,13 +512,18 @@ function PlanContent() {
 
             {!collapsedDays.has(dayIndex) && (
               <div className="flex flex-col gap-3 ml-11">
-                {day.events.map((event, eventIndex) => (
-                  <EventPreviewCard
-                    key={`${day.date}-${eventIndex}`}
-                    event={event}
-                    animationDelay={dayIndex * 60 + eventIndex * 50 + 80}
-                  />
-                ))}
+                {day.events.map((event, eventIndex) => {
+                  const key = `${day.date}-${eventIndex}`
+                  return (
+                    <EventPreviewCard
+                      key={key}
+                      event={event}
+                      animationDelay={dayIndex * 60 + eventIndex * 50 + 80}
+                      isBookmarked={bookmarkedKeys.has(key)}
+                      onBookmark={() => setBookmarkModal({ event, key })}
+                    />
+                  )
+                })}
               </div>
             )}
           </section>
@@ -443,6 +544,15 @@ function PlanContent() {
           {saveError && <p className="text-xs text-red-500">{saveError}</p>}
         </div>
       </div>
+
+      {bookmarkModal && (
+        <TripPickerModal
+          trips={userTrips}
+          onSelect={handleBookmarkSave}
+          onClose={() => setBookmarkModal(null)}
+          saving={bookmarkSaving}
+        />
+      )}
     </main>
   )
 }
