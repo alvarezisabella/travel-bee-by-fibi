@@ -6,8 +6,6 @@ import { createClient } from "@/lib/supabase/client"
 import { LABEL_MAP } from "@/app/itinerary/types/types"
 import { GeneratedItinerary, GeneratedEvent } from "@/app/api/ai/generate-itinerary/route"
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const LOADING_MESSAGES = [
   "Mapping out your adventure...",
   "Scouting the best local spots...",
@@ -27,11 +25,7 @@ const BUDGET_RANGES: Record<string, string> = {
   Luxury: "Luxury ($2,000+)",
 }
 
-// Approximate total chars in a typical Claude itinerary response.
-// Used to estimate progress from received chunk bytes.
 const ESTIMATED_TOTAL_CHARS = 6000
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60)
@@ -53,8 +47,6 @@ function formatShortDate(dateStr: string): string {
   })
 }
 
-// ─── Event Preview Card ───────────────────────────────────────────────────────
-
 function EventPreviewCard({ event, animationDelay }: { event: GeneratedEvent; animationDelay: number }) {
   const colors = LABEL_MAP[event.type as keyof typeof LABEL_MAP] ?? {
     bg: "bg-[#f5f5f5]", bar: "bg-[#aaaaaa]", text: "text-[#333333]", time: "text-[#666666]",
@@ -62,32 +54,31 @@ function EventPreviewCard({ event, animationDelay }: { event: GeneratedEvent; an
 
   return (
     <div
-      className={`flex rounded-xl overflow-hidden shadow-sm ${colors.bg} opacity-0`}
-      style={{ animation: `fadeSlideIn 0.4s ease ${animationDelay}ms forwards` }}
+      className={`flex rounded-xl overflow-hidden bg-white border border-gray-200 opacity-0`}
+      style={{ animation: `fadeSlideIn 0.4s ease ${animationDelay}ms forwards`, boxShadow: "0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)" }}
     >
-      <div className={`w-1.5 flex-shrink-0 ${colors.bar}`} />
-      <div className="flex flex-col gap-1 px-4 py-3 flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colors.bar} text-white`}>
-            {event.type}
-          </span>
-          <span className={`text-xs font-medium ${colors.time}`}>
-            {event.startTime} · {formatDuration(event.duration)}
-          </span>
-        </div>
-        <p className={`text-sm font-semibold leading-snug ${colors.text}`}>{event.title}</p>
+      {/* Left time panel */}
+      <div className={`flex flex-col items-center justify-center px-5 py-4 min-w-[88px] border-r border-gray-100 ${colors.bg}`}>
+        <span className={`text-[15px] font-bold ${colors.text}`}>{event.startTime}</span>
+        <span className="text-[11px] text-gray-400 mt-1">{formatDuration(event.duration)}</span>
+      </div>
+
+      {/* Right content */}
+      <div className="flex flex-col gap-1.5 px-5 py-4 flex-1 min-w-0">
+        <p className="text-[15px] font-semibold text-gray-900 leading-snug">{event.title}</p>
+        <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full self-start ${colors.bar} text-white`}>
+          {event.type}
+        </span>
         {event.location && (
-          <p className="text-xs text-gray-500 truncate">{event.location}</p>
+          <p className="text-[12px] text-gray-400 truncate">{event.location}</p>
         )}
         {event.description && (
-          <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{event.description}</p>
+          <p className="text-[13px] text-gray-500 leading-relaxed line-clamp-2">{event.description}</p>
         )}
       </div>
     </div>
   )
 }
-
-// ─── Main Content (needs Suspense for useSearchParams) ────────────────────────
 
 function PlanContent() {
   const router = useRouter()
@@ -108,6 +99,7 @@ function PlanContent() {
 
   const [status, setStatus] = useState<Status>("generating")
   const [itinerary, setItinerary] = useState<GeneratedItinerary | null>(null)
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState("")
   const [msgIndex, setMsgIndex] = useState(0)
   const [msgVisible, setMsgVisible] = useState(true)
@@ -134,7 +126,6 @@ function PlanContent() {
       const abort = new AbortController()
       abortRef.current = abort
 
-      // Cycle loading messages with a fade effect
       const msgTimer = setInterval(() => {
         setMsgVisible(false)
         setTimeout(() => {
@@ -153,9 +144,7 @@ function PlanContent() {
           signal: abort.signal,
         })
 
-        if (!res.ok || !res.body) {
-          throw new Error("Request failed")
-        }
+        if (!res.ok || !res.body) throw new Error("Request failed")
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -166,14 +155,12 @@ function PlanContent() {
           if (done) break
 
           buffer += decoder.decode(value, { stream: true })
-
-          // SSE events are separated by double newlines
           const parts = buffer.split("\n\n")
           buffer = parts.pop() ?? ""
 
           for (const part of parts) {
             if (!part.startsWith("data: ")) continue
-            let payload: { type: string; text?: string; itinerary?: GeneratedItinerary; message?: string }
+            let payload: { type: string; text?: string; itinerary?: GeneratedItinerary; coverPhoto?: string; message?: string }
             try {
               payload = JSON.parse(part.slice(6))
             } catch {
@@ -186,8 +173,7 @@ function PlanContent() {
             } else if (payload.type === "done" && payload.itinerary) {
               clearInterval(msgTimer)
               setProgress(100)
-
-              // Small delay so the bar visually completes before reveal
+              console.log("[Plan] Cover photo received:", payload.coverPhoto ?? "none")
               setTimeout(() => {
                 sessionStorage.setItem("travelbee_draft", JSON.stringify({
                   itinerary: payload.itinerary,
@@ -196,8 +182,10 @@ function PlanContent() {
                   endDate,
                   numTravelers: travelers,
                   description,
+                  coverPhoto: payload.coverPhoto ?? null,
                 }))
                 setItinerary(payload.itinerary!)
+                setCoverPhoto(payload.coverPhoto ?? null)
                 setStatus("done")
               }, 350)
             } else if (payload.type === "error") {
@@ -216,9 +204,7 @@ function PlanContent() {
       }
     })
 
-    return () => {
-      abortRef.current?.abort()
-    }
+    return () => { abortRef.current?.abort() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -231,7 +217,13 @@ function PlanContent() {
       const res = await fetch("/api/ai/save-itinerary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itinerary, location: destination, startDate, endDate }),
+        body: JSON.stringify({
+          itinerary,
+          location: destination,
+          startDate,
+          endDate,
+          coverPhoto,
+        }),
       })
 
       const data = await res.json()
@@ -248,76 +240,47 @@ function PlanContent() {
     }
   }
 
-  // ── Error state ──────────────────────────────────────────────────────────────
   if (status === "error") {
     return (
       <main className="min-h-screen bg-[#F5F5F5] flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-2xl">✈️</p>
         <p className="text-gray-700 font-medium text-center">{errorMsg}</p>
-        <button
-          onClick={() => router.push("/")}
-          className="text-sm text-yellow-600 font-medium hover:underline"
-        >
+        <button onClick={() => router.push("/")} className="text-sm text-yellow-600 font-medium hover:underline">
           ← Go back and try again
         </button>
       </main>
     )
   }
 
-  // ── Loading state ────────────────────────────────────────────────────────────
   if (status === "generating") {
     return (
       <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
-        {/* Progress bar at very top */}
         <div className="w-full h-1 bg-gray-200">
-          <div
-            className="h-full bg-[#F5C300] transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-[#F5C300] transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
         </div>
-
-        {/* Centered content */}
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 text-center">
-          {/* Bee / plane icon with pulse */}
-          <div className="text-5xl animate-bounce" style={{ animationDuration: "1.8s" }}>
-            🐝
-          </div>
-
+          <div className="text-5xl animate-bounce" style={{ animationDuration: "1.8s" }}>🐝</div>
           <div className="flex flex-col items-center gap-2">
-            <p className="text-gray-800 font-semibold text-lg">
-              Agent Atlas is planning your trip
-            </p>
+            <p className="text-gray-800 font-semibold text-lg">Agent Atlas is planning your trip</p>
             {destination && startDate && endDate && (
               <p className="text-sm text-gray-400">
                 {destination} · {formatShortDate(startDate)} – {formatShortDate(endDate)}
               </p>
             )}
           </div>
-
-          {/* Cycling status message with fade */}
-          <p
-            className="text-sm text-gray-500 transition-opacity duration-300"
-            style={{ opacity: msgVisible ? 1 : 0 }}
-          >
+          <p className="text-sm text-gray-500 transition-opacity duration-300" style={{ opacity: msgVisible ? 1 : 0 }}>
             {LOADING_MESSAGES[msgIndex]}
           </p>
-
-          {/* Progress bar (wider, below text) */}
           <div className="w-64 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#F5C300] rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-[#F5C300] rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
           </div>
         </div>
       </main>
     )
   }
 
-  // ── Itinerary preview ────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
-      {/* Keyframe animation injected once */}
       <style>{`
         @keyframes fadeSlideIn {
           from { opacity: 0; transform: translateY(8px); }
@@ -325,18 +288,26 @@ function PlanContent() {
         }
       `}</style>
 
-      {/* Sticky action bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+      {/* Trip header — full bleed, touches navbar, action buttons overlaid */}
+      <div
+        className="w-full px-4 relative"
+        style={{
+          background: coverPhoto
+            ? `linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.65)), url(${coverPhoto}) center/cover no-repeat`
+            : "linear-gradient(to bottom right, #374151, #111827)",
+          minHeight: "280px",
+        }}
+      >
+        {/* Go Back + Save overlaid at top of header */}
+        <div className="max-w-5xl mx-auto pt-5 pb-0 flex items-center justify-between">
           <button
             onClick={() => router.push("/")}
-            className="text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors"
+            className="text-sm text-white/80 hover:text-white font-medium transition-colors"
           >
             ← Go Back
           </button>
-
           <div className="flex items-center gap-3">
-            {saveError && <p className="text-xs text-red-500">{saveError}</p>}
+            {saveError && <p className="text-xs text-red-300">{saveError}</p>}
             <button
               onClick={handleSave}
               disabled={saving}
@@ -346,11 +317,8 @@ function PlanContent() {
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Trip header */}
-      <div className="w-full bg-gradient-to-br from-gray-700 to-gray-900 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto py-10">
           <h1
             className="text-3xl md:text-4xl font-bold text-white leading-tight mb-3 opacity-0"
             style={{ animation: "fadeSlideIn 0.5s ease forwards" }}
@@ -400,25 +368,22 @@ function PlanContent() {
       </div>
 
       {/* Day-by-day itinerary */}
-      <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-8">
+      <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-8">
         {itinerary!.days.map((day, dayIndex) => (
           <section key={day.date}>
             <div
               className="flex items-center gap-3 mb-4 opacity-0"
               style={{ animation: `fadeSlideIn 0.4s ease forwards ${dayIndex * 60}ms` }}
             >
-              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-xs font-bold text-gray-900">
+              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-[#F5C842] flex items-center justify-center text-sm font-bold text-gray-900">
                 {dayIndex + 1}
               </span>
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  Day {dayIndex + 1}
-                </p>
-                <p className="text-sm font-medium text-gray-700">{formatDate(day.date)}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Day {dayIndex + 1}</p>
+                <p className="text-base font-medium text-gray-700">{formatDate(day.date)}</p>
               </div>
             </div>
-
-            <div className="flex flex-col gap-3 ml-11">
+            <div className="flex flex-col gap-4 ml-14">
               {day.events.map((event, eventIndex) => (
                 <EventPreviewCard
                   key={`${day.date}-${eventIndex}`}
@@ -448,8 +413,6 @@ function PlanContent() {
     </main>
   )
 }
-
-// ─── Page export (Suspense required for useSearchParams) ──────────────────────
 
 export default function PlanPage() {
   return (
