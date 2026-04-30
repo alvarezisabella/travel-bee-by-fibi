@@ -15,6 +15,7 @@ export default function ChatUI({
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async () => {
@@ -29,7 +30,7 @@ export default function ChatUI({
 
     try {
       // call API route 
-    const res = await fetch("/api/ai/chat", {
+    const res = await fetch("/api/chat", {
   method: "POST",
   body: JSON.stringify({ message: input }),
 });
