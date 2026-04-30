@@ -88,10 +88,21 @@ export const emptyEvent = {
   lng: 0
 } as Event
 
+export interface PdfEventData {
+  title: string
+  date?: string       // YYYY-MM-DD
+  startTime?: string  // HH:MM
+  endTime?: string    // HH:MM
+  location?: string
+  type: EventLabel
+  description?: string
+}
+
 export interface Message {
   id: string
   text: string
   widgets?: Widget[]
+  pdfEvent?: PdfEventData
   sender: "user" | "bot"
   timestamp: Date
 }

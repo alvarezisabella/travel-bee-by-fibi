@@ -2,8 +2,8 @@
 "use client"
 
 import { useState } from 'react'
-import { ChevronDown, Clock, Bookmark, Check } from 'lucide-react'
-import { DemoDay, DemoEvent } from '../demoData'
+import { ChevronDown, Clock } from 'lucide-react'
+import { DemoDay } from '../demoData'
 
 const TYPE_BADGE: Record<string, { bg: string; text: string }> = {
   Activity:    { bg: "bg-[#fff3cd]", text: "text-[#7d5a00]" },
@@ -19,15 +19,10 @@ const TYPE_THUMB: Record<string, string> = {
   Food:        "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&q=80",
 }
 
-interface Trip {
-  id: string
-  title: string
-}
-
 function formatTime(time: string) {
   if (!time) return ''
   const [h, m] = time.split(':').map(Number)
-  const ampm = h >= 12 ? 'pm' : 'am'
+  const ampm = h >= 12 ? 'PM' : 'AM'
   const hour = h % 12 || 12
   return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`
 }
@@ -40,9 +35,7 @@ function formatDuration(mins: number) {
   return m > 0 ? `${h}.${Math.round((m / 60) * 10)} hours` : `${h} hour${h !== 1 ? 's' : ''}`
 }
 
-export default function DemoAccordion({ days, trips, user }: { days: DemoDay[], trips: Trip[], user:string|undefined }) {
-  const [pickTripID, setPickTripID] = useState<string | null>(null)
-  const [toast, setToast] = useState<string|null>(null)
+export default function DemoAccordion({ days }: { days: DemoDay[] }) {
   const [openDays, setOpenDays] = useState<Set<string>>(
     new Set(days.map(d => d.id))
   )
@@ -53,22 +46,6 @@ export default function DemoAccordion({ days, trips, user }: { days: DemoDay[], 
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
-  }
-
-  const showToast = (message: string) => {
-    setToast(message)
-    setTimeout(() => setToast(null), 2500) // disappears after 2.5s
-}
-
-  const addToTrip = async (trip:Trip, event:DemoEvent) => {
-    const res = await fetch("/api/auth/widgets", {
-      method: "POST",
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({title: event.title, description: event.description, location: event.location, type: event.type, itinerary_id: trip.id})})
-
-      const data = await res.json()
-      if(!res.ok) {console.error(data.error); return;}
-      showToast(`Saved to ${trip.title} Bookmarks!`)
   }
 
   return (
@@ -107,7 +84,6 @@ export default function DemoAccordion({ days, trips, user }: { days: DemoDay[], 
                 {day.events.map((event) => {
                   const badge = TYPE_BADGE[event.type] ?? TYPE_BADGE['Activity']
                   const thumb = TYPE_THUMB[event.type] ?? TYPE_THUMB['Activity']
-                  const isOpen = Object.is(pickTripID, event.id)              
 
                   return (
                     <div key={event.id} className="flex items-stretch px-6 py-5 gap-5">
@@ -130,49 +106,11 @@ export default function DemoAccordion({ days, trips, user }: { days: DemoDay[], 
                         </span>
                         <p className="text-[13px] text-gray-400 leading-relaxed line-clamp-2">{event.description}</p>
                       </div>
-                      {!isOpen && (
-                        <button onClick={() => setPickTripID(Object.is(pickTripID, event.id) ? null : event.id)}>
-                          <Bookmark strokeWidth={1} className='text-gray-400 hover:text-gray-800'/>
-                        </button>
-                      )}
-                      {isOpen && (
-                        <div className="z-10 bg-white rounded-xl border border-gray-200 shadow-lg w-md p-3 flex flex-col gap-2 transition">
-                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                            Add to trip
-                          </p>
-                          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
-                            {trips.map((trip) => (
-                              <button
-                                key={trip.id}
-                                className="text-left text-[13px] font-semibold text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 border border-gray-200 transition-colors"
-                                onClick={() => {
-                                  // handle adding event to trip here
-                                  addToTrip(trip, event)
-                                  setPickTripID(null)
-                                }}
-                              >
-                                {trip.title}
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            className="text-[12px] text-gray-400 hover:text-gray-600 mt-1 text-center"
-                            onClick={() => setPickTripID(null)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}                       
                     </div>
                   )
-                })}            
+                })}
               </div>
             </div>
-            {toast && (
-              <div className="flex items-center fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-[13px] font-medium px-4 py-2.5 rounded-full shadow-lg animate-fade-in">
-                 <Check className="mr-1" size={20}/>{toast}
-              </div>
-            )}            
           </div>
         )
       })}
