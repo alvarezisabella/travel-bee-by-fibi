@@ -1,10 +1,11 @@
 "use client"
 import {useState} from "react";
-import { ThumbsUp, ThumbsDown, Trash2, Dot, Clock, MapPin } from "lucide-react"
+import { ThumbsUp, ThumbsDown, Trash2, Dot, Clock, MapPin , PencilOff, SquarePen} from "lucide-react"
 import EditEvent from "./edit_event"
 import { Event, EventLabel, EventStatus, cardColor, STATUS_MAP, LABEL_MAP} from "../types/types";
 import { Traveler } from "../types/types";
 import { useEventLock } from "@/lib/hooks/event_lock";
+import { isNull } from "util";
 
 
 interface EventCardProp {
@@ -17,6 +18,7 @@ interface EventCardProp {
 }
 
 function formatTime(time: string): string {
+  if(!time) return ""
   const [h, m] = time.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
@@ -24,6 +26,7 @@ function formatTime(time: string): string {
 }
 
 function formatDuration(minutes: number): string {
+  if(!minutes) return ""
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -41,6 +44,7 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
   const handleEdit = async () => {
     const acquired = await acquireLock()
     if(acquired) setEditing(true)
+    if(acquired) setHovered(false)
   }
   const handleClose = async () => {
     await releaseLock()
@@ -54,23 +58,27 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
     {/* indicate that another user is editing*/}
     {isLockedByOther && (
         <div className="mb-2 flex items-center gap-2 text-sm text-amber-600">
+          <PencilOff />
             <span>This is being edited</span>
         </div>
     )}
     {lock.isLockedByMe && isEditing && (
-        <div className="mb-2 text-sm text-green-600"> You are editing</div>
+        
+        <div className="mb-2 text-sm text-green-600"> 
+          <SquarePen />
+          <span>You are editing </span></div>
     )}    
     {isEditing ? (
         <EditEvent key={event.id} day={event.dayid} trip={event.itineraryid} event={event} members={members} onClose={handleClose} onSave={onSave}></EditEvent>
 
     ) : (
 <div
-  className="max-w-5xl relative flex gap-3.5 bg-white rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800"
+  className="max-w-6xl relative flex gap-3.5 bg-white rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800 hover:scale-101"
   style={{
-    borderWidth: hovered? "3px" : "0.5px",
-    borderColor: hovered? "rgba(250, 197, 37, 0.5)" : "#c9c9c9",
-    boxShadow: hovered ? "0px 2px 10px rgba(250, 197, 37, 0.4)" : "0 2px 16px rgba(0,0,0,0.07)",
-    pointerEvents: isLockedByOther ? "none" : "all",
+    borderWidth: hovered? "2px" : "0.6px",
+    borderColor: hovered? "rgba(250, 197, 37, 0.4)" : "hsl(0, 0%, 90%)",
+    boxShadow: hovered ? "0px 2px 10px rgba(250, 197, 37, 0.8)" : "2px 2px 4px #ccc",
+    pointerEvents: isLockedByOther ? "none" : "all", //rgba(250, 197, 37, 0.4)
   }}
   onClick={handleEdit}
   onMouseEnter={() => setHovered(true)}
