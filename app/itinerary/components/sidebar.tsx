@@ -4,6 +4,8 @@ import { Message, Trip, Widget } from "../types/types";
 import styles from "../../../styles/chat.module.css";
 import ReactMarkdown from "react-markdown";
 import { EventWidget } from "./EventWidget";
+import { PdfEventWidget } from "./PdfEventWidget";
+import { Paperclip } from "lucide-react";
 import { Day } from "../day";
 import { useBookmarks } from "./useBookmarks";
 
@@ -23,15 +25,72 @@ interface ChatSidebarProps {
   days: Day[];
 }
 
+interface MessageBubbleProps {
+  msg: Message;
+  trip: Trip;
+  days: Day[];
+  isBookmarked: (title: string, location?: string) => boolean;
+  onToggleBookmark: (widget: Widget) => void;
+  addBotMessage: (text: string) => void;
+}
+
+// Defined at module scope so React can reuse instances across renders —
+// avoids the remounting that would happen if this were defined inside ChatSidebar.
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  msg, trip, days, isBookmarked, onToggleBookmark, addBotMessage,
+}) => {
+  const displayText = msg.text
+    ?.replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
+    .replace(/<widgets>[\s\S]*$/, "")
+    .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")
+    .replace(/<search>[\s\S]*$/, "")
+    .trim();
+
+  return (
+    <div className={`${styles.msg} ${styles[msg.sender]}`}>
+      {displayText && (
+        <div className={styles.markdownBody}>
+          <ReactMarkdown>{displayText}</ReactMarkdown>
+        </div>
+      )}
+      {msg.widgets?.map((widget, idx) => (
+        <EventWidget
+          key={`${widget.id}-${idx}`}
+          widget={widget}
+          tripId={trip.id}
+          days={days}
+          isBookmarked={isBookmarked(widget.title, widget.location)}
+          onToggleBookmark={onToggleBookmark}
+        />
+      ))}
+      {msg.pdfEvent && (
+        <PdfEventWidget
+          pdfEvent={msg.pdfEvent}
+          tripId={trip.id}
+          days={days}
+          trip={trip}
+          onAdded={(title) =>
+            addBotMessage(`Done! I've added "${title}" to your itinerary. Is there anything else you'd like help with?`)
+          }
+        />
+      )}
+      <time className={styles.timestamp}>
+        {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      </time>
+    </div>
+  );
+};
+
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
-  const { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading } =
+  const { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading } =
     chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id);
 
   useEffect(() => {
-    refetch()
-  }, [messages, refetch])
+    refetch();
+  }, [messages, refetch]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,40 +102,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
       sendMessage();
     }
   };
-
-  const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => {
-    // Safety strip — ensures raw <widgets> block never renders even if
-    // parseWidgets hasn't run yet or returned early due to a parse error
-    const displayText = msg.text
-      ?.replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
-      .replace(/<widgets>[\s\S]*$/, "")
-      .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")  // ← add this
-      .replace(/<search>[\s\S]*$/, "")  
-      .trim()
-
-    return (
-      <div className={`${styles.msg} ${styles[msg.sender]}`}>
-        {displayText && (
-          <div className={styles.markdownBody}>
-            <ReactMarkdown>{displayText}</ReactMarkdown>
-          </div>
-        )}
-        {msg.widgets?.map((widget, idx) => (
-          <EventWidget
-            key={`${widget.id}-${idx}`}
-            widget={widget}
-            tripId={trip.id}
-            days={days}
-            isBookmarked={isBookmarked(widget.title, widget.location)}
-            onToggleBookmark={toggleBookmark}
-          />
-        ))}
-        <time className={styles.timestamp}>
-          {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </time>
-      </div>
-    )
-  }
 
   return (
     <aside
@@ -101,7 +126,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
         <>
           <div className={styles.messages} role="log" aria-live="polite">
             {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} />
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                trip={trip}
+                days={days}
+                isBookmarked={isBookmarked}
+                onToggleBookmark={toggleBookmark}
+                addBotMessage={addBotMessage}
+              />
             ))}
             {isLoading && (
               <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
@@ -113,6 +146,26 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
 
           {/* Input */}
           <div className={styles.inputArea}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handlePdfUpload(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              className={styles.attachBtn}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              aria-label="Upload PDF"
+              type="button"
+            >
+              <Paperclip size={15} />
+            </button>
             <textarea
               className={styles.input}
               value={input}

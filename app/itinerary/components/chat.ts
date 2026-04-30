@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Message, Widget } from "../types/types";
+import { Message, Widget, PdfEventData } from "../types/types";
 import { Trip } from "../types/types";
 import { ChatMessage } from "@/lib/ai/types";
 
@@ -23,14 +23,21 @@ function parseSearch(raw: string): {
   }
 }
 
-function stripSearchBlock(text: string): string {
-  return text
-    .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")
-    .replace(/<search>[\s\S]*$/, "")
-    .replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
-    .replace(/<widgets>[\s\S]*$/, "")
-    .trim()
+function parsePdfEvent(raw: string): {
+  text: string
+  pdfEvent?: PdfEventData
+} {
+  const match = raw.match(/<pdf-event>\s*([\s\S]*?)\s*<\/pdf-event>/)
+  const text = raw.replace(/<pdf-event>\s*[\s\S]*?\s*<\/pdf-event>/, "").trim()
+  if (!match) return { text }
+  try {
+    const pdfEvent = JSON.parse(match[1].trim()) as PdfEventData
+    return { text, pdfEvent }
+  } catch {
+    return { text }
+  }
 }
+
 
 export function chat(trip: Trip) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -45,13 +52,15 @@ export function chat(trip: Trip) {
       const { messages: dbMessages } = await res.json();
       const uiMessages: Message[] = dbMessages.map(
         (m: { id: string; role: string; content: string; created_at: string }) => {
-          // Parse widgets from persisted messages too so they
+          // Parse widgets and pdf events from persisted messages so they
           // render correctly when chat history is reloaded
-          const { text, intents } = parseSearch(m.content);
+          const { text: searchText, intents } = parseSearch(m.content);
+          const { text, pdfEvent } = parsePdfEvent(searchText);
           return {
             id: m.id,
             text,
             intents,
+            pdfEvent,
             sender: m.role === "user" ? "user" : "bot",
             timestamp: new Date(m.created_at),
           };
@@ -127,10 +136,6 @@ export function chat(trip: Trip) {
         if (done) break;
         botText += decoder.decode(value, { stream: true });
 
-        // Strip the widget block from what's displayed mid-stream —
-        // partial JSON would show as raw text otherwise
-        const displayText = stripSearchBlock(botText);
-
         // Stream raw text into the bubble as it arrives —
         // widgets are parsed only once the stream is complete
         if (!botMsgAdded) {
@@ -205,5 +210,63 @@ export function chat(trip: Trip) {
     }
   }, [input, messages, trip, isLoading]);
 
-  return { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading };
+  const handlePdfUpload = useCallback(async (file: File) => {
+    if (isLoading) return
+
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      text: `[PDF: ${file.name}]`,
+      sender: "user",
+      timestamp: new Date(),
+    }
+    const botMsgId = crypto.randomUUID()
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: botMsgId, text: "Reading your PDF…", sender: "bot", timestamp: new Date() },
+    ])
+    setIsLoading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("itineraryId", trip.id)
+
+      const res = await fetch("/api/ai/parse-pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(error ?? "Failed to parse PDF")
+      }
+
+      const pdfEvent: PdfEventData = await res.json()
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, text: "I found an event in your PDF. Here are the details:", pdfEvent }
+            : m
+        )
+      )
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Sorry, I couldn't extract event info from that PDF."
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: msg } : m))
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [trip.id, isLoading])
+
+  const addBotMessage = useCallback((text: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text, sender: "bot", timestamp: new Date() },
+    ])
+  }, [])
+
+  return { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading };
 }

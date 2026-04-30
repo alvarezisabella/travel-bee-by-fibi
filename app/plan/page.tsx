@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { LABEL_MAP } from "@/app/itinerary/types/types"
 import { GeneratedItinerary, GeneratedEvent } from "@/app/api/ai/generate-itinerary/route"
+import { ChevronDown } from "lucide-react"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,15 @@ function PlanContent() {
   const [progress, setProgress] = useState(0)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
+  const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
+
+  const toggleDay = (index: number) => {
+    setCollapsedDays(prev => {
+      const next = new Set(prev)
+      next.has(index) ? next.delete(index) : next.add(index)
+      return next
+    })
+  }
 
   const abortRef = useRef<AbortController | null>(null)
 
@@ -390,23 +400,34 @@ function PlanContent() {
               <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#F5C842] flex items-center justify-center text-xs font-bold text-gray-900">
                 {dayIndex + 1}
               </span>
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                   Day {dayIndex + 1}
                 </p>
                 <p className="text-sm font-medium text-gray-700">{formatDate(day.date)}</p>
               </div>
+              <button
+                onClick={() => toggleDay(dayIndex)}
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <ChevronDown
+                  size={20}
+                  className={`transition-transform duration-200 ${collapsedDays.has(dayIndex) ? '-rotate-90' : ''}`}
+                />
+              </button>
             </div>
 
-            <div className="flex flex-col gap-3 ml-11">
-              {day.events.map((event, eventIndex) => (
-                <EventPreviewCard
-                  key={`${day.date}-${eventIndex}`}
-                  event={event}
-                  animationDelay={dayIndex * 60 + eventIndex * 50 + 80}
-                />
-              ))}
-            </div>
+            {!collapsedDays.has(dayIndex) && (
+              <div className="flex flex-col gap-3 ml-11">
+                {day.events.map((event, eventIndex) => (
+                  <EventPreviewCard
+                    key={`${day.date}-${eventIndex}`}
+                    event={event}
+                    animationDelay={dayIndex * 60 + eventIndex * 50 + 80}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         ))}
 
