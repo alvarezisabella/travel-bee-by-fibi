@@ -35,6 +35,15 @@ function formatDuration(minutes: number): string {
   return `${h} hr ${m} min`
 }
 
+function formatTime(time: string): string {
+  if (!time) return ""
+  const [h, m] = time.split(":").map(Number)
+  const ampm = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 || 12
+  const mins = m.toString().padStart(2, "0")
+  return `${hour}:${mins} ${ampm}`
+}
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
     month: "long", day: "numeric", year: "numeric",
@@ -59,7 +68,7 @@ function EventPreviewCard({ event, animationDelay }: { event: GeneratedEvent; an
     >
       {/* Left time panel */}
       <div className={`flex flex-col items-center justify-center px-5 py-4 min-w-[88px] border-r border-gray-100 ${colors.bg}`}>
-        <span className={`text-[15px] font-bold ${colors.text}`}>{event.startTime}</span>
+        <span className={`text-[15px] font-bold ${colors.text}`}>{formatTime(event.startTime)}</span>
         <span className="text-[11px] text-gray-400 mt-1">{formatDuration(event.duration)}</span>
       </div>
 
