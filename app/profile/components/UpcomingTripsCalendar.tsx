@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { ChevronLeft, ChevronRight, X, MapPin, Calendar } from "lucide-react"
+import { ChevronLeft, ChevronRight, X, MapPin, Calendar, ExternalLink } from "lucide-react"
 
 interface TripSummary {
   id: string
@@ -338,9 +338,19 @@ export default function UpcomingTripsCalendar({ trips }: Props) {
                     const color = TRIP_COLORS[i % TRIP_COLORS.length]
                     return (
                       <div key={t.id}
-                        className="flex flex-col gap-1.5 p-3 rounded-xl border transition-all flex-shrink-0 w-44 snap-start"
+                        className="relative flex flex-col gap-1.5 p-3 rounded-xl border transition-all flex-shrink-0 w-44 snap-start"
                         style={{ borderColor: color.border, background: color.bg }}>
-                        <div className="flex items-center gap-2">
+                        {/* Open itinerary in new tab */}
+                        <a
+                          href={`/itinerary/${t.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 text-gray-400 hover:text-gray-700 transition-colors"
+                        >
+                          <ExternalLink size={11} />
+                        </a>
+                        <div className="flex items-center gap-2 pr-5">
                           <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color.dot }} />
                           <p className="text-xs font-semibold text-gray-800 truncate">{t.title}</p>
                         </div>
