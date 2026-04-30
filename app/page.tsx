@@ -34,7 +34,7 @@ export default async function LandingPage() {
           <TripSearchForm />
         </div>
 
-        <div className="w-full mt-8 flex justify-center">
+        <div className="w-full mt-8 flex justify-center" >
           <div className="w-full max-w-[1100px] aspect-[16/10]">
             <iframe
               src="/demo/ItineraryDemo.html"
@@ -43,6 +43,22 @@ export default async function LandingPage() {
               className="w-full h-full border-0 block"
             />
           </div>
+        </div>
+
+        <div>
+        <h3 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">Try Agent Atlas</h3>
+        <p className="text-gray-500 text-lg mt-2">Chat with our AI to plan your perfect trip</p>
+        </div>
+        <div className="w-[520px] mx-auto mt-10 border-4 border-blue-500 rounded-2xl overflow-hidden bg-white shadow-lg">
+          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-400">
+        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
+          🤖
+        </div>
+        <div>
+          <p className="font-semibold text-sm">Agent Atlas</p>
+          <p className="text-xs text-gray-700">AI Travel Assistant</p>
+        </div>
+      </div>
         </div>
       </section>
     </main>

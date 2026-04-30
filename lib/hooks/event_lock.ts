@@ -53,7 +53,7 @@ export function useEventLock(eventId: string) {
   }, [eventId, user, supabase]);
 
   // Subscribe to lock changes for this event
-  useEffect(() => {
+   useEffect(() => {
     const channel = supabase
       .channel(`lock:${eventId}`)
       .on('postgres_changes', {

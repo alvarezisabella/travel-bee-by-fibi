@@ -1,0 +1,146 @@
+"use client"; // ✅ REQUIRED (this component uses state)
+
+import { useState } from "react";
+import { getAIResponse } from "@/lib/ai/anthropic"; // 🔹 your existing AI function
+
+type Message = {
+  role: "user" | "agent";
+  text: string;
+};
+
+export default function ChatUI({
+  compact = false,   // ✅ NEW: controls size (landing vs full page)
+}: {
+  compact?: boolean;
+}) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+
+    const userMsg: Message = { role: "user", text: input };
+
+    // ✅ ADD USER MESSAGE
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      // ✅ CALL YOUR EXISTING ANTHROPIC FUNCTION
+    const res = await fetch("/api/chat", {
+  method: "POST",
+  body: JSON.stringify({ message: input }),
+});
+
+const data = await res.json();
+const reply = data.reply;
+      // ✅ ADD AI RESPONSE
+      setMessages((prev) => [
+        ...prev,
+        { role: "agent", text: reply },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "agent", text: "Error getting response." },
+      ]);
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div
+      className={`
+        border-4 border-blue-500 rounded-2xl overflow-hidden bg-white shadow-lg flex flex-col
+        ${compact ? "w-[520px] h-[500px]" : "w-full h-screen"}  // ✅ SIZE CONTROL
+      `}
+    >
+
+      {/* HEADER (UNCHANGED DESIGN) */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-400">
+        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
+          🤖
+        </div>
+        <div>
+          <p className="font-semibold text-sm">Agent Atlas</p>
+          <p className="text-xs text-gray-700">AI Travel Assistant</p>
+        </div>
+      </div>
+
+      {/* CHAT AREA */}
+      <div className="flex-1 bg-gray-200 p-4 space-y-4 overflow-y-auto">
+
+        {/* ✅ EMPTY STATE (landing page helpful) */}
+        {messages.length === 0 && (
+          <p className="text-sm text-gray-500 text-center">
+            Ask Agent Atlas about your next trip ✈️
+          </p>
+        )}
+
+        {/* ✅ MESSAGES LOOP */}
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex items-start gap-2 ${
+              msg.role === "user" ? "justify-end" : ""
+            }`}
+          >
+            {msg.role === "agent" && (
+              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
+                🤖
+              </div>
+            )}
+
+            <div
+              className={`px-4 py-2 max-w-[70%] text-sm ${
+                msg.role === "user"
+                  ? "bg-blue-500 text-white rounded-2xl rounded-br-sm"
+                  : "bg-gray-100 rounded-2xl rounded-bl-sm"
+              }`}
+            >
+              {msg.text}
+            </div>
+
+            {msg.role === "user" && (
+              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-400">
+                👤
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* ✅ LOADING STATE */}
+        {loading && (
+          <div className="flex gap-2 items-center">
+            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
+              🤖
+            </div>
+            <div className="bg-gray-100 px-4 py-2 rounded-2xl text-sm">
+              Typing...
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* INPUT */}
+      <div className="flex items-center gap-2 p-3 border-t">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          placeholder="Ask Agent Atlas anything..."
+          className="flex-1 px-4 py-2 rounded-full border focus:outline-none text-sm"
+        />
+        <button
+          onClick={sendMessage}
+          className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-full text-sm"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
