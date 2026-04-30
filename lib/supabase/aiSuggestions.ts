@@ -15,7 +15,7 @@ export async function saveSuggestion(supabase: SupabaseClient, itineraryId: stri
 export async function getSuggestions(supabase: SupabaseClient, itineraryId: string) {
   return supabase
     .from('ai_suggestions')
-    .select('id, content, saved_by, created_at')
+    .select('id, message_id, content, saved_by, created_at')
     .eq('itinerary_id', itineraryId)
     .order('created_at', { ascending: false })
 }
