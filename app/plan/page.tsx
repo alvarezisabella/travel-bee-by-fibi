@@ -67,7 +67,7 @@ function EventPreviewCard({ event, animationDelay }: { event: GeneratedEvent; an
       style={{ animation: `fadeSlideIn 0.4s ease ${animationDelay}ms forwards`, boxShadow: "0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)" }}
     >
       {/* Left time panel */}
-      <div className={`flex flex-col items-center justify-center px-5 py-4 min-w-[88px] border-r border-gray-100 ${colors.bg}`}>
+      <div className={`flex flex-col items-center justify-center w-24 flex-shrink-0 py-4 border-r border-gray-100 ${colors.bg}`}>
         <span className={`text-[15px] font-bold ${colors.text}`}>{formatTime(event.startTime)}</span>
         <span className="text-[11px] text-gray-400 mt-1">{formatDuration(event.duration)}</span>
       </div>

@@ -23,6 +23,8 @@ async function getTrip(): Promise<Trip> {
     startDate: "Add start date",
     endDate: "Add end date",
     coverImage: "image placeholder",
+    lat: null,        // ← add this
+    lng: null,        // ← add this
     travelers: [
       { id: "1", name: "Traveler 1", role: "Organizer" },
       { id: "2", name: "Traveler 2", role: "Participant" },
