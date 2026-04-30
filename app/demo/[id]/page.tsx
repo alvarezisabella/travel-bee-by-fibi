@@ -4,6 +4,14 @@ import { MapPin, Calendar, Clock } from 'lucide-react'
 import BackButton from './BackButton'
 import DemoAccordion from './DemoAccordion'
 import HeroButtons from './HeroButtons'
+import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
+import { getItinerariesByUser } from "@/lib/supabase/itinerary"
+
+interface Trip {
+  id: string
+  title: string
+}
 
 export default async function DemoViewPage({
   params,
@@ -12,10 +20,30 @@ export default async function DemoViewPage({
 }) {
   const { id } = await params
   const itinerary = DEMO_ITINERARIES[id]
+  let uid: string | undefined = undefined
   if (!itinerary) notFound()
 
   const totalDays = itinerary.days.length
 
+  async function getUsertrips() {
+    const cookieStore = await cookies()
+    const supabase = await createClient(cookieStore)
+    const { data: { user } } = await supabase.auth.getUser()
+    let trips: Trip [] | null = null
+    
+    const { data: allItineraries } = user
+      ? await getItinerariesByUser(supabase, user.id)
+      : { data: [] }
+    trips = allItineraries.map(({ id, title }) => ({
+      id,
+      title,
+    }));
+    uid = user?.id
+    return trips
+  }
+  
+  const userTrips = await getUsertrips();
+  
   return (
     <main className="min-h-screen bg-[#F5F5F5]">
 
@@ -63,7 +91,7 @@ export default async function DemoViewPage({
 
       {/* Day accordion */}
       <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col gap-4">
-        <DemoAccordion days={itinerary.days} />
+        <DemoAccordion days={itinerary.days} trips={userTrips} user={uid}/>
       </div>
 
     </main>

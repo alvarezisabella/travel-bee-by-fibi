@@ -5,7 +5,7 @@ import { useItineraryRealtime } from '@/lib/hooks/useItineraryRealtime'
 import {EventCard} from './event_card'
 import {Day, DayCell} from './../day'
 import { Trip, Event, Widget } from '../types/types'
-import { Plus } from "lucide-react"
+import { CirclePlus } from "lucide-react"
 import { ChatSidebar } from './sidebar'
 import EditEvent from "./edit_event"
 import { it } from 'node:test'
@@ -222,7 +222,7 @@ export default function TripList({ trip }: TripProps) {
             <div className="w-full max-w-8xl mx-auto grid grid-cols-auto">
 
                 {/* Sidebar */}
-                <div className="hidden md:block shrink-0 col-span-2">
+                <div className="shrink-0 col-span-3 ">
                     <ChatSidebar
                         trip={trip}
                         days={days}
@@ -270,7 +270,7 @@ export default function TripList({ trip }: TripProps) {
                         onMouseEnter={() => setHovered(true)}
                         onMouseLeave={() => setHovered(false)}
                     >
-                        <Plus size={20} strokeWidth={4} className="text-yellow-400" />
+                        <CirclePlus size={24} strokeWidth={3} className="text-yellow-400" />
                         <span className='px-2 pt-1'>Add Day</span>
                     </button>
                 </div>
