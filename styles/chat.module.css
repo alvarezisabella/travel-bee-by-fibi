@@ -27,17 +27,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  height: 48px;
+  height: 8dvh;
   flex-shrink: 0;
   border-bottom: 0.5px solid var(--color-border-tertiary, #e5e5e5);
 }
 
 .title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
-  white-space: nowrap;
   overflow: hidden;
   color: var(--color-text-primary, #2d3748);
+  display: flex;
+  justify-items: flex-start;
+  justify-content: center;
+  align-items: center;
 }
 
 .toggleBtn {
