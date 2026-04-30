@@ -26,65 +26,7 @@ interface ChatSidebarProps {
   days: Day[];
 }
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
-  const { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading } =
-    chat(trip);
-  const messagesRef = useRef<HTMLDivElement>(null)
-  const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id)
-  const prevMessageCount = useRef(messages.length);
-  const lastMessageText = messages[messages.length - 1]?.text ?? "";
-  
 
-  useEffect(() => {
-    refetch()
-  }, [messages, refetch])
-
-  const scrollToBottom = (behavior: ScrollBehavior) => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-    }
-  };
-
-  useEffect(() => {
-    if (messages.length !== prevMessageCount.current) {
-      prevMessageCount.current = messages.length;
-      scrollToBottom("smooth");
-    }
-  }, [messages.length]);
-
-  useEffect(() => {
-    if (isLoading) {
-      scrollToBottom("instant");
-    }
-  }, [lastMessageText, isLoading]);
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const MessageBubble: React.FC<{ msg: Message }> = ({ msg }) => (
-    <div className={`${styles.msg} ${styles[msg.sender]}`}>
-      {msg.text && (
-        <div className={styles.markdownBody}>
-          <ReactMarkdown>{msg.text}</ReactMarkdown>
-        </div>
-      )}
-      {msg.widgets?.map((widget) => (
-        <EventWidget
-          key={widget.id}
-          widget={widget}
-          tripId={trip.id}
-          days={days}
-          isBookmarked={isBookmarked(widget.title, widget.location)}
-          onToggleBookmark={toggleBookmark}
-        />
-      ))}
-  
-    </div>
-  );
 interface MessageBubbleProps {
   msg: Message;
   trip: Trip;
@@ -145,6 +87,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   const { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading } =
     chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id);
 
@@ -203,7 +146,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
                 <span>Atlas is typing…</span>
               </div>
             )}
-            
+            <div ref={bottomRef} />
           </div>
 
           {/* Input */}
