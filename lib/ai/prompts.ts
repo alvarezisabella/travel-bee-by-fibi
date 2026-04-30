@@ -12,40 +12,33 @@ export interface ItineraryGenerationParams {
 
 // Builds the "system prompt" — background context given to Claude before the
 // conversation starts. Claude reads this to understand its role and the trip.
-export function buildChatSystemPrompt(trip: Trip): string {
-  // Number of travelers in the trip
-  const travelerCount = trip.travelers.length
+export function buildChatSystemPrompt(trip?: Trip): string {
+  const travelerCount = trip?.travelers?.length ?? 0
 
-  // Formats the date range, handling cases where dates may not be set
-  const dateRange =
-    trip.startDate && trip.endDate
-      ? `${trip.startDate} to ${trip.endDate}` // both dates set
+  const dateRange = trip
+    ? trip.startDate && trip.endDate
+      ? `${trip.startDate} to ${trip.endDate}`
       : trip.startDate
-      ? `starting ${trip.startDate}`           // only start date set
-      : "dates not set"                        // no dates
+      ? `starting ${trip.startDate}`
+      : "dates not set"
+    : "dates not set"
 
-  // List of days that have events
-  const daysWithEvents = (trip.days ?? []).filter(d => d.events && d.events.length > 0)
+  const daysWithEvents = (trip?.days ?? []).filter(d => d.events && d.events.length > 0)
 
-  // If there are no events, skips itinerary section
-  // Otherwise, formats each day's events with their time, type, title, status, and optional details like location and description
   const itinerarySection = daysWithEvents.length === 0 ? "" : `
     Scheduled itinerary:
     ${daysWithEvents.map((day, idx) => {
-        // Format the day's date as a readable label
         const dateLabel = day.date
           ? new Date(day.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
           : `Day ${idx + 1}`
 
-        // Format each event with its time, type, title, and status on the first line,
-        // then optional details (location, duration, description) indented below
         const eventsText = day.events.map(event => {
           const lines = [`  - ${event.startTime} | ${event.title} | ${event.type} | (${event.status})`]
-          if (event.location)    
+          if (event.location)
             lines.push(`      Location: ${event.location}`)
-          if (event.duration)    
+          if (event.duration)
             lines.push(`      Duration: ${event.duration} min`)
-          if (event.description) 
+          if (event.description)
             lines.push(`      Description: ${event.description}`)
           return lines.join("\n")
         }).join("\n")
@@ -53,14 +46,19 @@ export function buildChatSystemPrompt(trip: Trip): string {
         return `Day ${idx + 1} - ${dateLabel}:\n${eventsText}`
       }).join("\n\n")}`
 
-  // Prompts Claude with its role and the trip details so it can provide relevant, personalized responses.
-  return `You are a helpful travel assistant for the trip "${trip.title}" to ${trip.location || "an unspecified destination"}.
-          You have access to a live search tool that finds real restaurants, activities, and ticketed events including concerts, sports games, and shows. When the user asks for recommendations, always use this tool by outputting a <search> block — never suggest external websites or say you cannot find real-time information.
+  const tripIntro = trip
+    ? `You are a helpful travel assistant for the trip "${trip.title}" to ${trip.location || "an unspecified destination"}.`
+    : `You are a helpful travel assistant.`
 
+  const tripDetails = trip ? `
           Trip details:
           - Destination: ${trip.location || "not specified"}
           - Dates: ${dateRange}
-          - Travelers: ${travelerCount} person${travelerCount !== 1 ? "s" : ""}${itinerarySection}
+          - Travelers: ${travelerCount} person${travelerCount !== 1 ? "s" : ""}${itinerarySection}` : ""
+
+  return `${tripIntro}
+          You have access to a live search tool that finds real restaurants, activities, and ticketed events including concerts, sports games, and shows. When the user asks for recommendations, always use this tool by outputting a <search> block — never suggest external websites or say you cannot find real-time information.
+${tripDetails}
 
           Help the travelers plan and enjoy their trip. Answer questions about the destination, suggest activities, restaurants, and accommodations, recommend what to pack, and provide any other travel advice.
           Keep responses concise and practical.
