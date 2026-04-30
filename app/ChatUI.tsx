@@ -57,7 +57,7 @@ const reply = data.reply;
     <div
       className={`
         border-4 border-blue-500 rounded-2xl overflow-hidden bg-white shadow-lg flex flex-col
-        ${compact ? "w-[520px] h-[500px]" : "w-full h-screen"}  // ✅ SIZE CONTROL
+        ${compact ? "w-full max-w-[600px] h-[500px]" : "w-full h-screen"}
       `}
     >
 
