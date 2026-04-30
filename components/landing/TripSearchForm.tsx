@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { X, MapPin } from "lucide-react"
 import { WORLD_LOCATIONS } from "@/app/itinerary/data/worldLocations"
+import DateRangePicker from "@/components/landing/DateRangePicker"
 
 const budgetTiers = [
   { label: "Budget",    range: "Under $500"    },
@@ -15,29 +16,12 @@ export default function TripSearchForm() {
   const [destination, setDestination] = useState("")
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [travelers, setTravelers] = useState(2)
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
+  const [startDate, setStartDate] = useState<Date | null>(null)
+  const [endDate, setEndDate] = useState<Date | null>(null)
   const [budgetTier, setBudgetTier] = useState(0)
   const [description, setDescription] = useState("")
-  const [nights, setNights] = useState<number | null>(7)
   const taRef = useRef<HTMLTextAreaElement>(null)
   const destRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const fmt = (d: Date) => d.toISOString().split("T")[0]
-    const t = new Date()
-    const s = new Date(t); s.setDate(t.getDate() + 14)
-    const e = new Date(s); e.setDate(s.getDate() + 7)
-    setStartDate(fmt(s))
-    setEndDate(fmt(e))
-  }, [])
-
-  useEffect(() => {
-    if (startDate && endDate) {
-      const d = (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000
-      setNights(d > 0 ? d : null)
-    }
-  }, [startDate, endDate])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -63,11 +47,12 @@ export default function TripSearchForm() {
 
   function handlePlan() {
     if (!destination.trim()) return
+    const fmt = (d: Date) => d.toISOString().split("T")[0]
     const params = new URLSearchParams({
       destination,
       travelers: String(travelers),
-      startDate,
-      endDate,
+      startDate: startDate ? fmt(startDate) : "",
+      endDate: endDate ? fmt(endDate) : "",
       budget: budgetTiers[budgetTier].label,
       description,
     })
@@ -75,7 +60,6 @@ export default function TripSearchForm() {
   }
 
   const labelCls = "block text-[10px] font-medium tracking-widest uppercase text-gray-400 mb-1.5"
-  const iconCls = "text-sm opacity-50 shrink-0"
 
   return (
     <div className="w-full bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
@@ -165,42 +149,13 @@ export default function TripSearchForm() {
         </div>
       </div>
 
-      {/* Row 2: Start / End / Duration */}
-      <div className="flex border-b border-gray-100">
-        <div className="flex-[5] p-4 px-6 border-r border-gray-100 flex flex-col items-center justify-center text-center">
-          <span className={labelCls}>Start date</span>
-          <div className="flex items-center justify-center gap-2">
-            <span className={iconCls}>🗓</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="bg-transparent outline-none text-[15px] text-gray-900"
-            />
-          </div>
-        </div>
-        <div className="flex-[5] p-4 px-6 border-r border-gray-100 flex flex-col items-center justify-center text-center">
-          <span className={labelCls}>End date</span>
-          <div className="flex items-center justify-center gap-2">
-            <span className={iconCls}>🗓</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="bg-transparent outline-none text-[15px] text-gray-900"
-            />
-          </div>
-        </div>
-        <div className="flex-[3] p-4 px-6 flex flex-col items-center justify-center text-center">
-          <span className={labelCls}>Duration</span>
-          <div className="flex items-center justify-center gap-2">
-            <span className={iconCls}>⏱</span>
-            <span className={`text-[15px] font-medium ${nights ? "text-[#d4a800]" : "text-gray-300"}`}>
-              {nights ? `${nights} night${nights !== 1 ? "s" : ""}` : "—"}
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Row 2: Date range picker */}
+      <DateRangePicker
+        startDate={startDate}
+        endDate={endDate}
+        onStartChange={setStartDate}
+        onEndChange={setEndDate}
+      />
 
       {/* Budget */}
       <div className="p-4 px-6 border-b border-gray-100">
@@ -257,7 +212,7 @@ export default function TripSearchForm() {
         <button
           onClick={handlePlan}
           disabled={!destination.trim()}
-          className="flex items-center gap-2 bg-[#F5C300] disabled:opacity-40 hover:bg-[#d4a800] text-[#3d3000] font-medium text-sm px-7 py-3 rounded-xl transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 bg-[#F5C300] disabled:opacity-40 hover:bg-[#d4a800] text-[#3d3000] font-medium text-sm px-7 py-3 rounded-xl transition-colors whitespace-nowrap cursor-pointer"
         >
           ✈ Plan my trip
         </button>
