@@ -6,15 +6,16 @@ import ReactMarkdown from "react-markdown";
 import { EventWidget } from "./EventWidget";
 import { Day } from "../day";
 import { useBookmarks } from "./useBookmarks";
+import {Compass} from "lucide-react"
 
 const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
   <svg
-    width="14"
-    height="14"
+    width="16"
+    height="16"
     viewBox="0 0 14 14"
     style={{ transform: flipped ? "rotate(180deg)" : "none", transition: "transform 0.25s" }}
   >
-    <path d="M9 3L5 7L9 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M9 3L5 7L9 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
@@ -90,7 +91,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     >
       {/* Header */}
       <header className={styles.header}>
-        {!isCollapsed && <span className={styles.title}>Agent Atlas</span>}
+        {!isCollapsed && <div  className={styles.title}><Compass /><span className="px-3">Agent Atlas</span></div>}
         <button
           className={styles.toggleBtn}
           onClick={toggle}
