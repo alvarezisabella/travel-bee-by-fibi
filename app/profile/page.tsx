@@ -1,3 +1,4 @@
+// app/profile/page.tsx
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
@@ -13,11 +14,14 @@ export default async function ProfilePage() {
   const supabase = await createClient(cookieStore)
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: itineraries } = user
+  const { data: allItineraries } = user
     ? await getItinerariesByUser(supabase, user.id)
     : { data: [] }
 
-  const itineraryIds = itineraries?.map((t) => t.id) ?? []
+  // Split into regular trips and Atlas recommendations
+  const itineraries = (allItineraries ?? []).filter(t => !t.is_recommendation)
+
+  const itineraryIds = itineraries.map((t) => t.id)
 
   const { data: allMembers } = itineraryIds.length > 0
     ? await supabase
@@ -43,7 +47,7 @@ export default async function ProfilePage() {
     membersByItinerary.set(m.itinerary_id, [...existing, m])
   }
 
-  const trips = (itineraries ?? []).map((trip) => {
+  const trips = itineraries.map((trip) => {
     const members = membersByItinerary.get(trip.id) ?? []
     return {
       id: trip.id,
@@ -75,7 +79,7 @@ export default async function ProfilePage() {
     endDate: t.end_date ?? undefined,
     coverPhoto: t.cover_photo_url ?? undefined,
     lat: t.lat ?? undefined,
-    lng: t.lng ?? undefined
+    lng: t.lng ?? undefined,
   }))
 
   return (
@@ -95,12 +99,14 @@ export default async function ProfilePage() {
           </div>
 
           {/* Main content */}
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col gap-6">
+            {/* My Trips — regular trips only, no recommendations */}
             <TripHistory trips={trips} />
-            <div className="py-13">
-              <ShowGeneratedItinerary />
-            </div>
+
+            {/* Agent Atlas Recommendations — separate section */}
+            <ShowGeneratedItinerary />
           </div>
+
         </div>
       </div>
     </div>
