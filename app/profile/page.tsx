@@ -14,12 +14,17 @@ export default async function ProfilePage() {
   const supabase = await createClient(cookieStore)
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: allItineraries } = user
+  // Fetch all itineraries then split into regular vs recommendations
+  const { data: rawItineraries } = user
     ? await getItinerariesByUser(supabase, user.id)
     : { data: [] }
 
-  // Split into regular trips and Atlas recommendations
-  const itineraries = (allItineraries ?? []).filter(t => !t.is_recommendation)
+  // Split into regular trips and recommendations
+  const itineraries = (rawItineraries ?? []).filter(
+    (t: any) => !t.is_recommendation
+  )
+  // All trips including recommendations — for the calendar
+  const allItineraries = rawItineraries ?? []
 
   const itineraryIds = itineraries.map((t) => t.id)
 
@@ -71,9 +76,10 @@ export default async function ProfilePage() {
     }
   })
 
-  const calendarTrips = trips.map((t) => ({
+  // Include recommendations in calendar so they show up in upcoming trips
+  const calendarTrips = allItineraries.map((t: any) => ({
     id: t.id,
-    title: t.title,
+    title: t.title ?? "Untitled Trip",
     location: t.location ?? undefined,
     startDate: t.start_date ?? undefined,
     endDate: t.end_date ?? undefined,
@@ -100,10 +106,10 @@ export default async function ProfilePage() {
 
           {/* Main content */}
           <div className="flex-1 flex flex-col gap-6">
-            {/* My Trips — regular trips only, no recommendations */}
+            {/* My Trips — regular trips only */}
             <TripHistory trips={trips} />
 
-            {/* Agent Atlas Recommendations — separate section */}
+            {/* Agent Atlas Recommendations */}
             <ShowGeneratedItinerary />
           </div>
 

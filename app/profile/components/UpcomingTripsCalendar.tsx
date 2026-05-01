@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { ChevronLeft, ChevronRight, X, MapPin, Calendar } from "lucide-react"
+import { ChevronLeft, ChevronRight, X, MapPin, Calendar, ExternalLink } from "lucide-react"
 
 interface TripSummary {
   id: string
@@ -217,13 +217,22 @@ export default function UpcomingTripsCalendar({ trips }: Props) {
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") { setOpen(false); setSelectedTripIdx(null) }
   }, [])
+
   useEffect(() => {
-    if (open) document.addEventListener("keydown", handleKey)
-    return () => document.removeEventListener("keydown", handleKey)
+    if (open) {
+      document.addEventListener("keydown", handleKey)
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.removeEventListener("keydown", handleKey)
+      document.body.style.overflow = ""
+    }
   }, [open, handleKey])
 
-  // Reset selection and card index when modal closes or month changes
-  useEffect(() => { setSelectedTripIdx(null); setCardIdx(0) }, [open, month])
+  // Reset selection when modal closes or month changes
+  useEffect(() => { setSelectedTripIdx(null) }, [open, month])
 
   const tripsThisMonth = datedTrips.filter(t => {
     const s = parseDate(t.startDate)!
@@ -234,15 +243,10 @@ export default function UpcomingTripsCalendar({ trips }: Props) {
     return sd <= me && ed >= ms
   })
 
-  // Trips to show in the card list: filtered to current month, sorted by start date
   const monthTrips = [...tripsThisMonth].sort((a, b) => parseDate(a.startDate)!.getTime() - parseDate(b.startDate)!.getTime())
   const displayTrips = selectedTripIdx !== null
     ? datedTrips.filter((_, i) => i === selectedTripIdx)
     : monthTrips
-
-  // Carousel state for trip cards
-  const [cardIdx, setCardIdx] = useState(0)
-  const visibleCard = displayTrips[cardIdx] ?? null
 
   return (
     <>
@@ -310,50 +314,43 @@ export default function UpcomingTripsCalendar({ trips }: Props) {
               <CalendarGrid year={year} month={month} trips={datedTrips}
                 selectedTripIdx={selectedTripIdx} onSelectTrip={setSelectedTripIdx} />
 
-              {/* Trip label + carousel nav */}
+              {/* Trip label */}
               <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                   {selectedTripIdx !== null ? "Selected Trip" : "Trips This Month"}
                 </h3>
-                <div className="flex items-center gap-2">
-                  {selectedTripIdx !== null && (
-                    <button onClick={() => { setSelectedTripIdx(null); setCardIdx(0) }}
-                      className="text-[11px] text-gray-400 hover:text-gray-600 underline transition-colors mr-2">
-                      Show all
-                    </button>
-                  )}
-                  {displayTrips.length > 3 && (
-                    <>
-                      <button
-                        onClick={() => setCardIdx(i => Math.max(0, i - 3))}
-                        disabled={cardIdx === 0}
-                        className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-25 transition-colors">
-                        <ChevronLeft size={12} />
-                      </button>
-                      <span className="text-[11px] text-gray-400">
-                        {Math.floor(cardIdx / 3) + 1} / {Math.ceil(displayTrips.length / 3)}
-                      </span>
-                      <button
-                        onClick={() => setCardIdx(i => Math.min(displayTrips.length - 1, i + 3))}
-                        disabled={cardIdx + 3 >= displayTrips.length}
-                        className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-25 transition-colors">
-                        <ChevronRight size={12} />
-                      </button>
-                    </>
-                  )}
-                </div>
+                {selectedTripIdx !== null && (
+                  <button onClick={() => setSelectedTripIdx(null)}
+                    className="text-[11px] text-gray-400 hover:text-gray-600 underline transition-colors">
+                    Show all
+                  </button>
+                )}
               </div>
 
-              {/* Trip card carousel — 3 at a time */}
+              {/* Trip cards — horizontally scrollable */}
               {displayTrips.length > 0 ? (
-                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(displayTrips.slice(cardIdx, cardIdx + 3).length, 3)}, 1fr)` }}>
-                  {displayTrips.slice(cardIdx, cardIdx + 3).map((t) => {
+                <div
+                  className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"
+                  style={{ scrollbarWidth: "thin", scrollbarColor: "#e5e7eb transparent" }}
+                >
+                  {displayTrips.map((t) => {
                     const i = datedTrips.indexOf(t)
                     const color = TRIP_COLORS[i % TRIP_COLORS.length]
                     return (
-                      <div key={t.id} className="flex flex-col gap-1.5 p-3 rounded-xl border transition-all"
+                      <div key={t.id}
+                        className="relative flex flex-col gap-1.5 p-3 rounded-xl border transition-all flex-shrink-0 w-44 snap-start"
                         style={{ borderColor: color.border, background: color.bg }}>
-                        <div className="flex items-center gap-2">
+                        {/* Open itinerary in new tab */}
+                        <a
+                          href={`/itinerary/${t.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="absolute top-2 right-2 p-1 rounded-md hover:bg-black/10 text-gray-400 hover:text-gray-700 transition-colors"
+                        >
+                          <ExternalLink size={11} />
+                        </a>
+                        <div className="flex items-center gap-2 pr-5">
                           <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color.dot }} />
                           <p className="text-xs font-semibold text-gray-800 truncate">{t.title}</p>
                         </div>

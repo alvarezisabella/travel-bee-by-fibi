@@ -283,6 +283,8 @@ async function run(){
   await addMsg('find me a hotel near central park','usr',0);ainp.value='';
   await addMsg(`<strong>The Plaza Hotel</strong> is already confirmed on Day 1 — right on 5th Ave & Central Park South! Alternatives nearby:<br><br>• <strong>The Ritz-Carlton</strong> — $480/night ⭐ 4.9<br>• <strong>JW Marriott Essex House</strong> — $320/night ⭐ 4.7<br>• <strong>The Pierre</strong> — $550/night ⭐ 4.8`,'bot',1300);
   moveCur(700,350);
+  await delay(2000);
+  run();
 }
 document.getElementById('rb').onclick=run;
 run();

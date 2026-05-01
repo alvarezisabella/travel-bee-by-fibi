@@ -98,6 +98,30 @@ export function buildChatSystemPrompt(trip: Trip): string {
 
 }
 
+// Prompt sent to Claude alongside a PDF document to extract event details.
+// Claude must return raw JSON only — no markdown fences, no surrounding text.
+export function buildPdfExtractionPrompt(): string {
+  return `Extract event information from this document and return ONLY a valid JSON object. No markdown fences, no explanation, no surrounding text — raw JSON only.
+
+Use this exact structure:
+{
+  "title": "Event name",
+  "date": "YYYY-MM-DD or null",
+  "startTime": "HH:MM in 24-hour format or null",
+  "endTime": "HH:MM in 24-hour format or null",
+  "location": "Venue name and/or address or null",
+  "type": "Reservation",
+  "description": "Brief one-sentence description or null"
+}
+
+Rules:
+- "type" must be exactly one of: "Activity", "Transit", "Reservation", "Food". Default to "Reservation" for tickets and bookings.
+- If a field cannot be determined from the document, use null.
+- "date" must be in YYYY-MM-DD format if present.
+- "startTime" and "endTime" must be in HH:MM 24-hour format if present.
+- Output only the JSON object. Nothing else.`
+}
+
 // Builds the one-shot user prompt for AI itinerary generation.
 // Unlike buildChatSystemPrompt (which is used for the ongoing chat assistant),
 // this prompt is sent as a single user message asking Claude to return a
@@ -146,5 +170,3 @@ Rules:
 - Schedule realistic travel and meal times appropriate for ${params.location}.
 - Do not add any commentary. Return only the JSON object.`
 }
-
-

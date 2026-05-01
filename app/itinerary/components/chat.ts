@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Message, Widget } from "../types/types";
+import { Message, Widget, PdfEventData } from "../types/types";
 import { Trip } from "../types/types";
 import { ChatMessage } from "@/lib/ai/types";
 
@@ -23,14 +23,21 @@ function parseSearch(raw: string): {
   }
 }
 
-function stripSearchBlock(text: string): string {
-  return text
-    .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")
-    .replace(/<search>[\s\S]*$/, "")
-    .replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
-    .replace(/<widgets>[\s\S]*$/, "")
-    .trim()
+function parsePdfEvent(raw: string): {
+  text: string
+  pdfEvent?: PdfEventData
+} {
+  const match = raw.match(/<pdf-event>\s*([\s\S]*?)\s*<\/pdf-event>/)
+  const text = raw.replace(/<pdf-event>\s*[\s\S]*?\s*<\/pdf-event>/, "").trim()
+  if (!match) return { text }
+  try {
+    const pdfEvent = JSON.parse(match[1].trim()) as PdfEventData
+    return { text, pdfEvent }
+  } catch {
+    return { text }
+  }
 }
+
 
 export function chat(trip: Trip) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -85,13 +92,15 @@ export function chat(trip: Trip) {
 
       const uiMessages: Message[] = dbMessages.map(
         (m: { id: string; role: string; content: string; created_at: string }) => {
-          const { text } = parseSearch(m.content)
-          const widgets = widgetsByMessageId.get(m.id)
-          console.log("MESSAGE:", m.id, "role:", m.role, "widgets:", widgets?.length ?? 0)
+          // Parse widgets and pdf events from persisted messages so they
+          // render correctly when chat history is reloaded
+          const { text: searchText, intents } = parseSearch(m.content);
+          const { text, pdfEvent } = parsePdfEvent(searchText);
           return {
             id: m.id,
             text,
-            widgets,
+            intents,
+            pdfEvent,
             sender: m.role === "user" ? "user" : "bot",
             timestamp: new Date(m.created_at),
           }
@@ -123,11 +132,18 @@ export function chat(trip: Trip) {
     const chatMessages: ChatMessage[] = [
       ...messages.map((m) => {
         if (m.sender !== "bot") {
-          return { role: "user" as const, content: m.text }
+          return {
+            role: "user" as const,
+            content: m.text,
+          }
         }
+
+        // Reconstruct the full assistant message with widget JSON
+        // so Claude sees its previous responses correctly in history
         const widgetBlock = m.widgets?.length
           ? `<widgets>${JSON.stringify(m.widgets)}</widgets>`
           : ""
+
         return {
           role: "assistant" as const,
           content: m.text + (widgetBlock ? "\n" + widgetBlock : ""),
@@ -161,6 +177,8 @@ export function chat(trip: Trip) {
         if (done) break;
         botText += decoder.decode(value, { stream: true });
 
+        // Stream raw text into the bubble as it arrives —
+        // widgets are parsed only once the stream is complete
         if (!botMsgAdded) {
           setMessages((prev) => [
             ...prev,
@@ -179,7 +197,7 @@ export function chat(trip: Trip) {
       console.log("PARSED INTENTS:", intents?.length)
 
       let widgets: Widget[] | undefined
-      let displayText = text  // default to Claude's intro text
+      let displayText = text
 
       if (intents?.length) {
         const tripLocation =
@@ -203,45 +221,10 @@ export function chat(trip: Trip) {
             console.log("SEARCH RESULT:", real?.length, "widgets")
 
             if (real?.length) {
+              // Results found — use them
               widgets = real
-              // Keep Claude's intro text when results found
-
-              // Save widgets to DB — wait for stream's saveMessage to complete first
-              try {
-                await new Promise(resolve => setTimeout(resolve, 500))
-
-                const historyRes = await fetch(`/api/ai/chat?itineraryId=${trip.id}`)
-                if (historyRes.ok) {
-                  const { messages: dbMessages } = await historyRes.json()
-
-                  // Find the last assistant message — that's the one just saved
-                  const lastAssistant = [...dbMessages]
-                    .reverse()
-                    .find((m: any) => m.role === "assistant")
-
-                  console.log("LAST ASSISTANT MSG ID:", lastAssistant?.id)
-
-                  if (lastAssistant?.id) {
-                    await fetch("/api/ai/suggestions", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        itineraryId: trip.id,
-                        content: JSON.stringify(real),
-                        messageId: lastAssistant.id,
-                      }),
-                    })
-                    console.log("WIDGETS SAVED WITH MESSAGE ID:", lastAssistant.id)
-                  } else {
-                    console.warn("NO ASSISTANT MESSAGE FOUND IN DB — widgets not saved")
-                  }
-                }
-              } catch (e) {
-                console.error("FAILED TO SAVE WIDGETS:", e)
-              }
-
             } else if (fallback) {
-              // No results — replace Claude's text with fallback message
+              // No results — show Claude's fallback message instead
               displayText = fallback
               console.log("USING FALLBACK:", fallback)
             }
@@ -268,5 +251,63 @@ export function chat(trip: Trip) {
     }
   }, [input, messages, trip, isLoading]);
 
-  return { isCollapsed, toggle, messages, input, setInput, sendMessage, isLoading };
+  const handlePdfUpload = useCallback(async (file: File) => {
+    if (isLoading) return
+
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      text: `[PDF: ${file.name}]`,
+      sender: "user",
+      timestamp: new Date(),
+    }
+    const botMsgId = crypto.randomUUID()
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: botMsgId, text: "Reading your PDF…", sender: "bot", timestamp: new Date() },
+    ])
+    setIsLoading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("itineraryId", trip.id)
+
+      const res = await fetch("/api/ai/parse-pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(error ?? "Failed to parse PDF")
+      }
+
+      const pdfEvent: PdfEventData = await res.json()
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, text: "I found an event in your PDF. Here are the details:", pdfEvent }
+            : m
+        )
+      )
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Sorry, I couldn't extract event info from that PDF."
+      setMessages((prev) =>
+        prev.map((m) => (m.id === botMsgId ? { ...m, text: msg } : m))
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [trip.id, isLoading])
+
+  const addBotMessage = useCallback((text: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text, sender: "bot", timestamp: new Date() },
+    ])
+  }, [])
+
+  return { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading };
 }

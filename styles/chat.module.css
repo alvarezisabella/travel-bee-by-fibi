@@ -1,8 +1,9 @@
 .sidebar {
-  width: 380px;
-  height:80dvh;
+  width: 55dvh;
+  height: 85dvh;
+  position: sticky;
   top: 15px;
-  left: 40px;
+  left: 1dvh;
   bottom: 80px;
   display: flex;
   flex-direction: column;
@@ -26,17 +27,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  height: 48px;
+  height: 8dvh;
   flex-shrink: 0;
   border-bottom: 0.5px solid var(--color-border-tertiary, #e5e5e5);
 }
 
 .title {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
+  font-size: 20px;
+  font-weight: 800;
   overflow: hidden;
-  color: var(--color-text-primary, #111);
+  color: var(--color-text-primary, #2d3748);
+  display: flex;
+  justify-items: flex-start;
+  justify-content: center;
+  align-items: center;
 }
 
 .toggleBtn {
@@ -81,11 +85,12 @@
 
 /* Message bubbles */
 .msg {
-  max-width: 85%;
+  max-width: 95%;
   padding: 8px 10px;
+  margin-bottom: 10px;
   border-radius: 10px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 2;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -93,18 +98,21 @@
 }
 
 .user {
+  max-width: 85%;
   align-self: flex-end;
-  background: var(--color-background-info, #dbeafe);
-  color: var(--color-text-info, #1d4ed8);
+  background: var(--color-background-info, #fffde5); 
+  color: var(--color-text-info, #eac704);
+  border: 0.5px solid #fff9b9;
   border-bottom-right-radius: 3px;
+  font-weight: 700;
+  box-shadow: 0px 2px 2px #eee6a3;
 }
 
 .bot {
   align-self: flex-start;
-  background: var(--color-background-secondary, #f5f5f5);
-  color: var(--color-text-primary, #111);
+  color: var(--color-text-primary, #2d3748);
   border: 0.5px solid var(--color-border-tertiary, #e5e5e5);
-  border-bottom-left-radius: 3px;
+  box-shadow: 0px 1px 1px #b5b9c0;
 }
 
 .timestamp {
@@ -218,6 +226,31 @@
 }
 
 .sendBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.attachBtn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.5px solid var(--color-border-secondary, #ccc);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-secondary, #666);
+  transition: background 0.15s, color 0.15s;
+}
+
+.attachBtn:hover:not(:disabled) {
+  background: var(--color-background-secondary, #f5f5f5);
+  color: var(--color-text-primary, #111);
+}
+
+.attachBtn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
