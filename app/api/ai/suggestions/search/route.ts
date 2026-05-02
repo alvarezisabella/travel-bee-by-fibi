@@ -1,15 +1,39 @@
+// app/api/ai/suggestions/search/route.ts
+
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 import { Widget, EventLabel } from "@/app/itinerary/types/types"
+import {
+  searchGoogleFlights,
+  searchGoogleHotels,
+} from "@/lib/ai/serp"
 
 const TA_BASE = "https://api.content.tripadvisor.com/api/v1"
 const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
 
+// ─── DATE HELPERS ────────────────────────────────────────────────────────────
+
+function getCheckinDate(trip?: any): string {
+  if (trip?.startDate) return trip.startDate
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().split("T")[0]
+}
+
+function getCheckoutDate(trip?: any): string {
+  if (trip?.endDate) return trip.endDate
+  const d = new Date()
+  d.setDate(d.getDate() + 3)
+  return d.toISOString().split("T")[0]
+}
+
+// ─── TRIPADVISOR HELPERS ─────────────────────────────────────────────────────
+
 async function searchTripAdvisor(
   query: string,
   location: string,
-  category: "restaurants" | "attractions",
+  category: "restaurants" | "attractions" | "hotels",
   limit: number = 5
 ): Promise<{ locationId: string; name: string }[]> {
   const key = process.env.TRIPADVISOR_KEY
@@ -21,9 +45,10 @@ async function searchTripAdvisor(
   const url =
     `${TA_BASE}/location/search` +
     `?key=${key}` +
-    `&searchQuery=${encodeURIComponent(`${query} ${location}`)}` +
+    `&searchQuery=${encodeURIComponent(query)}` +
     `&category=${category}` +
-    `&language=en`
+    `&language=en` +
+    `&address=${encodeURIComponent(location)}`
 
   console.log("TA SEARCH URL:", url)
 
@@ -97,9 +122,11 @@ function parsePriceLevel(priceLevel: string | undefined): number | undefined {
   return priceLevel.replace(/[^$]/g, "").length || undefined
 }
 
-function isGoodLocation(details: any): boolean {
+// Relaxed for Food — no description required, no hours check
+function isGoodLocation(details: any, type?: EventLabel): boolean {
   const description = (details.description ?? "").trim()
-  if (description.length < 20) {
+
+  if (type !== "Food" && description.length < 20) {
     console.log("FILTERED OUT (no description):", details.name)
     return false
   }
@@ -109,32 +136,36 @@ function isGoodLocation(details: any): boolean {
     return false
   }
 
-  const periods = details.hours?.periods
-  if (periods?.length) {
-    const now = new Date()
-    const dayOfWeek = now.getDay()
-    const currentTime = now.getHours() * 100 + now.getMinutes()
+  return true
+}
 
-    const todayHours = periods.find((p: any) => p.open?.day === dayOfWeek)
-    if (todayHours) {
-      const openTime = parseInt(todayHours.open?.time ?? "0000")
-      const closeTime = parseInt(todayHours.close?.time ?? "2359")
-      const isOpen = currentTime >= openTime && currentTime <= closeTime
-      if (!isOpen) {
-        console.log("FILTERED OUT (currently closed):", details.name)
-        return false
-      }
-    }
+function isRelevantResult(details: any, query: string): boolean {
+  const queryWords = query.toLowerCase().split(" ").filter((w) => w.length > 3)
+
+  const name = details.name?.toLowerCase() ?? ""
+  const cuisine = details.cuisine?.map((c: any) => c.name.toLowerCase()).join(" ") ?? ""
+  const subcategory = details.subcategory?.map((s: any) => s.name.toLowerCase()).join(" ") ?? ""
+  const description = (details.description ?? "").toLowerCase()
+
+  const searchableText = `${name} ${cuisine} ${subcategory} ${description}`
+  const hasMatch = queryWords.some((word) => searchableText.includes(word))
+
+  if (!hasMatch) {
+    console.log("RELEVANCE FILTERED:", details.name, "— query:", query)
+    return false
   }
 
   return true
 }
 
+// ─── TRIPADVISOR RESTAURANTS + ATTRACTIONS ───────────────────────────────────
+
 async function searchTripAdvisorWidgets(
   query: string,
   location: string,
   type: EventLabel,
-  intentIndex: number
+  intentIndex: number,
+  intentQuery: string
 ): Promise<Widget[]> {
   const category = type === "Food" ? "restaurants" : "attractions"
   const locations = await searchTripAdvisor(query, location, category, 5)
@@ -152,15 +183,23 @@ async function searchTripAdvisorWidgets(
         getLocationPhoto(locationId),
       ])
 
+      console.log("TA DETAILS FOR:", name, {
+        hasDetails: !!details,
+        description: details?.description?.slice(0, 50),
+        rating: details?.rating,
+        hasPhoto: !!photoUrl,
+      })
+
       if (!details) {
-        console.log("SKIPPING (no details):", name)
+        console.log("SKIP (no details):", name)
         continue
       }
 
-      if (!isGoodLocation(details)) continue
+      if (!isGoodLocation(details, type)) continue
+      if (!isRelevantResult(details, intentQuery)) continue
 
       if (!photoUrl) {
-        console.log("FILTERED OUT (no photo):", name)
+        console.log("SKIP (no photo):", name)
         continue
       }
 
@@ -172,18 +211,17 @@ async function searchTripAdvisorWidgets(
               .filter(Boolean)
               .join(", ")
           : location,
-        description: details.description,
+        description: details.description?.trim().length > 0
+          ? details.description
+          : details.cuisine?.[0]?.localized_name ?? undefined,
         type,
         image_url: photoUrl,
         rating: details.rating ? parseFloat(details.rating) : undefined,
         price: parsePriceLevel(details.price_level),
+        url: details.web_url ?? undefined,
       })
 
-      console.log(
-        "TA WIDGET BUILT:", details.name,
-        "| rating:", details.rating,
-        "| photo:", photoUrl ? "yes" : "no"
-      )
+      console.log("TA WIDGET BUILT:", details.name, "| rating:", details.rating)
     } catch (e) {
       console.error("TA WIDGET FAILED FOR:", name, e)
     }
@@ -192,17 +230,67 @@ async function searchTripAdvisorWidgets(
   return widgets
 }
 
+// ─── TRIPADVISOR HOTELS ──────────────────────────────────────────────────────
+
+async function searchTripAdvisorHotels(
+  query: string,
+  location: string,
+  intentIndex: number
+): Promise<Widget[]> {
+  const locations = await searchTripAdvisor(query, location, "hotels", 5)
+  if (!locations.length) return []
+
+  const widgets: Widget[] = []
+
+  for (let i = 0; i < locations.length; i++) {
+    if (widgets.length >= 3) break
+
+    const { locationId, name } = locations[i]
+    try {
+      const [details, photoUrl] = await Promise.all([
+        getLocationDetails(locationId),
+        getLocationPhoto(locationId),
+      ])
+
+      if (!details) continue
+      if (!details.rating) continue
+      if (!photoUrl) continue
+
+      widgets.push({
+        id: `${locationId}-${intentIndex}-${i}`,
+        title: details.name ?? name,
+        location: details.address_obj
+          ? [details.address_obj.street1, details.address_obj.city]
+              .filter(Boolean)
+              .join(", ")
+          : location,
+        description: details.description?.trim().length > 20
+          ? details.description
+          : details.subcategory?.[0]?.localized_name ?? "Hotel",
+        type: "Reservation",
+        image_url: photoUrl,
+        rating: details.rating ? parseFloat(details.rating) : undefined,
+        price: parsePriceLevel(details.price_level),
+        url: details.web_url ?? undefined,
+      })
+
+      console.log("TA HOTEL BUILT:", details.name, "| url:", details.web_url ? "yes" : "no")
+    } catch (e) {
+      console.error("TA HOTEL FAILED FOR:", name, e)
+    }
+  }
+
+  return widgets
+}
+
+// ─── TICKETMASTER ────────────────────────────────────────────────────────────
+
 function getBestTicketmasterImage(images: any[]): string | undefined {
   if (!images.length) return undefined
-
-  // Prefer 16:9 ratio at largest width
   const sixteenNine = images
     .filter((img) => img.ratio === "16_9" && img.url)
     .sort((a, b) => (b.width ?? 0) - (a.width ?? 0))
-
   if (sixteenNine.length) return sixteenNine[0].url
-
-  // Fall back to any image with a URL
   return images.find((img) => img.url)?.url
 }
 
@@ -217,14 +305,36 @@ async function searchTicketmaster(
     return []
   }
 
-  const url =
-    `${TM_BASE}/events.json` +
-    `?apikey=${key}` +
-    `&keyword=${encodeURIComponent(query)}` +
-    `&city=${encodeURIComponent(location)}` +
-    `&size=5` +
-    `&sort=relevance,desc`
+  // Clean up query — strip filler words, expand acronyms
+  const cleanQuery = query
+    .replace(/\b(game|games|match|event|show|ticket|live)\b/gi, "")
+    .replace(/\bMLB\b/gi, "baseball")
+    .replace(/\bNBA\b/gi, "basketball")
+    .replace(/\bNFL\b/gi, "football")
+    .replace(/\bNHL\b/gi, "hockey")
+    .trim()
 
+  // Extract city and state code from location
+  const cityMatch = location.match(/^([^,]+)/)
+  const city = cityMatch?.[1]?.trim() ?? location
+  const stateMatch = location.match(/,\s*([A-Z]{2})/)
+  const stateCode = stateMatch?.[1] ?? ""
+
+  const params = new URLSearchParams({
+    apikey: key,
+    keyword: cleanQuery,
+    size: "5",
+    sort: "date,asc",
+  })
+
+  if (stateCode) {
+    params.set("stateCode", stateCode)
+    params.set("countryCode", "US")
+  } else {
+    params.set("city", city)
+  }
+
+  const url = `${TM_BASE}/events.json?${params.toString()}`
   console.log("TM SEARCH URL:", url)
 
   const res = await fetch(url)
@@ -244,8 +354,6 @@ async function searchTicketmaster(
     if (widgets.length >= 3) break
 
     const e = events[i]
-
-    // Must have a venue and a date
     const venue = e._embedded?.venues?.[0]
     const date = e.dates?.start?.localDate
     if (!venue || !date) {
@@ -253,26 +361,19 @@ async function searchTicketmaster(
       continue
     }
 
-    // Must have an image
     const image = getBestTicketmasterImage(e.images ?? [])
     if (!image) {
       console.log("FILTERED OUT (no image):", e.name)
       continue
     }
 
-    // Min ticket price if available
     const priceRange = e.priceRanges?.[0]
     const price = priceRange ? Math.round(priceRange.min) : undefined
 
-    // Build description from date + time + genre
     const startTime = e.dates?.start?.localTime
       ? e.dates.start.localTime.slice(0, 5)
       : ""
-    const description = [
-      date,
-      startTime,
-      e.classifications?.[0]?.segment?.name,
-    ]
+    const description = [date, startTime, e.classifications?.[0]?.segment?.name]
       .filter(Boolean)
       .join(" · ")
 
@@ -285,18 +386,16 @@ async function searchTicketmaster(
       image_url: image,
       rating: undefined,
       price,
-      url: e.url,
+      url: e.url ?? undefined,
     })
 
-    console.log(
-      "TM WIDGET BUILT:", e.name,
-      "| date:", date,
-      "| image:", image
-    )
+    console.log("TM WIDGET BUILT:", e.name, "| date:", date)
   }
 
   return widgets
 }
+
+// ─── ROUTE HANDLER ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   console.log("SEARCH ROUTE HIT")
@@ -312,8 +411,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   console.log("SEARCH BODY:", JSON.stringify(body, null, 2))
 
-  const { intents }: {
-    intents: { query: string; type: EventLabel; location: string }[]
+  const { intents, trip }: {
+    intents: { query: string; type: EventLabel; location: string; departureDate?: string }[]
+    trip?: any
   } = body
 
   if (!intents?.length) {
@@ -329,14 +429,97 @@ export async function POST(req: NextRequest) {
     try {
       let results: Widget[] = []
 
-      if (intent.type === "Reservation") {
-        results = await searchTicketmaster(intent.query, intent.location, i)
+      if (intent.type === "Transit") {
+        const isFlight = /flight|fly|airline|airport|depart|arrive/i.test(intent.query)
+        const isCar = /car|rental|drive|vehicle|rent/i.test(intent.query)
+
+      if (isFlight) {
+        // Extract IATA codes from query first — Claude outputs these reliably
+        // e.g. "flight SNA to JFK" → origin: "SNA", dest: "JFK"
+        const queryIataMatch = intent.query.match(/\b([A-Z]{3})\b.*?\b([A-Z]{3})\b/)
+
+        let originLoc: string
+        let destLoc: string
+
+        if (queryIataMatch) {
+          // Use IATA codes directly from the query — most reliable
+          originLoc = queryIataMatch[1]
+          destLoc = queryIataMatch[2]
+          console.log("IATA FROM QUERY:", originLoc, "→", destLoc)
+        } else {
+          // Fall back to splitting location string
+          const locationParts = intent.location.split(/\s+to\s+/i)
+          originLoc = locationParts[0]?.trim() ?? intent.location
+          destLoc = locationParts[1]?.trim() ?? intent.location
+          console.log("IATA FROM LOCATION:", originLoc, "→", destLoc)
+        }
+
+        const depDate = intent.departureDate ?? getCheckinDate(trip)
+        const adults = trip?.travelers?.length ?? 1
+
+        results = await searchGoogleFlights(originLoc, destLoc, depDate, adults, i)
+        console.log("FLIGHT RESULTS:", results.length)
+      }
+
+        // Car rental fallback — Google Maps deep link for now
+        // Replace with Booking.com cars if you have that key
+        if (!results.length) {
+          results = [{
+            id: `transit-${i}`,
+            title: intent.query,
+            location: intent.location,
+            description: isCar
+              ? `Find car rentals in ${intent.location}`
+              : `Get directions to ${intent.location}`,
+            type: "Transit",
+            image_url: undefined,
+            rating: undefined,
+            price: undefined,
+            url: isCar
+              ? `https://www.google.com/travel/explore?dest=${encodeURIComponent(intent.location)}&traveltype=car`
+              : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(intent.location)}&travelmode=transit`,
+          }]
+        }
+
+      } else if (intent.type === "Reservation") {
+        const isHotel = /hotel|stay|accommodation|hostel|resort|inn|lodge/i.test(intent.query)
+        const isFood = /restaurant|food|eat|dining|burger|cafe|bar|coffee|brunch|lunch|dinner|breakfast/i.test(intent.query)
+
+        if (isHotel) {
+          // 1. Try Google Hotels first
+          const checkIn = getCheckinDate(trip)
+          const checkOut = getCheckoutDate(trip)
+          const adults = trip?.travelers?.length ?? 2
+          results = await searchGoogleHotels(intent.location, checkIn, checkOut, adults, i)
+
+          // 2. Fall back to TripAdvisor hotels
+          if (!results.length) {
+            results = await searchTripAdvisorHotels(intent.query, intent.location, i)
+          }
+        } else {
+          // 1. Try Ticketmaster for concerts/events/sports
+          results = await searchTicketmaster(intent.query, intent.location, i)
+
+          // 2. Fall back to TripAdvisor food/activity if Claude misclassified
+          if (!results.length) {
+            results = await searchTripAdvisorWidgets(
+              intent.query,
+              intent.location,
+              isFood ? "Food" : "Activity",
+              i,
+              intent.query
+            )
+          }
+        }
+
       } else {
+        // Food and Activity — TripAdvisor
         results = await searchTripAdvisorWidgets(
           intent.query,
           intent.location,
           intent.type,
-          i
+          i,
+          intent.query
         )
       }
 
@@ -352,7 +535,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // If no widgets found at all, ask Claude for a fallback message
+  // No widgets at all — ask Claude for a fallback message
   if (!widgets.length) {
     console.log("NO WIDGETS FOUND — generating fallback message")
 
@@ -387,7 +570,6 @@ export async function POST(req: NextRequest) {
         const fallback =
           fallbackData.content?.[0]?.text ??
           "No results were found for your search. Try adjusting your dates or searching for a different type of event."
-
         console.log("FALLBACK MESSAGE:", fallback)
         return NextResponse.json({ widgets: [], fallback })
       }
@@ -395,11 +577,9 @@ export async function POST(req: NextRequest) {
       console.error("FALLBACK GENERATION FAILED:", e)
     }
 
-    // Hard fallback if Claude call also fails
     return NextResponse.json({
       widgets: [],
-      fallback:
-        "No results were found for your search. Try searching for a different event type or a nearby major city.",
+      fallback: "No results were found for your search. Try searching for a different event type or a nearby major city.",
     })
   }
 

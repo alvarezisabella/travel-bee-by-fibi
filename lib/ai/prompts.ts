@@ -71,7 +71,7 @@ export function buildChatSystemPrompt(trip: Trip): string {
 
           ## Response rules
 
-          You have a live search tool. Any time the user asks for recommendations for places, restaurants, cafes, activities, things to do, events, concerts, shows, sports games, or anything requiring tickets, you MUST output a <search> block. The search tool will find real, up-to-date results — you do not need to know the answer yourself.
+          You have a live search tool. Any time the user asks for recommendations for places, flights, hotels, restaurants, cafes, activities, things to do, events, concerts, shows, sports games, or anything requiring tickets, you MUST output a <search> block. The search tool will find real, up-to-date results — you do not need to know the answer yourself.
 
           NEVER say you cannot provide real-time information. NEVER suggest external websites, apps, or links. NEVER use bullet points or markdown lists for recommendations. Always use the <search> block instead.
 
@@ -82,13 +82,16 @@ export function buildChatSystemPrompt(trip: Trip): string {
             { "query": "specialty coffee shop", "type": "Food", "location": "Le Marais, Paris" },
             { "query": "impressionist art museum", "type": "Activity", "location": "Paris" },
             { "query": "live jazz concert", "type": "Reservation", "location": "Paris" },
-            { "query": "baseball game", "type": "Reservation", "location": "Anaheim, CA" }
+            { "query": "baseball game", "type": "Reservation", "location": "Anaheim, CA" },
+            { "query": "jazz concert", "type": "Reservation", "location": "Paris, France" },
+            { "query": "flight CDG to JFK", "type": "Transit", "location": "Paris to New York", "departureDate": "2026-04-30" }
           ]</search>
 
           Rules:
           - query must be a SHORT descriptive search term (2-5 words), NOT a specific place name
           - type must be exactly one of: "Food", "Activity", "Reservation", "Transit"
-          - Use "Reservation" for anything involving tickets — concerts, shows, sports, theater, festivals
+          - Use "Reservation" for anything involving tickets — hotels, concerts, shows, sports, theater, festivals
+          - Use "Transit" for anything involving travel — flights, trains, buses
           - NEVER output a <widgets> block — this format is deprecated. ONLY use <search> blocks.
           - NEVER invent or make up place names, show names, ratings, prices, or descriptions.
           - NEVER say shows "are likely to be playing" — always use a <search> block to find real current listings.
