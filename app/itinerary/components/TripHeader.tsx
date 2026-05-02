@@ -375,13 +375,13 @@ export default function TripHeader({ trip }: Props) {
             <div className="flex gap-5 mt-5 text-gray-600">
               <button
                 onClick={() => { setList(true); setMap(false); setCalendar(false) }}
-                className="hover:text-black transition"
+                className="cursor-pointer hover:text-black transition"
               >
                 <List size={20} />
               </button>
               <button
                 onClick={() => { setCalendar(true); setList(false); setMap(false) }}
-                className="hover:text-black transition"
+                className="cursor-pointer hover:text-black transition"
               >
                 <CalendarDays size={20} />
               </button>
@@ -396,7 +396,7 @@ export default function TripHeader({ trip }: Props) {
                   setBookmarkPanel(true)
                   fetchBookmarks()
                 }}
-                className="hover:text-black transition relative"
+                className="cursor-pointer hover:text-black transition relative"
               >
                 <Bookmark size={20} />
               </button>
