@@ -199,7 +199,7 @@ export function chat(trip: Trip) {
           const searchRes = await fetch("/api/ai/suggestions/search", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ intents }),
+            body: JSON.stringify({ intents, trip }),
           })
           console.log("SEARCH STATUS:", searchRes.status)
 
