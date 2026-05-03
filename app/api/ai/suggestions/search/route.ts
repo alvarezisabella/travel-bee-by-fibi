@@ -10,7 +10,10 @@ import {
 const TA_BASE = "https://api.content.tripadvisor.com/api/v1"
 const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
 
-// ─── DATE HELPERS ────────────────────────────────────────────────────────────
+function extractCity(location: string): string {
+  const parts = location.split(",").map(s => s.trim()).filter(Boolean)
+  return parts[parts.length - 1] ?? location
+}
 
 function getCheckinDate(trip?: any): string {
   if (trip?.startDate) return trip.startDate
@@ -26,12 +29,10 @@ function getCheckoutDate(trip?: any): string {
   return d.toISOString().split("T")[0]
 }
 
-// ─── TRIPADVISOR HELPERS ─────────────────────────────────────────────────────
-
 async function searchTripAdvisor(
   query: string,
   location: string,
-  category: "restaurants" | "attractions" | "hotels",
+  category: "restaurants" | "attractions",
   limit: number = 5
 ): Promise<{ locationId: string; name: string }[]> {
   const key = process.env.TRIPADVISOR_KEY
@@ -120,7 +121,6 @@ function parsePriceLevel(priceLevel: string | undefined): number | undefined {
   return priceLevel.replace(/[^$]/g, "").length || undefined
 }
 
-// Relaxed for Food — no description required, no hours check
 function isGoodLocation(details: any, type?: EventLabel): boolean {
   const description = (details.description ?? "").trim()
 
@@ -155,8 +155,6 @@ function isRelevantResult(details: any, query: string): boolean {
 
   return true
 }
-
-// ─── TRIPADVISOR RESTAURANTS + ATTRACTIONS ───────────────────────────────────
 
 async function searchTripAdvisorWidgets(
   query: string,
@@ -227,61 +225,6 @@ async function searchTripAdvisorWidgets(
 
   return widgets
 }
-
-// ─── TRIPADVISOR HOTELS ──────────────────────────────────────────────────────
-
-async function searchTripAdvisorHotels(
-  query: string,
-  location: string,
-  intentIndex: number
-): Promise<Widget[]> {
-  const locations = await searchTripAdvisor(query, location, "hotels", 5)
-  if (!locations.length) return []
-
-  const widgets: Widget[] = []
-
-  for (let i = 0; i < locations.length; i++) {
-    if (widgets.length >= 3) break
-
-    const { locationId, name } = locations[i]
-    try {
-      const [details, photoUrl] = await Promise.all([
-        getLocationDetails(locationId),
-        getLocationPhoto(locationId),
-      ])
-
-      if (!details) continue
-      if (!details.rating) continue
-      if (!photoUrl) continue
-
-      widgets.push({
-        id: `${locationId}-${intentIndex}-${i}`,
-        title: details.name ?? name,
-        location: details.address_obj
-          ? [details.address_obj.street1, details.address_obj.city]
-              .filter(Boolean)
-              .join(", ")
-          : location,
-        description: details.description?.trim().length > 20
-          ? details.description
-          : details.subcategory?.[0]?.localized_name ?? "Hotel",
-        type: "Reservation",
-        image_url: photoUrl,
-        rating: details.rating ? parseFloat(details.rating) : undefined,
-        price: parsePriceLevel(details.price_level),
-        url: details.web_url ?? undefined,
-      })
-
-      console.log("TA HOTEL BUILT:", details.name, "| url:", details.web_url ? "yes" : "no")
-    } catch (e) {
-      console.error("TA HOTEL FAILED FOR:", name, e)
-    }
-  }
-
-  return widgets
-}
-
-// ─── TICKETMASTER ────────────────────────────────────────────────────────────
 
 function getBestTicketmasterImage(images: any[]): string | undefined {
   if (!images.length) return undefined
@@ -393,8 +336,6 @@ async function searchTicketmaster(
   return widgets
 }
 
-// ─── ROUTE HANDLER ───────────────────────────────────────────────────────────
-
 export async function POST(req: NextRequest) {
   console.log("SEARCH ROUTE HIT")
 
@@ -481,40 +422,22 @@ export async function POST(req: NextRequest) {
 
       } else if (intent.type === "Reservation") {
         const isHotel = /hotel|stay|accommodation|hostel|resort|inn|lodge/i.test(intent.query)
-        const isFood = /restaurant|food|eat|dining|burger|cafe|bar|coffee|brunch|lunch|dinner|breakfast/i.test(intent.query)
+        const city = extractCity(intent.location)
 
         if (isHotel) {
-          // 1. Try Google Hotels first
           const checkIn = getCheckinDate(trip)
           const checkOut = getCheckoutDate(trip)
           const adults = trip?.travelers?.length ?? 2
-          results = await searchGoogleHotels(intent.location, checkIn, checkOut, adults, i)
-
-          // 2. Fall back to TripAdvisor hotels
-          if (!results.length) {
-            results = await searchTripAdvisorHotels(intent.query, intent.location, i)
-          }
+          results = await searchGoogleHotels(city, checkIn, checkOut, adults, i)
         } else {
-          // 1. Try Ticketmaster for concerts/events/sports
-          results = await searchTicketmaster(intent.query, intent.location, i)
-
-          // 2. Fall back to TripAdvisor food/activity if Claude misclassified
-          if (!results.length) {
-            results = await searchTripAdvisorWidgets(
-              intent.query,
-              intent.location,
-              isFood ? "Food" : "Activity",
-              i,
-              intent.query
-            )
-          }
+          // Ticketmaster only for live events
+          results = await searchTicketmaster(intent.query, city, i)
         }
-
       } else {
         // Food and Activity — TripAdvisor
         results = await searchTripAdvisorWidgets(
           intent.query,
-          intent.location,
+          extractCity(intent.location),
           intent.type,
           i,
           intent.query

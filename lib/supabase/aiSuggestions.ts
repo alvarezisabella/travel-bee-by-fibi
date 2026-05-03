@@ -6,7 +6,7 @@ export async function saveSuggestion(supabase: SupabaseClient, itineraryId: stri
   return supabase
     .from('ai_suggestions')
     .insert({itinerary_id: itineraryId, saved_by: savedBy, content, message_id: messageId ?? null,})
-    .select('id')
+    .select('*')
     .single()
 }
 
@@ -15,7 +15,7 @@ export async function saveSuggestion(supabase: SupabaseClient, itineraryId: stri
 export async function getSuggestions(supabase: SupabaseClient, itineraryId: string) {
   return supabase
     .from('ai_suggestions')
-    .select('id, content, saved_by, created_at')
+    .select('id, content, saved_by, created_at, message_id')
     .eq('itinerary_id', itineraryId)
     .order('created_at', { ascending: false })
 }
