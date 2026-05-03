@@ -12,40 +12,33 @@ export interface ItineraryGenerationParams {
 
 // Builds the "system prompt" — background context given to Claude before the
 // conversation starts. Claude reads this to understand its role and the trip.
-export function buildChatSystemPrompt(trip: Trip): string {
-  // Number of travelers in the trip
-  const travelerCount = trip.travelers.length
+export function buildChatSystemPrompt(trip?: Trip): string {
+  const travelerCount = trip?.travelers?.length ?? 0
 
-  // Formats the date range, handling cases where dates may not be set
-  const dateRange =
-    trip.startDate && trip.endDate
-      ? `${trip.startDate} to ${trip.endDate}` // both dates set
+  const dateRange = trip
+    ? trip.startDate && trip.endDate
+      ? `${trip.startDate} to ${trip.endDate}`
       : trip.startDate
-      ? `starting ${trip.startDate}`           // only start date set
-      : "dates not set"                        // no dates
+      ? `starting ${trip.startDate}`
+      : "dates not set"
+    : "dates not set"
 
-  // List of days that have events
-  const daysWithEvents = (trip.days ?? []).filter(d => d.events && d.events.length > 0)
+  const daysWithEvents = (trip?.days ?? []).filter(d => d.events && d.events.length > 0)
 
-  // If there are no events, skips itinerary section
-  // Otherwise, formats each day's events with their time, type, title, status, and optional details like location and description
   const itinerarySection = daysWithEvents.length === 0 ? "" : `
     Scheduled itinerary:
     ${daysWithEvents.map((day, idx) => {
-        // Format the day's date as a readable label
         const dateLabel = day.date
           ? new Date(day.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
           : `Day ${idx + 1}`
 
-        // Format each event with its time, type, title, and status on the first line,
-        // then optional details (location, duration, description) indented below
         const eventsText = day.events.map(event => {
           const lines = [`  - ${event.startTime} | ${event.title} | ${event.type} | (${event.status})`]
-          if (event.location)    
+          if (event.location)
             lines.push(`      Location: ${event.location}`)
-          if (event.duration)    
+          if (event.duration)
             lines.push(`      Duration: ${event.duration} min`)
-          if (event.description) 
+          if (event.description)
             lines.push(`      Description: ${event.description}`)
           return lines.join("\n")
         }).join("\n")
@@ -53,14 +46,19 @@ export function buildChatSystemPrompt(trip: Trip): string {
         return `Day ${idx + 1} - ${dateLabel}:\n${eventsText}`
       }).join("\n\n")}`
 
-  // Prompts Claude with its role and the trip details so it can provide relevant, personalized responses.
-  return `You are a helpful travel assistant for the trip "${trip.title}" to ${trip.location || "an unspecified destination"}.
-          You have access to a live search tool that finds real restaurants, activities, and ticketed events including concerts, sports games, and shows. When the user asks for recommendations, always use this tool by outputting a <search> block — never suggest external websites or say you cannot find real-time information.
+  const tripIntro = trip
+    ? `You are a helpful travel assistant for the trip "${trip.title}" to ${trip.location || "an unspecified destination"}.`
+    : `You are a helpful travel assistant.`
 
+  const tripDetails = trip ? `
           Trip details:
           - Destination: ${trip.location || "not specified"}
           - Dates: ${dateRange}
-          - Travelers: ${travelerCount} person${travelerCount !== 1 ? "s" : ""}${itinerarySection}
+          - Travelers: ${travelerCount} person${travelerCount !== 1 ? "s" : ""}${itinerarySection}` : ""
+
+  return `${tripIntro}
+          You have access to a live search tool that finds real restaurants, activities, and ticketed events including concerts, sports games, and shows. When the user asks for recommendations, always use this tool by outputting a <search> block — never suggest external websites or say you cannot find real-time information.
+${tripDetails}
 
           Help the travelers plan and enjoy their trip. Answer questions about the destination, suggest activities, restaurants, and accommodations, recommend what to pack, and provide any other travel advice.
           Keep responses concise and practical.
@@ -69,7 +67,7 @@ export function buildChatSystemPrompt(trip: Trip): string {
 
           ## Response rules
 
-          You have a live search tool. Any time the user asks for recommendations for places, restaurants, cafes, activities, things to do, events, concerts, shows, sports games, or anything requiring tickets, you MUST output a <search> block. The search tool will find real, up-to-date results — you do not need to know the answer yourself.
+          You have a live search tool. Any time the user asks for recommendations for places, flights, hotels, restaurants, cafes, activities, things to do, events, concerts, shows, sports games, or anything requiring tickets, you MUST output a <search> block. The search tool will find real, up-to-date results — you do not need to know the answer yourself.
 
           NEVER say you cannot provide real-time information. NEVER suggest external websites, apps, or links. NEVER use bullet points or markdown lists for recommendations. Always use the <search> block instead.
 
@@ -80,13 +78,16 @@ export function buildChatSystemPrompt(trip: Trip): string {
             { "query": "specialty coffee shop", "type": "Food", "location": "Le Marais, Paris" },
             { "query": "impressionist art museum", "type": "Activity", "location": "Paris" },
             { "query": "live jazz concert", "type": "Reservation", "location": "Paris" },
-            { "query": "baseball game", "type": "Reservation", "location": "Anaheim, CA" }
+            { "query": "baseball game", "type": "Reservation", "location": "Anaheim, CA" },
+            { "query": "jazz concert", "type": "Reservation", "location": "Paris, France" },
+            { "query": "flight CDG to JFK", "type": "Transit", "location": "Paris to New York", "departureDate": "2026-04-30" }
           ]</search>
 
           Rules:
           - query must be a SHORT descriptive search term (2-5 words), NOT a specific place name
           - type must be exactly one of: "Food", "Activity", "Reservation", "Transit"
-          - Use "Reservation" for anything involving tickets — concerts, shows, sports, theater, festivals
+          - Use "Reservation" for anything involving tickets — hotels, concerts, shows, sports, theater, festivals
+          - Use "Transit" for anything involving travel — flights, trains, buses
           - NEVER output a <widgets> block — this format is deprecated. ONLY use <search> blocks.
           - NEVER invent or make up place names, show names, ratings, prices, or descriptions.
           - NEVER say shows "are likely to be playing" — always use a <search> block to find real current listings.

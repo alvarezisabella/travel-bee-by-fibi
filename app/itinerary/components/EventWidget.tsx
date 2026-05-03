@@ -123,15 +123,17 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
                 {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
               </span>
             )}
-            {/* Ticket link inline on card — only for Reservation type */}
-            {widget.url && widget.type === "Reservation" && (
+          </div>
+          <div className={w.link} onClick={handleTicketLink}>
+          {/* Ticket link inline on card — only for Reservation type */}
+            {widget.url && (widget.type === "Reservation" || widget.type === "Transit") && (
               <button
                 onClick={handleTicketLink}
                 className={w.ticketLink}
-                aria-label="Buy tickets on Ticketmaster"
+                aria-label="Buy tickets"
               >
                 <ExternalLink size={11} />
-                <span>Tickets</span>
+                <span>{widget.type === "Transit" ? "Book flight" : "Tickets"}</span>
               </button>
             )}
           </div>
@@ -189,16 +191,18 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
             </div>
 
             {/* Ticket link in modal — full button for Reservation type */}
-            {widget.url && widget.type === "Reservation" && (
-              <button
-                onClick={handleTicketLink}
-                className={styles.ticketBtn}
-                aria-label="Buy tickets on Ticketmaster"
-              >
-                <ExternalLink size={14} />
-                <span>Buy Tickets</span>
-              </button>
-            )}
+              {widget.url && (widget.type === "Reservation" || widget.type === "Transit") && (
+                <button
+                  onClick={handleTicketLink}
+                  className={styles.ticketBtn}
+                  aria-label="Buy tickets"
+                >
+                  <ExternalLink size={14} />
+                  <span>
+                    {widget.type === "Transit" ? "Book on Google Flights" : "Buy Tickets"}
+                  </span>
+                </button>
+              )}
 
             <div className={styles.dayPicker}>
               <p className={styles.dayPickerLabel}>Add to day</p>

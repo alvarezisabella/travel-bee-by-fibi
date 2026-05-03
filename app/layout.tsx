@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getItinerariesByUser } from "@/lib/supabase/itinerary";
 import NavBar from "@/components/ui/NavBar";
+import Footer from "@/components/ui/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default async function RootLayout({
         <div className="pt-20 bg-[#F5F5F5]">
           {children}
         </div>
+        <Footer/>
       </body>
     </html>
   );
