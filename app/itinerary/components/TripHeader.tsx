@@ -2,7 +2,7 @@
 
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
-  X, Copy, Check, Loader2, UserPlus
+  X, Copy, Check, Loader2, UserPlus, MoveLeft
 } from "lucide-react"
 import { Trip, Widget } from "../types/types"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -14,6 +14,7 @@ import { BookmarkCard } from "./BookmarkCard"
 import TripList from "./TripCard"
 import dynamic from "next/dynamic"
 import CalendarGrid from "./CalendarGrid"
+import Link from "next/link"
 const CaliforniaMap = dynamic(() => import("@/app/map/map_view"), { ssr: false })
 
 interface Props {
@@ -21,6 +22,14 @@ interface Props {
 }
 
 type InviteTab = "link" | "email" | "travelers"
+
+export function BackButton({message, route}:{message:string, route:string}) {
+  return(
+    <Link href={route}>
+    <div className="bg-gray-900/30 hover:bg-gray-600/30 hover:cursor-pointer text-white flex px-2 py-1 rounded-md items-align ">
+      <MoveLeft size={20}/><span className="ps-0.5">{message}</span></div></Link>
+  )
+}
 
 export default function TripHeader({ trip }: Props) {
   const [list, setList] = useState(true)
@@ -82,16 +91,7 @@ export default function TripHeader({ trip }: Props) {
     setSavedIdeas(prev => prev.filter(i => i.id !== ideaId))
   }
 
-  const saveItinerary = async (fields: {
-    title?: string
-    location?: string
-    start_date?: string
-    end_date?: string
-    cover_photo_url?: string | null
-    confirm_date_shift?: boolean
-  }) => {
-    setDateError(null)
-
+  const saveCoorinates = async (location:string) => {
     let geo = null  // get coordinates of location
     if(location.trim()) {
       let city = location.trim()
@@ -107,7 +107,25 @@ export default function TripHeader({ trip }: Props) {
     const res = await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: trip.id, ...fields, lat:geo?.lat, lng:geo?.lng }),
+      body: JSON.stringify({ id: trip.id , lat:geo.lat, lng:geo.lng}),
+    })
+    if(!res.ok) console.log(await res.json())
+  }
+
+  const saveItinerary = async (fields: {
+    title?: string
+    location?: string
+    start_date?: string
+    end_date?: string
+    cover_photo_url?: string | null
+    confirm_date_shift?: boolean
+  }) => {
+    setDateError(null)
+
+    const res = await fetch('/api/auth/itinerary', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: trip.id , ...fields}),
     })
     if (!res.ok) {
       const data = await res.json()
@@ -266,21 +284,25 @@ export default function TripHeader({ trip }: Props) {
         <div className="relative w-full h-[280px]">
           {coverImage ? (
             <>
-              <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover rounded-t-2xl" />
+              <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover rounded-t-2xl"/><div className="absolute top-2.5 ms-2 overflow-hidden "><BackButton message="Profile" route="/profile"/></div>
               <label className={`absolute bottom-3 right-3 cursor-pointer bg-white bg-opacity-80 text-gray-700 text-xs px-3 py-1.5 rounded-full shadow hover:bg-opacity-100 transition-all flex items-center gap-1.5 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
                 {uploading ? <><Loader2 size={12} className="animate-spin" /> Uploading...</> : "Change photo"}
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
               </label>
             </>
           ) : (
+            <>
+            <div className="absolute top-2.5 ms-2 "><BackButton message="Profile" route="/profile"/></div>
             <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors rounded-t-2xl ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
               {uploading ? (
                 <><Loader2 size={24} className="animate-spin text-gray-400" /><span>Uploading...</span></>
               ) : (
-                <><div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl">+</div><span>Upload cover photo</span></>
+                <><div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl"> 
+                +</div><span>Upload cover photo</span>
+                </>
               )}
               <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
-            </label>
+            </label></>
           )}
           {uploadError && (
             <div className="absolute bottom-3 left-3 bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-full">
@@ -323,7 +345,7 @@ export default function TripHeader({ trip }: Props) {
                   <LocationSearch
                     value={location}
                     onChange={(val) => setLocation(val)}
-                    onClose={(val) => { setEditingLocation(false); saveItinerary({ location: val }) }}
+                    onClose={(val) => { setEditingLocation(false); saveCoorinates(val) }}
                   />
                 ) : (
                   <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
