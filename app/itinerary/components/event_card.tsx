@@ -5,7 +5,6 @@ import EditEvent from "./edit_event"
 import { Event, EventLabel, EventStatus, cardColor, STATUS_MAP, LABEL_MAP} from "../types/types";
 import { Traveler } from "../types/types";
 import { useEventLock } from "@/lib/hooks/event_lock";
-import { isNull } from "util";
 
 
 interface EventCardProp {
@@ -51,7 +50,6 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
     setEditing(false)
   }
   const isLockedByOther = lock.lockedBy && !lock.isLockedByMe;
-
   return(
     <div className="event-card">
     
@@ -59,11 +57,10 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
     {isLockedByOther && (
         <div className="mb-2 flex items-center gap-2 text-sm text-amber-600">
           <PencilOff />
-            <span>This is being edited</span>
+            <span><span className="font-semibold">{lock.lockName} </span>is editing this</span>
         </div>
     )}
     {lock.isLockedByMe && isEditing && (
-        
         <div className="mb-2 text-sm text-green-600"> 
           <SquarePen />
           <span>You are editing </span></div>
