@@ -103,7 +103,16 @@ export function chat(trip: Trip) {
         }
       )
 
-      setMessages(uiMessages)
+      if (uiMessages.length === 0) {
+        setMessages([{
+          id: "welcome",
+          text: "Hi! I'm Agent Atlas, your AI travel assistant. Ask me anything about your trip!",
+          sender: "bot",
+          timestamp: new Date(),
+        }]);
+      } else {
+        setMessages(uiMessages);
+      }
     }
     loadHistory()
   }, [trip.id]);

@@ -654,7 +654,7 @@ export default function TripHeader({ trip }: Props) {
       </div>
 
       {list && <TripList trip={trip} />}
-      {map && <CaliforniaMap events={trip.days.flatMap(day => day.events)} />}
+      {map && <CaliforniaMap days={trip.days} />}
       {calendar && (
         <CalendarGrid
           days={trip.days.filter(d => d.date).map(d => ({ id: d.id, date: d.date!, events: d.events }))}
