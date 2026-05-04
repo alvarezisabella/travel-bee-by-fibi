@@ -4,7 +4,8 @@ export interface Traveler {
   id: string
   name: string
   role: string
-  avatar?: string
+  avatar?: string | null
+  avatar_url?: string | null
 }
 
 export interface Trip {

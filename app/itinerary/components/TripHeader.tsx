@@ -557,9 +557,17 @@ export default function TripHeader({ trip }: Props) {
                   <div className="flex flex-col gap-2">
                     {travelers.map((t) => (
                       <div key={t.id} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">
-                          {t.name.charAt(0)}
-                        </div>
+                        {t.avatar_url ? (
+                          <img
+                            src={t.avatar_url}
+                            alt={t.name}
+                            className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">
+                            {t.name.charAt(0)}
+                          </div>
+                        )}
                         <span className="flex-1 text-sm text-gray-800">
                           {t.name}
                           {t.role && <span className="ml-2 text-xs text-gray-400 capitalize">{t.role}</span>}
