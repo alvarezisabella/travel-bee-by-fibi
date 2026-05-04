@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
-import { Trash2, Loader2 } from "lucide-react"
+import { Trash2, Loader2, ChevronRight } from "lucide-react"
 
 interface Recommendation {
   id: string
@@ -14,6 +14,18 @@ interface Recommendation {
   end_date: string | null
   cover_photo_url: string | null
   cover_photo_position: number | null
+  updated_at: string | null
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  })
+}
+
+function days(start?: string | null, end?: string | null) {
+  if (!start || !end) return null
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000) + 1
 }
 
 export function ShowGeneratedItinerary() {
@@ -30,10 +42,10 @@ export function ShowGeneratedItinerary() {
 
       const { data } = await supabase
         .from("itineraries")
-        .select("id, title, location, start_date, end_date, cover_photo_url, cover_photo_position")
+        .select("id, title, location, start_date, end_date, cover_photo_url, cover_photo_position, updated_at")
         .eq("created_by", user.id)
         .eq("is_recommendation", true)
-        .order("created_at", { ascending: false })
+        .order("updated_at", { ascending: false })
 
       setRecs(data ?? [])
       setLoading(false)
@@ -57,11 +69,9 @@ export function ShowGeneratedItinerary() {
     }
   }
 
-  const days = (start?: string | null, end?: string | null) => {
-    if (!start || !end) return null
-    return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000) + 1
-  }
-
+  // Show only 2 most recent, third slot is "See all"
+  const displayed = recs.slice(0, 2)
+  const hasMore   = recs.length > 2
   const recToDelete = recs.find(r => r.id === confirmDelete)
 
   return (
@@ -86,12 +96,10 @@ export function ShowGeneratedItinerary() {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-3">
-          {recs.map((trip) => {
+          {displayed.map((trip) => {
             const d = days(trip.start_date, trip.end_date)
             return (
               <div key={trip.id} className="relative group rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
-
-                {/* Trash button — same pattern as TripCard */}
                 <button
                   onClick={(e) => { e.preventDefault(); setConfirmDelete(trip.id) }}
                   className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 hover:bg-red-50 border border-gray-200 hover:border-red-300 flex items-center justify-center text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
@@ -100,8 +108,7 @@ export function ShowGeneratedItinerary() {
                 </button>
 
                 <Link href={`/itinerary/${trip.id}`} className="block">
-                  {/* Cover image */}
-                  <div className="w-full h-24 bg-gray-200 overflow-hidden relative">
+                  <div className="w-full h-24 bg-gray-200 overflow-hidden">
                     {trip.cover_photo_url ? (
                       <img
                         src={trip.cover_photo_url}
@@ -115,8 +122,6 @@ export function ShowGeneratedItinerary() {
                       </div>
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="p-3 flex flex-col gap-1">
                     <p className="text-sm font-semibold text-gray-700 truncate">
                       {trip.title ?? "Untitled Trip"}
@@ -126,7 +131,7 @@ export function ShowGeneratedItinerary() {
                     </p>
                     <p className="text-xs text-gray-400">
                       {trip.start_date && trip.end_date
-                        ? `${trip.start_date} – ${trip.end_date}`
+                        ? `${formatDate(trip.start_date)} – ${formatDate(trip.end_date)}`
                         : "No dates set"}
                     </p>
                     {d && (
@@ -137,13 +142,27 @@ export function ShowGeneratedItinerary() {
               </div>
             )
           })}
+
+          {/* See all — third slot, matches TripHistory pattern */}
+          {hasMore && (
+            <Link
+              href="/profile/recommendations"
+              className="rounded-xl border border-dashed border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all flex flex-col items-center justify-center gap-2 p-4 text-center min-h-[160px]"
+            >
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <ChevronRight size={20} className="text-gray-400" />
+              </div>
+              <p className="text-sm font-semibold text-gray-600">See all trips</p>
+              <p className="text-xs text-gray-400">{recs.length} total</p>
+            </Link>
+          )}
         </div>
       )}
 
-      {/* Delete confirmation modal — same as TripHistory */}
+      {/* Delete confirmation modal */}
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40"
           onClick={(e) => { if (e.target === e.currentTarget) setConfirmDelete(null) }}
         >
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
