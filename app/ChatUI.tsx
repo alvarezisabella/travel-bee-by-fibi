@@ -20,38 +20,59 @@ export default function ChatUI({
     { role: "agent", text: "Hi! I'm Agent Atlas, your AI travel assistant. Ask me anything about your next trip! ✈️" },
   ]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  //const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
+    console.log(" Sending message:", input);
+
     const userMsg: Message = { role: "user", text: input };
 
+    //create updated message list first
+    const updatedMessage = [...messages, userMsg];
+
     // ADD USER MESSAGE
-    setMessages((prev) => [...prev, userMsg]);
+    //setMessages((prev) => [...prev, userMsg]);
+    setMessages(updatedMessage);
     setInput("");
     setLoading(true);
 
     try {
+      //convert UI messages -> API Format
+      const apiMessages = updatedMessage.map((m) => ({
+      role: m.role === "agent" ? "assistant" : "user",
+      content: m.text,}));
+
       // call API route 
-    const res = await fetch("/api/ai/chat", {
+    const res = await fetch("/api/chat", {
         method: "POST",
-        //headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({ 
-            message: input 
+            message: apiMessages,
+            tripContext: {},
+            itineraryId: "demo-id"
         }),
     });
 
+    console.log("response status:", res.status);
+
     const data = await res.json();
+
+    console.log("data:", data);
     const reply = data.reply;
 
       // ADD AI RESPONSE
       setMessages((prev) => [
         ...prev,
-        { role: "agent", text: reply },
+        { role: "agent", text: reply || "No reply returned." },
       ]);
-    } catch {
+    } catch (err) {
+      console.error(' Fetch error:', err);
+
       setMessages((prev) => [
         ...prev,
         { role: "agent", text: "Error getting response." },
@@ -72,7 +93,7 @@ export default function ChatUI({
       {/* HEADER (UNCHANGED DESIGN) */}
       <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-400">
         <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-          🤖
+          🐝
         </div>
         <div>
           <p className="font-semibold text-sm">Agent Atlas</p>
@@ -93,7 +114,7 @@ export default function ChatUI({
           >
             {msg.role === "agent" && (
               <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-                🤖
+                🐝
               </div>
             )}
 
@@ -119,7 +140,7 @@ export default function ChatUI({
         {loading && (
           <div className="flex gap-2 items-center">
             <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-              🤖
+              🐝
             </div>
             <div className="bg-gray-100 px-4 py-2 rounded-2xl text-sm">
               Typing...
