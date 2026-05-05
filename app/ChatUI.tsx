@@ -16,7 +16,9 @@ export default function ChatUI({
 }: {
   compact?: boolean;
 }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "agent", text: "Hi! I'm Agent Atlas, your AI travel assistant. Ask me anything about your next trip! ✈️" },
+  ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -80,13 +82,6 @@ export default function ChatUI({
 
       {/* CHAT AREA */}
       <div className="flex-1 bg-gray-200 p-4 space-y-4 overflow-y-auto">
-
-        {/*  EMPTY STATE (landing page helpful) */}
-        {messages.length === 0 && (
-          <p className="text-sm text-gray-500 text-center">
-            Ask Agent Atlas about your next trip ✈️
-          </p>
-        )}
 
         {/*  MESSAGES LOOP */}
         {messages.map((msg, i) => (

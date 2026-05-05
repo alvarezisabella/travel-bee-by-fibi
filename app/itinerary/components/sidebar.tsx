@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, KeyboardEvent } from "react";
 import { chat } from "./chat";
-import { Message, Trip, Widget } from "../types/types";
+import { Message, Trip, Widget, ItineraryUpdate } from "../types/types";
 import styles from "../../../styles/chat.module.css";
 import ReactMarkdown from "react-markdown";
 import { EventWidget } from "./EventWidget";
@@ -9,6 +9,8 @@ import { Paperclip } from "lucide-react";
 import { Day } from "../day";
 import { useBookmarks } from "./useBookmarks";
 import {Compass} from "lucide-react"
+import { TripUpdates } from "./get_updates";
+import { getItineraryUpdates } from "@/lib/hooks/updates";
 
 const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
   <svg
@@ -83,7 +85,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 };
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
+export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
+
   const { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading } =
     chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -106,6 +109,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     }
   };
 
+
   return (
     <aside
       className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
@@ -113,7 +117,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     >
       {/* Header */}
       <header className={styles.header}>
-        {!isCollapsed && <div  className={styles.title}><Compass /><span className="px-3">Agent Atlas</span></div>}
+        {!isCollapsed && <div  className={styles.title}>🐝<span className="px-3">Agent Atlas</span></div>}
         <button
           className={styles.toggleBtn}
           onClick={toggle}
@@ -140,12 +144,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
                 addBotMessage={addBotMessage}
               />
             ))}
-            
-            {isLoading && (
-              <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
+            <TripUpdates trip={trip.id}/>
+             {isLoading && ( <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
                 <span>Atlas is typing…</span>
-              </div>
-            )}
+              </div>)}
             <div ref={bottomRef} />
           </div>
 
