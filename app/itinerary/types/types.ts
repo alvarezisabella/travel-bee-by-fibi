@@ -56,18 +56,21 @@ export const LABEL_MAP: Record<EventLabel, { bg: string; bar: string; text: stri
   Food: { bg: "bg-[#f8eff2]", bar: "bg-[#b87a8a]", text: "text-[#5a2234]", time: "text-[#905060]" },
 }
 
-export const STATUS_MAP: Record<EventStatus, { dot: string; bg: string }> = {
+export const STATUS_MAP: Record<EventStatus, { dot: string; bg: string, border: string }> = {
   Confirmed: {
     dot: "text-[rgb(85,217,85)]",
     bg: "179 230 188", // #b3e6bc
+    border: "rgba(85,217,85, 0.4)"
   },
   Pending: {
     dot: "text-[rgb(255,212,0)]",
     bg: "247 228 193", // #f7e4c1
+    border: "rgb(255,212,0)"
   },
   Idea: {
     dot: "text-[rgb(146,123,123)]",
     bg: "216 211 222", // #d8d3de
+    border: "rgb(146,123,123)"
   },
 };
 
@@ -118,6 +121,14 @@ export interface Widget {
   rating?: number
   price?: number
   url?: string
+}
+
+export interface ItineraryUpdate {
+  id: string;
+  username: string;
+  timestamp: string; // ISO string
+  action: string;
+  title: string;
 }
 
 /**   background: var(--color-background-info, #dbeafe); 

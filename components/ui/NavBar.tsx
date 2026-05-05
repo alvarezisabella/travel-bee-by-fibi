@@ -40,12 +40,12 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
   const initials = profileName ? getInitials(profileName) : "?"
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-4 bg-gradient-to-r from-white via-white/40 to-white border-b border-white">
+    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 pt-1 bg-gradient-to-r from-white via-white/40 to-white border-b border-white">
 
       {/* Logo - left */}
       <div className="flex-1">
         <Link href="/">
-          <img src="/travelbee-logo.svg" alt="TravelBee" width={220} height={55} />
+          <img src="/travelbee-logo.svg" alt="TravelBee" width={210} height={45} />
         </Link>
       </div>
 

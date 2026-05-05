@@ -17,7 +17,7 @@ interface DayProps {
     members: Traveler[]
     onAddEvent: (event: Event) => void;
     onEditEvent: (event: Event) => void;
-    onDeleteEvent: (dayid: string, eventid: string) => void;
+    onDeleteEvent: (dayid: string, eventid: string, title: string) => void;
     onUpvote: (dayid: string, eventid: string) => void;
     onDownvote: (dayid: string, eventid: string) => void;
 }
@@ -31,24 +31,24 @@ export function DayCell({ day, members, onAddEvent, onDeleteEvent, onEditEvent, 
     }
     return(
 
-        <div className="w-full group border-[0.5] border-[#e6e6e6] rounded-2xl p-6 mb-10 shadow-lg bg-[#fff]">
+        <div className="w-full group py-6 mb-10 bg-[#fff]">
             <div className='mb-8'>
                 <h1 className="text-gray-800 text-3xl font-semibold mb-0.5">Day {day.id}</h1>
             </div>
                 
             <div className='space-y-5'>
                 {day.events.map((event) => (
-                    <EventCard key={event.id} event={event} members={members} onDelete={() => onDeleteEvent(day.id, event.id)} onSave={onEditEvent} onUpvote={() => onUpvote(day.id, event.id)} onDownvote={() => onDownvote(day.id, event.id)}/>
+                    <EventCard key={event.id} event={event} members={members} onDelete={() => onDeleteEvent(day.id, event.id, event.title)} onSave={onEditEvent} onUpvote={() => onUpvote(day.id, event.id)} onDownvote={() => onDownvote(day.id, event.id)}/>
                 ))}
 
                 {addEvent && (
                     <EditEvent day={day.id} date={day.date} trip={day.itineraryid} members={members} onClose={() => setAdd(false)} onSave={onAddEvent}/>
                 )}
 
-                <div className='max-w-24 border border-[#e6e6e6] rounded-xl shadow-md 
-                 group-hover:opacity-100 transition-opacity flex items-center justify-center font-semibold'>
+                <div className='max-w-24 border border-[#e6e6e6] rounded-xl shadow-md hover:scale-105 transition-all
+                 group-hover:opacity-100  flex items-center justify-center font-semibold '>
                     <button
-                    className="text-md text-yellow-500 py-1 cursor-pointer"
+                    className="text-md text-yellow-500 py-1 cursor-pointer "
                     onClick={() => setAdd(true)}
                     > <CalendarPlus /> Add Event
                     </button>

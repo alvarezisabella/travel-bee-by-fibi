@@ -70,19 +70,20 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
 
     ) : (
 <div
-  className="max-w-6xl relative flex gap-3.5 bg-white rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800 hover:scale-101"
+  className={`max-w-5xl shadow-xs relative flex gap-3.5 rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800 hover:scale-102 bg-[rgb(var(--bg)/0.15)]`}
   style={{
-    borderWidth: hovered? "2px" : "0.6px",
-    borderColor: hovered? "rgba(250, 197, 37, 0.4)" : "hsl(0, 0%, 90%)",
-    boxShadow: hovered ? "0px 2px 10px rgba(250, 197, 37, 0.8)" : "2px 2px 4px #ccc",
+    borderWidth: "0.6px",
+    borderColor: hovered? status_bg.border : "#fff",
+    "--bg": hovered ? status_bg.bg : "none",
     pointerEvents: isLockedByOther ? "none" : "all", //rgba(250, 197, 37, 0.4)
-  }}
+  } as React.CSSProperties}
   onClick={handleEdit}
   onMouseEnter={() => setHovered(true)}
   onMouseLeave={() => setHovered(false)}
 >
   {/* Left accent bar */}
-  <div className={`w-1 rounded-full  ${status_bg.bg} flex-shrink-0 self-stretch`} />
+  <div style={{"--bg": status_bg.bg} as React.CSSProperties}
+  className={`w-1 rounded-full bg-[rgb(var(--bg)/0.3)] flex-shrink-0 self-stretch`} />
 
   <div className="flex-1 min-w-0 flex flex-col gap-2">
 
@@ -116,7 +117,7 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
 
     {/* Description */}
     {event.description && (
-      <p className="text-[13px] text-secondary leading-relaxed whitespace-pre-wrap">
+      <p className="text-[13px] text-secondary leading-relaxed max-w-3xl whitespace-pre-wrap">
         {event.description}
       </p>
     )}

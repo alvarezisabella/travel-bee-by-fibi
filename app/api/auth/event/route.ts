@@ -32,18 +32,14 @@ export async function POST(req: NextRequest){
     // If successful, returns event id and successful status
     if(error) {return NextResponse.json({error: error.message}, {status: 500})}
 
-//try {
-  await addItineraryUpdate(supabase, itineraryid, `Added event: ${title}`, updated_by ?? 'Unknown');
-//} catch (err) {
- // console.error('Failed to log itinerary update:', err);
-  // non-fatal, don't return an error to the client
-//}
+    await addItineraryUpdate(supabase, itineraryid, 'Added', title, updated_by ?? 'Unknown');
+
     return NextResponse.json({ event: data }, { status: 201 })
 }
 
 // PUT function to update event details based on event ID and provided fields in request body
 export async function PUT(req: NextRequest) {
-    const { id, title, description, status, startTime, duration, location, type, travelers, lat, lng} = await req.json()
+    const { itineraryid, id, title, description, status, startTime, duration, location, type, travelers, lat, lng} = await req.json()
     if(!id || !title) { return NextResponse.json({ error: 'ID and title are required.' }, { status: 400 }) }
 
     const cookieStore = await cookies()
@@ -60,13 +56,13 @@ export async function PUT(req: NextRequest) {
     const {error} = await updateEvent(supabase, id, { title, description, status, starts_at: startTime || undefined, ends_at, location, type, travelers: travelers ?? [], lat, lng, updated_by})
     if(error) { return NextResponse.json({ error: error.message }, { status: 500 }) }
 
-    //await addItineraryUpdate(supabase, itinerary_id, `Updated event: ${title}`, updated_by ?? 'Unknown');
+    await addItineraryUpdate(supabase, itineraryid, 'Edited', title, updated_by ?? 'Unknown');
     return NextResponse.json({ success: true }, { status: 200 })
 }
 
 // DELETE function to remove event based on provided event ID in request body
 export async function DELETE(req: NextRequest) {
-    const { id } = await req.json()
+    const { itineraryid, id, title } = await req.json()
     if (!id) return NextResponse.json({ error: 'ID is required.' }, { status: 400 })
 
     const cookieStore = await cookies()
@@ -78,6 +74,7 @@ export async function DELETE(req: NextRequest) {
     const { error } = await deleteEvent(supabase, id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    //await addItineraryUpdate(supabase, itinerary_id, `Deleted event: ${title}`, updated_by ?? 'Unknown');
+    const updated_by = await getUserNameById(user.id) || undefined
+    await addItineraryUpdate(supabase, itineraryid, 'Removed', title, updated_by ?? 'Unknown');
     return NextResponse.json({ success: true }, { status: 200 })
 }
