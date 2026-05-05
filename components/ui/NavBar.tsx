@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
-import UserMenu from "@/components/ui/UserMenu"
 
 interface NavbarProps {
   tripsHref: string
@@ -55,11 +54,19 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
           Trips
         </Link>
         {user ? (
-          <UserMenu
-            profileName={profileName}
-            avatarUrl={avatarUrl}
-            initials={initials}
-          />
+          <Link href="/profile" className="hover:opacity-80 transition-opacity">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={profileName ?? "Profile"}
+                className="w-9 h-9 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#F5C842] flex items-center justify-center text-sm font-bold text-gray-900">
+                {initials}
+              </div>
+            )}
+          </Link>
         ) : (
           <>
             <Link
