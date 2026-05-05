@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from './useUser';
+import { getUserNameById } from './getUser';
 
 type LockState = {
   lockedBy: string | null;
@@ -11,19 +12,6 @@ type LockState = {
 
 const supabase = createClient();
 
-export async function getUserNameById(userId: string): Promise<string | null> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('first_name, last_name')
-    .eq('id', userId)
-    .single();
-
-  if (!profile) return null;
-  const first = profile.first_name ?? '';
-  const last = profile.last_name ?? '';
-  console.log(first, last)
-  return [first, last].filter(Boolean).join(' ') || "Another traveler" || null;
-}
 
 export function useEventLock(eventId: string) {
   const user = useUser();
