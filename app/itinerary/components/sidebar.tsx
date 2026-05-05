@@ -113,7 +113,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     >
       {/* Header */}
       <header className={styles.header}>
-        {!isCollapsed && <div  className={styles.title}><Compass /><span className="px-3">Agent Atlas</span></div>}
+        {!isCollapsed && <div  className={styles.title}>🐝<span className="px-3">Agent Atlas</span></div>}
         <button
           className={styles.toggleBtn}
           onClick={toggle}

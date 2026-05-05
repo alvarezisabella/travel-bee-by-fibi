@@ -47,28 +47,74 @@ export function chat(trip: Trip) {
 
   useEffect(() => {
     async function loadHistory() {
-      const res = await fetch(`/api/ai/chat?itineraryId=${trip.id}`);
-      if (!res.ok) return;
-      const { messages: dbMessages } = await res.json();
+      const [chatRes, suggestionsRes] = await Promise.all([
+        fetch(`/api/ai/chat?itineraryId=${trip.id}`),
+        fetch(`/api/ai/suggestions?itineraryId=${trip.id}`),
+      ])
+
+      if (!chatRes.ok) return
+
+      const { messages: dbMessages } = await chatRes.json()
+      const { suggestions } = suggestionsRes.ok
+        ? await suggestionsRes.json()
+        : { suggestions: [] }
+
+      console.log("DB MESSAGES:", dbMessages.length)
+      console.log("DB SUGGESTIONS:", suggestions?.length)
+
+      // Build map of message_id → widgets from saved suggestions
+      const widgetsByMessageId = new Map<string, Widget[]>()
+
+      for (const s of suggestions ?? []) {
+        try {
+          const parsed = JSON.parse(s.content)
+          if (Array.isArray(parsed) && parsed[0]?.title) {
+            if (s.message_id) {
+              // Merge if multiple suggestions share the same message_id
+              const existing = widgetsByMessageId.get(s.message_id) ?? []
+              widgetsByMessageId.set(s.message_id, [...existing, ...parsed])
+              console.log("MAPPED WIDGETS TO MSG:", s.message_id, parsed.length, "widgets")
+            } else {
+              console.warn("SUGGESTION HAS NO MESSAGE ID:", s.id)
+            }
+          }
+        } catch {
+          console.error("FAILED TO PARSE SUGGESTION:", s.id)
+        }
+      }
+
+      console.log("WIDGETS MAP SIZE:", widgetsByMessageId.size)
+
       const uiMessages: Message[] = dbMessages.map(
         (m: { id: string; role: string; content: string; created_at: string }) => {
-          // Parse widgets and pdf events from persisted messages so they
-          // render correctly when chat history is reloaded
-          const { text: searchText, intents } = parseSearch(m.content);
-          const { text, pdfEvent } = parsePdfEvent(searchText);
+          const { text: searchText } = parseSearch(m.content)
+          const { text, pdfEvent } = parsePdfEvent(searchText)
+          // ← attach saved widgets from the map
+          const widgets = widgetsByMessageId.get(m.id)
+          console.log("MESSAGE:", m.id, "role:", m.role, "widgets:", widgets?.length ?? 0)
           return {
             id: m.id,
             text,
-            intents,
             pdfEvent,
+            widgets,  // ← was missing
             sender: m.role === "user" ? "user" : "bot",
             timestamp: new Date(m.created_at),
-          };
+          }
         }
-      );
-      setMessages(uiMessages);
+      )
+
+      if (uiMessages.length === 0) {
+        setMessages([{
+          id: "welcome",
+          text: "Hi! I'm Agent Atlas, your AI travel assistant. Ask me anything about your trip!",
+          sender: "bot",
+          timestamp: new Date(),
+        }]);
+      } else {
+        setMessages(uiMessages);
+      }
     }
-    loadHistory();
+    loadHistory()
   }, [trip.id]);
 
   const toggle = useCallback(() => setIsCollapsed((prev) => !prev), []);
@@ -91,18 +137,11 @@ export function chat(trip: Trip) {
     const chatMessages: ChatMessage[] = [
       ...messages.map((m) => {
         if (m.sender !== "bot") {
-          return {
-            role: "user" as const,
-            content: m.text,
-          }
+          return { role: "user" as const, content: m.text }
         }
-
-        // Reconstruct the full assistant message with widget JSON
-        // so Claude sees its previous responses correctly in history
         const widgetBlock = m.widgets?.length
           ? `<widgets>${JSON.stringify(m.widgets)}</widgets>`
           : ""
-
         return {
           role: "assistant" as const,
           content: m.text + (widgetBlock ? "\n" + widgetBlock : ""),
@@ -136,8 +175,6 @@ export function chat(trip: Trip) {
         if (done) break;
         botText += decoder.decode(value, { stream: true });
 
-        // Stream raw text into the bubble as it arrives —
-        // widgets are parsed only once the stream is complete
         if (!botMsgAdded) {
           setMessages((prev) => [
             ...prev,
@@ -171,7 +208,7 @@ export function chat(trip: Trip) {
           const searchRes = await fetch("/api/ai/suggestions/search", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ intents }),
+            body: JSON.stringify({ intents, trip }),
           })
           console.log("SEARCH STATUS:", searchRes.status)
 
@@ -180,10 +217,41 @@ export function chat(trip: Trip) {
             console.log("SEARCH RESULT:", real?.length, "widgets")
 
             if (real?.length) {
-              // Results found — use them
               widgets = real
+
+              try {
+                await new Promise(resolve => setTimeout(resolve, 500))
+
+                const historyRes = await fetch(`/api/ai/chat?itineraryId=${trip.id}`)
+                if (historyRes.ok) {
+                  const { messages: dbMessages } = await historyRes.json()
+
+                  const lastAssistant = [...dbMessages]
+                    .reverse()
+                    .find((m: any) => m.role === "assistant")
+
+                  console.log("LAST ASSISTANT MSG ID:", lastAssistant?.id)
+
+                  if (lastAssistant?.id) {
+                    await fetch("/api/ai/suggestions", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        itineraryId: trip.id,
+                        content: JSON.stringify(real),
+                        messageId: lastAssistant.id,
+                      }),
+                    })
+                    console.log("WIDGETS SAVED WITH MESSAGE ID:", lastAssistant.id)
+                  } else {
+                    console.warn("NO ASSISTANT MESSAGE FOUND — widgets not saved")
+                  }
+                }
+              } catch (e) {
+                console.error("FAILED TO SAVE WIDGETS:", e)
+              }
+
             } else if (fallback) {
-              // No results — show Claude's fallback message instead
               displayText = fallback
               console.log("USING FALLBACK:", fallback)
             }

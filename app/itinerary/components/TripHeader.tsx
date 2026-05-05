@@ -397,13 +397,13 @@ export default function TripHeader({ trip }: Props) {
             <div className="flex gap-5 mt-5 text-gray-600">
               <button
                 onClick={() => { setList(true); setMap(false); setCalendar(false) }}
-                className="hover:text-black transition"
+                className="cursor-pointer hover:text-black transition"
               >
                 <List size={20} />
               </button>
               <button
                 onClick={() => { setCalendar(true); setList(false); setMap(false) }}
-                className="hover:text-black transition"
+                className="cursor-pointer hover:text-black transition"
               >
                 <CalendarDays size={20} />
               </button>
@@ -418,7 +418,7 @@ export default function TripHeader({ trip }: Props) {
                   setBookmarkPanel(true)
                   fetchBookmarks()
                 }}
-                className="hover:text-black transition relative"
+                className="cursor-pointer hover:text-black transition relative"
               >
                 <Bookmark size={20} />
               </button>
@@ -579,9 +579,17 @@ export default function TripHeader({ trip }: Props) {
                   <div className="flex flex-col gap-2">
                     {travelers.map((t) => (
                       <div key={t.id} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">
-                          {t.name.charAt(0)}
-                        </div>
+                        {t.avatar_url ? (
+                          <img
+                            src={t.avatar_url}
+                            alt={t.name}
+                            className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">
+                            {t.name.charAt(0)}
+                          </div>
+                        )}
                         <span className="flex-1 text-sm text-gray-800">
                           {t.name}
                           {t.role && <span className="ml-2 text-xs text-gray-400 capitalize">{t.role}</span>}
@@ -668,7 +676,7 @@ export default function TripHeader({ trip }: Props) {
       </div>
 
       {list && <TripList trip={trip} />}
-      {map && <CaliforniaMap events={trip.days.flatMap(day => day.events)} />}
+      {map && <CaliforniaMap days={trip.days} />}
       {calendar && (
         <CalendarGrid
           days={trip.days.filter(d => d.date).map(d => ({ id: d.id, date: d.date!, events: d.events }))}
