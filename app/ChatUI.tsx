@@ -1,6 +1,9 @@
 "use client"; // REQUIRED (this component uses state)
 
+
 import { useState } from "react";
+//import { Trip } from "../itinerary/types/types";
+import { ChatMessage } from "@/lib/ai/types";
 //import { getAIResponse } from "@/lib/ai/anthropic"; //
 
 type Message = {
@@ -30,13 +33,16 @@ export default function ChatUI({
 
     try {
       // call API route 
-    const res = await fetch("/api/chat", {
-  method: "POST",
-  body: JSON.stringify({ message: input }),
-});
+    const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        //headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            message: input 
+        }),
+    });
 
-const data = await res.json();
-const reply = data.reply;
+    const data = await res.json();
+    const reply = data.reply;
 
       // ADD AI RESPONSE
       setMessages((prev) => [
