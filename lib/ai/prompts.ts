@@ -108,7 +108,7 @@ Use this exact structure:
   "date": "YYYY-MM-DD or null",
   "startTime": "HH:MM in 24-hour format or null",
   "endTime": "HH:MM in 24-hour format or null",
-  "location": "Venue name and/or address or null",
+  "location": "street address or null",
   "type": "Reservation",
   "description": "Brief one-sentence description or null"
 }
@@ -149,7 +149,7 @@ Return this exact JSON structure:
           "status": "Confirmed",
           "startTime": "HH:MM",
           "duration": 90,
-          "location": "Specific venue name and address"
+          "location": "Street address or null"
         }
       ]
     }
@@ -164,6 +164,7 @@ Rules:
 - "status" must be "Confirmed" for all events.
 - "startTime" must be in 24-hour HH:MM format (e.g. "09:00", "14:30").
 - "duration" is an integer representing minutes (e.g. 60, 90, 120).
+- "location" should be a real street address if possible, or null if not known. Do not use vague locations like "downtown" or "near the hotel". Do not include the venue/building name in the address field — only the street address.
 - Events within a day must not overlap in time.
 - The first event of each day should start no earlier than 07:00.
 - Schedule realistic travel and meal times appropriate for ${params.location}.
