@@ -157,7 +157,7 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
   }
 
   return (
-    <main className="bg-gray-100 min-h-screen p-5">
+    <main className="bg-[#fff] w-full h-full min-h-screen">
       <TripHeader trip={trip} />
     </main>
   )
