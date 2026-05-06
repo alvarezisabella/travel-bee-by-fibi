@@ -39,7 +39,8 @@ export default async function NavBar({ tripsHref }: NavbarProps) {
   const initials = profileName ? getInitials(profileName) : "?"
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-4 bg-white to-white border-b border-white">
+    // <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-10 py-4 bg-white to-white border-b border-white">
+    <nav className="fixed top-0 left-0 right-0 z-50 w-full flex items-center justify-between px-10 py-4 bg-white border-b border-gray-100 shadow-sm">
 
       {/* Logo - left */}
       <div className="flex-1">

@@ -73,7 +73,7 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
   className={`max-w-5xl shadow-xs relative flex gap-3.5 rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800 hover:scale-102 bg-[rgb(var(--bg)/0.15)]`}
   style={{
     borderWidth: "0.6px",
-    borderColor: hovered? status_bg.border : "#fff",
+    borderColor: hovered? status_bg.border : "#e6e6e6",
     "--bg": hovered ? status_bg.bg : "none",
     pointerEvents: isLockedByOther ? "none" : "all", //rgba(250, 197, 37, 0.4)
   } as React.CSSProperties}

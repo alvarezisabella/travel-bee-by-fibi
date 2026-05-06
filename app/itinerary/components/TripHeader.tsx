@@ -278,13 +278,14 @@ export default function TripHeader({ trip }: Props) {
 
   return (
     <div>
-      <div className="w-full h-full bg-white">
+      {/* <div className="w-full h-full bg-white"> */}
+      <div className="w-full mx-auto rounded-2xl shadow-lg bg-white">
 
         {/* HERO IMAGE */}
-        <div className="relative w-full h-[500px]">
+        <div className="relative w-full h-[280px]">
           {coverImage ? (
             <>
-              <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover"/><div className="absolute top-18 ms-2 overflow-hidden "><BackButton message="Profile" route="/profile"/></div>
+              <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover rounded-t-2xl" />
               <label className={`absolute bottom-3 right-3 cursor-pointer bg-white bg-opacity-80 text-gray-700 text-xs px-3 py-1.5 rounded-full shadow hover:bg-opacity-100 transition-all flex items-center gap-1.5 ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
                 {uploading ? <><Loader2 size={12} className="animate-spin" /> Uploading...</> : "Change photo"}
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
@@ -292,7 +293,7 @@ export default function TripHeader({ trip }: Props) {
             </>
           ) : (
             <>
-            <div className="absolute top-2.5 ms-2 "><BackButton message="Profile" route="/profile"/></div>
+            {/* <div className="absolute top-2.5 ms-2 "><BackButton message="Profile" route="/profile"/></div> */}
             <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors rounded-t-2xl ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
               {uploading ? (
                 <><Loader2 size={24} className="animate-spin text-gray-400" /><span>Uploading...</span></>
@@ -312,7 +313,7 @@ export default function TripHeader({ trip }: Props) {
         </div>
 
         {/* CONTENT */}
-        <div className="py-6 px-3 flex justify-between items-start text-gray-800">
+        <div className="p-6 flex justify-between items-start">
           <div>
 
             {/* Editable Title */}
@@ -330,7 +331,7 @@ export default function TripHeader({ trip }: Props) {
                 onBlur={() => { setEditing(false); saveItinerary({ title }) }}
               />
             ) : (
-              <h1 className="lowercase text-4xl font-bold cursor-pointer" onClick={() => setEditing(true)}>
+              <h1 className="lowercase text-3xl font-bold cursor-pointer" onClick={() => setEditing(true)}>
                 {title}
               </h1>
             )}

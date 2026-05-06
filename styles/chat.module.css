@@ -1,15 +1,18 @@
 .sidebar {
   height: 85dvh;
+  width: 55dvh;
   position: sticky;
   top: 15px;
   left: 1dvh;
   bottom: 80px;
   display: flex;
   flex-direction: column;
+  background: var(--color-background-primary, #fff);
   border: 0.5px solid var(--color-border-tertiary, hsl(0, 0%, 90%));
   border-radius: 10px;
   transition: width 0.25s ease, min-width 0.25s ease;
   overflow: hidden;
+  box-shadow: 1px 1px #e6e6e6;
   z-index: 40;
 }
 
