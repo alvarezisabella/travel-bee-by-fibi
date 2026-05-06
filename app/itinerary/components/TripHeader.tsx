@@ -331,7 +331,7 @@ export default function TripHeader({ trip }: Props) {
                 onBlur={() => { setEditing(false); saveItinerary({ title }) }}
               />
             ) : (
-              <h1 className="lowercase text-3xl font-bold cursor-pointer" onClick={() => setEditing(true)}>
+              <h1 className="text-3xl font-bold cursor-pointer" onClick={() => setEditing(true)}>
                 {title}
               </h1>
             )}
@@ -397,24 +397,31 @@ export default function TripHeader({ trip }: Props) {
             {/* Bottom Icons */}
             <div className="flex gap-5 mt-5 text-gray-600">
               <button
+                title="List View"
                 onClick={() => { setList(true); setMap(false); setCalendar(false) }}
                 className="cursor-pointer hover:text-black transition"
               >
                 <List size={20} />
               </button>
+              
               <button
+                title="Calendar View"
                 onClick={() => { setCalendar(true); setList(false); setMap(false) }}
                 className="cursor-pointer hover:text-black transition"
               >
                 <CalendarDays size={20} />
               </button>
+
               <button
+                title="Map View"
                 className="cursor-pointer hover:text-black transition"
                 onClick={() => { setMap(true); setList(false); setCalendar(false) }}
               >
                 <Map size={20} />
               </button>
+
               <button
+                title="Bookmarks"
                 onClick={() => {
                   setBookmarkPanel(true)
                   fetchBookmarks()
