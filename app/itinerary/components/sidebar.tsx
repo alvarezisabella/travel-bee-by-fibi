@@ -48,6 +48,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     .replace(/<widgets>[\s\S]*$/, "")
     .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")
     .replace(/<search>[\s\S]*$/, "")
+    .replace(/<itinerary-action>[\s\S]*?<\/itinerary-action>/, "")
+    .replace(/<itinerary-action>[\s\S]*$/, "")
     .trim();
 
   return (
@@ -99,7 +101,12 @@ export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   }, [messages, refetch]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < 80) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
