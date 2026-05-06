@@ -70,7 +70,7 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
 
     ) : (
 <div
-  className={`max-w-5xl shadow-xs relative flex gap-3.5 rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800 hover:scale-102 bg-[rgb(var(--bg)/0.15)]`}
+  className={`max-w-7xl shadow-xs relative flex gap-3.5 rounded-xl p-4 cursor-pointer transition-all duration-200 text-gray-800 hover:scale-102 bg-[rgb(var(--bg)/0.15)]`}
   style={{
     borderWidth: "0.6px",
     borderColor: hovered? status_bg.border : "#e6e6e6",
