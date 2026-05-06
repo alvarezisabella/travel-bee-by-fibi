@@ -10,9 +10,10 @@ import {
 const TA_BASE = "https://api.content.tripadvisor.com/api/v1"
 const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
 
+// Fixed — grabs first part ("London")
 function extractCity(location: string): string {
   const parts = location.split(",").map(s => s.trim()).filter(Boolean)
-  return parts[parts.length - 1] ?? location
+  return parts[0] ?? location
 }
 
 function getCheckinDate(trip?: any): string {
@@ -238,7 +239,8 @@ function getBestTicketmasterImage(images: any[]): string | undefined {
 async function searchTicketmaster(
   query: string,
   location: string,
-  intentIndex: number
+  intentIndex: number,
+  trip?: any
 ): Promise<Widget[]> {
   const key = process.env.TICKETMASTER_KEY
   if (!key) {
@@ -246,31 +248,49 @@ async function searchTicketmaster(
     return []
   }
 
-  // Clean up query — strip filler words, expand acronyms
   const cleanQuery = query
-    .replace(/\b(game|games|match|event|show|ticket|live)\b/gi, "")
+    .replace(/\b(game|match|ticket|live)\b/gi, "")
     .replace(/\bMLB\b/gi, "baseball")
     .replace(/\bNBA\b/gi, "basketball")
     .replace(/\bNFL\b/gi, "football")
     .replace(/\bNHL\b/gi, "hockey")
     .trim()
 
-  // Extract city and state code from location
+  // Country code map for common non-US cities
+  const countryMap: Record<string, string> = {
+    london: "GB", manchester: "GB", birmingham: "GB", glasgow: "GB",
+    paris: "FR", berlin: "DE", amsterdam: "NL", toronto: "CA",
+    sydney: "AU", melbourne: "AU", tokyo: "JP",
+  }
+
   const cityMatch = location.match(/^([^,]+)/)
   const city = cityMatch?.[1]?.trim() ?? location
   const stateMatch = location.match(/,\s*([A-Z]{2})/)
   const stateCode = stateMatch?.[1] ?? ""
+  const countryCode =
+    countryMap[city.toLowerCase()] ?? (stateCode ? "US" : undefined)
+
+  // Build date range from trip or intent dates
+  const startDate = trip?.startDate ?? getCheckinDate(trip)
+  const endDate = trip?.endDate ?? getCheckoutDate(trip)
+  const startDateTime = `${startDate}T00:00:00Z`
+  const endDateTime = `${endDate}T23:59:59Z`
 
   const params = new URLSearchParams({
     apikey: key,
-    keyword: cleanQuery,
+    keyword: cleanQuery || query, // fallback to original if cleaning empties it
     size: "5",
     sort: "date,asc",
+    startDateTime,
+    endDateTime,
   })
 
   if (stateCode) {
     params.set("stateCode", stateCode)
     params.set("countryCode", "US")
+  } else if (countryCode) {
+    params.set("city", city)
+    params.set("countryCode", countryCode)
   } else {
     params.set("city", city)
   }
@@ -431,7 +451,7 @@ export async function POST(req: NextRequest) {
           results = await searchGoogleHotels(city, checkIn, checkOut, adults, i)
         } else {
           // Ticketmaster only for live events
-          results = await searchTicketmaster(intent.query, city, i)
+          results = await searchTicketmaster(intent.query, city, i, trip)
         }
       } else {
         // Food and Activity — TripAdvisor
