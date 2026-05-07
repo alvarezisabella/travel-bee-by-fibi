@@ -24,6 +24,15 @@ const HOUR_HEIGHT = 64
 const TIME_COL_WIDTH = 52
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR)
 
+function formatTime(time: string): string {
+  if (!time) return ""
+  const [h, m] = time.split(":").map(Number)
+  if (isNaN(h) || isNaN(m)) return time
+  const period = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, "0")} ${period}`
+}
+
 function formatHour(hour: number) {
   if (hour === 0) return "12AM"
   if (hour < 12) return `${hour}AM`
@@ -350,7 +359,7 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
                           </div>
                           {!isShort && (
                             <div className={`text-[10px] mt-0.5 truncate ${colors.time}`}>
-                              {event.startTime}
+                              {formatTime(event.startTime)}
                               {event.location ? ` · ${event.location}` : ""}
                             </div>
                           )}
@@ -404,7 +413,7 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
                 {/* Time */}
                 {popover.startTime && (
                   <div className={`flex items-center gap-1.5 text-sm ${colors.time}`}>
-                    <span>{popover.startTime}</span>
+                    <span>{formatTime(popover.startTime)}</span>
                     {popover.duration > 0 && (
                       <><span className="opacity-40">·</span><span>{popover.duration >= 60 ? `${popover.duration / 60}h` : `${popover.duration}m`}</span></>
                     )}
