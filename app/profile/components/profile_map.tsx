@@ -48,7 +48,7 @@ export default function ProfileMap({ trips }: MapProps) {
         <MapContainer
           center={center}
           zoom={2}
-          style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0 }}
+          style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
         >
           <TileLayer
             url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
