@@ -205,11 +205,11 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
     router.refresh()
   }
 
-  const handleDelete = async (eventId: string) => {
+  const handleDelete = async (eventId: string, title: string) => {
     const res = await fetch('/api/auth/event', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: eventId }),
+      body: JSON.stringify({ id: eventId, itineraryid: tripId, title }),
     })
     if (!res.ok) { console.error('Failed to delete event'); return }
     setDeletedIds((prev) => new Set(prev).add(eventId))
@@ -220,41 +220,42 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
     <>
       <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
-        {/* STICKY DAY HEADERS */}
-        <div
-          className="grid border-b border-gray-100 bg-white sticky top-0 z-10"
-          style={{ gridTemplateColumns: gridCols }}
-        >
-          <div className="border-r border-gray-100" />
-          {days.map((day) => {
-            const { weekday, day: dayNum } = formatDayHeader(day.date)
-            const today = isToday(day.date)
-            return (
-              <div
-                key={day.id}
-                className="py-3 text-center border-r border-gray-100 last:border-r-0"
-              >
-                <div
-                  className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    today ? "text-yellow-500" : "text-gray-400"
-                  }`}
-                >
-                  {weekday}
-                </div>
-                <div
-                  className={`mx-auto mt-1 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${
-                    today ? "bg-yellow-400 text-gray-900" : "text-gray-700"
-                  }`}
-                >
-                  {dayNum}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        {/* SCROLLABLE BODY — headers live inside so they scroll horizontally with columns */}
+        <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: "70vh" }}>
 
-        {/* SCROLLABLE BODY */}
-        <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: "70vh" }}>
+          {/* STICKY DAY HEADERS */}
+          <div
+            className="grid border-b border-gray-100 bg-white sticky top-0 z-10"
+            style={{ gridTemplateColumns: gridCols }}
+          >
+            <div className="border-r border-gray-100" />
+            {days.map((day) => {
+              const { weekday, day: dayNum } = formatDayHeader(day.date)
+              const today = isToday(day.date)
+              return (
+                <div
+                  key={day.id}
+                  className="py-3 text-center border-r border-gray-100 last:border-r-0"
+                >
+                  <div
+                    className={`text-[11px] font-semibold uppercase tracking-wider ${
+                      today ? "text-yellow-500" : "text-gray-400"
+                    }`}
+                  >
+                    {weekday}
+                  </div>
+                  <div
+                    className={`mx-auto mt-1 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                      today ? "bg-yellow-400 text-gray-900" : "text-gray-700"
+                    }`}
+                  >
+                    {dayNum}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
           <div className="grid relative" style={{ gridTemplateColumns: gridCols }}>
 
             {/* TIME LABELS */}
@@ -351,7 +352,7 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
                               {event.title}
                             </span>
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(event.id) }}
+                              onClick={(e) => { e.stopPropagation(); handleDelete(event.id, event.title) }}
                               className="opacity-0 group-hover/chip:opacity-100 transition-opacity text-current hover:text-red-500 leading-none text-sm shrink-0"
                             >
                               ×
