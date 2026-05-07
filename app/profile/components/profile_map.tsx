@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 50);
+    return () => clearTimeout(id);
+  }, [map]);
+  return null;
+}
 import { fixLeafletIcons } from '@/lib/map/leaflet-fix';
 import { ShowTrip } from './show_trip';
 
@@ -50,6 +59,7 @@ export default function ProfileMap({ trips }: MapProps) {
           zoom={2}
           style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
         >
+          <MapResizer />
           <TileLayer
             url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
             attribution='&copy; OpenStreetMap contributors & CARTO'
