@@ -73,7 +73,7 @@ export default function ChatUI({
   return (
     <div
       className={`
-        border-4 border-blue-500 rounded-2xl overflow-hidden bg-white shadow-lg flex flex-col
+        rounded-2xl overflow-hidden bg-white shadow-lg flex flex-col
         ${compact ? "w-full max-w-[600px] h-[500px]" : "w-full h-screen"}
       `}
     >
@@ -81,7 +81,7 @@ export default function ChatUI({
       {/* HEADER (UNCHANGED DESIGN) */}
       <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-400">
         <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-          🤖
+          🐝
         </div>
         <div>
           <p className="font-semibold text-sm">Agent Atlas</p>
@@ -90,7 +90,7 @@ export default function ChatUI({
       </div>
 
       {/* CHAT AREA */}
-      <div className="flex-1 bg-gray-200 p-4 space-y-4 overflow-y-auto">
+      <div className="flex-1 bg-#e6e6e6 p-4 space-y-4 overflow-y-auto">
 
         {/*  MESSAGES LOOP */}
         {messages.map((msg, i) => (
@@ -102,7 +102,7 @@ export default function ChatUI({
           >
             {msg.role === "agent" && (
               <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-                🤖
+                🐝
               </div>
             )}
 
@@ -128,7 +128,7 @@ export default function ChatUI({
         {loading && (
           <div className="flex gap-2 items-center">
             <div className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-300">
-              🤖
+              🐝
             </div>
             <div className="bg-gray-100 px-4 py-2 rounded-2xl text-sm">
               Typing...
@@ -138,13 +138,13 @@ export default function ChatUI({
       </div>
 
       {/* INPUT */}
-      <div className="flex items-center gap-2 p-3 border-t">
+      <div className="flex items-center gap-2 p-3 border-t border-gray-200">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder="Ask Agent Atlas anything..."
-          className="flex-1 px-4 py-2 rounded-full border focus:outline-none text-sm"
+          className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none text-sm"
         />
         <button
           onClick={sendMessage}

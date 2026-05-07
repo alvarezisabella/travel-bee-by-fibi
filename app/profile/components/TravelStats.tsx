@@ -84,7 +84,7 @@ export default function TravelStats({ trips, collaboratorCount }: TravelStatsPro
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
         Travel Stats
       </p>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2 pb-1">
         {stats.map(({ icon: Icon, value, label, color, bg }) => (
           <div
             key={label}
