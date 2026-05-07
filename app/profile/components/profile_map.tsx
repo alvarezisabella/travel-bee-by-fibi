@@ -51,13 +51,13 @@ export default function ProfileMap({ trips }: MapProps) {
     : WORLD_CENTER;
 
   return (
-    <div className='py-4'>
-      <div className="bg-white rounded-2xl shadow-sm p-6 gap-3" style={{ position: 'relative', zIndex: 0 }}>
-        <p className="pb-2 text-sm font-semibold text-gray-800">Places I've Been</p>
+    <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-4">
+      <div className="" style={{ position: 'relative', zIndex: 0 }}>
+        <p className="text-base font-semibold text-gray-800">Places I've Been</p>
         <MapContainer
           center={center}
           zoom={2}
-          style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
+          style={{ height: '300px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
         >
           <MapResizer />
           <TileLayer

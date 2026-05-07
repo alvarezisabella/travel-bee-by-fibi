@@ -94,24 +94,22 @@ export default async function ProfilePage() {
         <ProfileHeader />
         <div className="flex gap-6 items-start">
 
-          {/* Left sidebar */}
-          <div className="w-80 shrink-0 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <p className="text-sm font-semibold text-gray-800 mb-0.5">Upcoming Trips</p>
-              <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
-              <UpcomingTripsCalendar trips={calendarTrips} />
-            </div>
-            <ProfileMapClient trips={trips} />
+        {/* Left sidebar */}
+        <div className="w-80 shrink-0 flex flex-col gap-4">
+          <div className="bg-white rounded-2xl shadow-sm p-5">
+            <p className="text-sm font-semibold text-gray-800 mb-0.5">Upcoming Trips</p>
+            <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
+            <UpcomingTripsCalendar trips={calendarTrips} />
           </div>
+          {/* Remove ProfileMapClient from here */}
+        </div>
 
-          {/* Main content */}
-          <div className="flex-1 flex flex-col gap-6">
-            {/* My Trips — regular trips only */}
-            <TripHistory trips={trips} />
-
-            {/* Agent Atlas Recommendations */}
-            <ShowGeneratedItinerary />
-          </div>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col gap-6">
+          <TripHistory trips={trips} />
+          <ShowGeneratedItinerary />
+          <ProfileMapClient trips={trips} />
+        </div>
 
         </div>
       </div>
