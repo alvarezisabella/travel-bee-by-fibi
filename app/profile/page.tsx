@@ -7,6 +7,9 @@ import TripHistory from "./components/TripHistory"
 import ProfileMapClient from "./components/ProfileMapClient"
 import UpcomingTripsCalendar from "./components/UpcomingTripsCalendar"
 import { ShowGeneratedItinerary } from "./components/sample_itin"
+import TripCountdown from "./components/TripCountdown"
+import TravelStats from "./components/TravelStats"
+
 export const dynamic = "force-dynamic"
 
 export default async function ProfilePage() {
@@ -96,12 +99,31 @@ export default async function ProfilePage() {
 
         {/* Left sidebar */}
         <div className="w-80 shrink-0 flex flex-col gap-4">
+
+          {/* Calendar card */}
           <div className="bg-white rounded-2xl shadow-sm p-5">
             <p className="text-sm font-semibold text-gray-800 mb-0.5">Upcoming Trips</p>
             <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
             <UpcomingTripsCalendar trips={calendarTrips} />
           </div>
-          {/* Remove ProfileMapClient from here */}
+
+          {/* Next Departure */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 min-h-[200px] flex flex-col justify-center">
+            <p className="text-sm font-semibold text-gray-800 mb-0.5">Next Departure</p>
+            <p className="text-xs text-gray-400 mb-3">Counting down to your next trip</p>
+            <TripCountdown trips={itineraries ?? []} />
+          </div>
+
+          {/* Travel Stats */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 min-h-[180px] flex flex-col justify-center">
+            <p className="text-sm font-semibold text-gray-800 mb-0.5">Travel Stats</p>
+            <p className="text-xs text-gray-400 mb-3">Your journey by the numbers</p>
+            <TravelStats
+              trips={allItineraries}
+              collaboratorCount={allMembers ? new Set(allMembers.map(m => m.user_id)).size - 1 : 0}
+            />
+          </div>
+
         </div>
 
         {/* Main content */}
