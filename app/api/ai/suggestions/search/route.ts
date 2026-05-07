@@ -7,14 +7,9 @@ import {
   searchGoogleHotels,
 } from "@/lib/ai/serp"
 
-const TA_BASE = "https://api.content.tripadvisor.com/api/v1"
 const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
 
-// Fixed — grabs first part ("London")
-function extractCity(location: string): string {
-  const parts = location.split(",").map(s => s.trim()).filter(Boolean)
-  return parts[0] ?? location
-}
+// ─── DATE HELPERS ────────────────────────────────────────────────────────────
 
 function getCheckinDate(trip?: any): string {
   if (trip?.startDate) return trip.startDate
@@ -30,202 +25,104 @@ function getCheckoutDate(trip?: any): string {
   return d.toISOString().split("T")[0]
 }
 
-async function searchTripAdvisor(
-  query: string,
-  location: string,
-  category: "restaurants" | "attractions",
-  limit: number = 5
-): Promise<{ locationId: string; name: string }[]> {
-  const key = process.env.TRIPADVISOR_KEY
-  if (!key) {
-    console.error("TRIPADVISOR_KEY not set")
-    return []
-  }
+// ─── SERP TRIPADVISOR ─────────────────────────────────────────────────────────
 
-  const url =
-    `${TA_BASE}/location/search` +
-    `?key=${key}` +
-    `&searchQuery=${encodeURIComponent(query)}` +
-    `&category=${category}` +
-    `&language=en` +
-    `&address=${encodeURIComponent(location)}`
-
-  console.log("TA SEARCH URL:", url)
-
-  const res = await fetch(url)
-  if (!res.ok) {
-    console.error("TA SEARCH ERROR:", res.status, await res.text())
-    return []
-  }
-
-  const data = await res.json()
-  console.log("TA SEARCH RESULTS:", data.data?.length, "for:", query)
-  console.log("TA SEARCH FIRST:", JSON.stringify(data.data?.[0], null, 2))
-
-  return (data.data ?? []).slice(0, limit).map((loc: any) => ({
-    locationId: loc.location_id,
-    name: loc.name,
-  }))
+function simplifyQuery(query: string): string {
+  return query
+    .replace(/\b(specialty|artisan|independent|authentic|traditional|modern|trendy|popular|best|top|local|hidden|unique|cozy|upscale|casual|third wave)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
-async function getLocationDetails(locationId: string): Promise<any> {
-  const key = process.env.TRIPADVISOR_KEY
-  if (!key) return null
-
-  const url =
-    `${TA_BASE}/location/${locationId}/details` +
-    `?key=${key}` +
-    `&language=en` +
-    `&currency=USD`
-
-  console.log("TA DETAILS URL:", url)
-
-  const res = await fetch(url)
-  if (!res.ok) {
-    console.error("TA DETAILS ERROR:", res.status)
-    return null
-  }
-
-  const data = await res.json()
-  console.log("TA DETAILS:", JSON.stringify(data, null, 2))
-  return data
-}
-
-async function getLocationPhoto(locationId: string): Promise<string | undefined> {
-  const key = process.env.TRIPADVISOR_KEY
-  if (!key) return undefined
-
-  const url =
-    `${TA_BASE}/location/${locationId}/photos` +
-    `?key=${key}` +
-    `&language=en` +
-    `&limit=1` +
-    `&source=Traveler`
-
-  console.log("TA PHOTOS URL:", url)
-
-  const res = await fetch(url)
-  if (!res.ok) {
-    console.error("TA PHOTOS ERROR:", res.status)
-    return undefined
-  }
-
-  const data = await res.json()
-  const photo = data.data?.[0]
-  console.log("TA PHOTO:", JSON.stringify(photo, null, 2))
-
-  return photo?.images?.large?.url ?? photo?.images?.original?.url ?? undefined
-}
-
-function parsePriceLevel(priceLevel: string | undefined): number | undefined {
-  if (!priceLevel) return undefined
-  return priceLevel.replace(/[^$]/g, "").length || undefined
-}
-
-function isGoodLocation(details: any, type?: EventLabel): boolean {
-  const description = (details.description ?? "").trim()
-
-  if (type !== "Food" && description.length < 20) {
-    console.log("FILTERED OUT (no description):", details.name)
-    return false
-  }
-
-  if (!details.rating) {
-    console.log("FILTERED OUT (no rating):", details.name)
-    return false
-  }
-
-  return true
-}
-
-function isRelevantResult(details: any, query: string): boolean {
-  const queryWords = query.toLowerCase().split(" ").filter((w) => w.length > 3)
-
-  const name = details.name?.toLowerCase() ?? ""
-  const cuisine = details.cuisine?.map((c: any) => c.name.toLowerCase()).join(" ") ?? ""
-  const subcategory = details.subcategory?.map((s: any) => s.name.toLowerCase()).join(" ") ?? ""
-  const description = (details.description ?? "").toLowerCase()
-
-  const searchableText = `${name} ${cuisine} ${subcategory} ${description}`
-  const hasMatch = queryWords.some((word) => searchableText.includes(word))
-
-  if (!hasMatch) {
-    console.log("RELEVANCE FILTERED:", details.name, "— query:", query)
-    return false
-  }
-
-  return true
-}
-
-async function searchTripAdvisorWidgets(
+async function searchSerpTripAdvisor(
   query: string,
   location: string,
   type: EventLabel,
-  intentIndex: number,
-  intentQuery: string
+  intentIndex: number
 ): Promise<Widget[]> {
-  const category = type === "Food" ? "restaurants" : "attractions"
-  const locations = await searchTripAdvisor(query, location, category, 5)
-  if (!locations.length) return []
+  const key = process.env.SERPAPI_KEY
+  if (!key) {
+    console.error("SERPAPI_KEY not set")
+    return []
+  }
+
+  const simplified = simplifyQuery(query)
+  console.log("SERP TA QUERY:", query, "→ simplified:", simplified)
+
+  const params = new URLSearchParams({
+    engine: "tripadvisor",
+    q: `${simplified || query} ${location}`,
+    api_key: key,
+  })
+
+  const url = `https://serpapi.com/search?${params.toString()}`
+  console.log("SERP TA URL:", url)
+
+  const res = await fetch(url)
+  if (!res.ok) {
+    console.error("SERP TA ERROR:", res.status, await res.text())
+    return []
+  }
+
+  const data = await res.json()
+
+  const places: any[] = data.places ?? []
+  console.log("SERP TA PLACES:", places.length)
 
   const widgets: Widget[] = []
+  const seenTitles = new Set<string>()
 
-  for (let i = 0; i < locations.length; i++) {
+  for (let i = 0; i < places.length; i++) {
     if (widgets.length >= 3) break
+    const place = places[i]
 
-    const { locationId, name } = locations[i]
-    try {
-      const [details, photoUrl] = await Promise.all([
-        getLocationDetails(locationId),
-        getLocationPhoto(locationId),
-      ])
-
-      console.log("TA DETAILS FOR:", name, {
-        hasDetails: !!details,
-        description: details?.description?.slice(0, 50),
-        rating: details?.rating,
-        hasPhoto: !!photoUrl,
-      })
-
-      if (!details) {
-        console.log("SKIP (no details):", name)
-        continue
-      }
-
-      if (!isGoodLocation(details, type)) continue
-      if (!isRelevantResult(details, intentQuery)) continue
-
-      if (!photoUrl) {
-        console.log("SKIP (no photo):", name)
-        continue
-      }
-
-      widgets.push({
-        id: `${locationId}-${intentIndex}-${i}`,
-        title: details.name ?? name,
-        location: details.address_obj
-          ? [details.address_obj.street1, details.address_obj.city]
-              .filter(Boolean)
-              .join(", ")
-          : location,
-        description: details.description?.trim().length > 0
-          ? details.description
-          : details.cuisine?.[0]?.localized_name ?? undefined,
-        type,
-        image_url: photoUrl,
-        rating: details.rating ? parseFloat(details.rating) : undefined,
-        price: parsePriceLevel(details.price_level),
-        url: details.web_url ?? undefined,
-      })
-
-      console.log("TA WIDGET BUILT:", details.name, "| rating:", details.rating)
-    } catch (e) {
-      console.error("TA WIDGET FAILED FOR:", name, e)
+    const title = place.title ?? place.name
+    if (!title || seenTitles.has(title.toLowerCase())) {
+      console.log("SERP TA SKIP (duplicate):", title)
+      continue
     }
+
+    const photoUrl =
+      place.thumbnail ??
+      place.photo?.images?.large?.url ??
+      place.images?.[0]?.url
+
+    if (!photoUrl) {
+      console.log("SERP TA SKIP (no photo):", title)
+      continue
+    }
+
+    if (!place.rating) {
+      console.log("SERP TA SKIP (no rating):", title)
+      continue
+    }
+
+    widgets.push({
+      id: `serp-ta-${place.location_id ?? place.place_id ?? i}-${intentIndex}`,
+      title,
+      location: place.address ?? place.address_string ?? location,
+      description:
+        place.description ??
+        place.snippet ??
+        place.type ??
+        undefined,
+      type,
+      image_url: photoUrl,
+      rating: typeof place.rating === "number" ? place.rating : parseFloat(place.rating),
+      price: place.price_range
+        ? place.price_range.replace(/[^$]/g, "").length
+        : undefined,
+      url: place.link ?? place.web_url ?? undefined,
+    })
+
+    seenTitles.add(title.toLowerCase())
+    console.log("SERP TA WIDGET BUILT:", title, "| rating:", place.rating)
   }
 
   return widgets
 }
+
+// ─── TICKETMASTER ────────────────────────────────────────────────────────────
 
 function getBestTicketmasterImage(images: any[]): string | undefined {
   if (!images.length) return undefined
@@ -234,6 +131,29 @@ function getBestTicketmasterImage(images: any[]): string | undefined {
     .sort((a, b) => (b.width ?? 0) - (a.width ?? 0))
   if (sixteenNine.length) return sixteenNine[0].url
   return images.find((img) => img.url)?.url
+}
+
+// Country code map for common non-US cities
+const countryMap: Record<string, string> = {
+  london: "GB", manchester: "GB", birmingham: "GB", glasgow: "GB",
+  edinburgh: "GB", bristol: "GB", leeds: "GB", liverpool: "GB",
+  paris: "FR", berlin: "DE", munich: "DE", hamburg: "DE",
+  amsterdam: "NL", toronto: "CA", vancouver: "CA", montreal: "CA",
+  sydney: "AU", melbourne: "AU", brisbane: "AU",
+  tokyo: "JP", osaka: "JP", dublin: "IE", madrid: "ES",
+  barcelona: "ES", rome: "IT", milan: "IT",
+}
+
+// City name to IATA fallback
+const cityToIata: Record<string, string> = {
+  london: "LHR", "new york": "JFK", "los angeles": "LAX",
+  "san francisco": "SFO", chicago: "ORD", miami: "MIA",
+  paris: "CDG", tokyo: "NRT", sydney: "SYD", dubai: "DXB",
+  amsterdam: "AMS", frankfurt: "FRA", toronto: "YYZ",
+  singapore: "SIN", bangkok: "BKK", barcelona: "BCN",
+  rome: "FCO", madrid: "MAD", berlin: "BER", seoul: "ICN",
+  "hong kong": "HKG", istanbul: "IST", dublin: "DUB",
+  "mexico city": "MEX", "sao paulo": "GRU", cairo: "CAI",
 }
 
 async function searchTicketmaster(
@@ -249,28 +169,20 @@ async function searchTicketmaster(
   }
 
   const cleanQuery = query
-    .replace(/\b(game|match|ticket|live)\b/gi, "")
+    .replace(/\b(concert|show|game|match|ticket|live|event|music|tour)\b/gi, "")
     .replace(/\bMLB\b/gi, "baseball")
     .replace(/\bNBA\b/gi, "basketball")
     .replace(/\bNFL\b/gi, "football")
     .replace(/\bNHL\b/gi, "hockey")
+    .replace(/\s+/g, " ")
     .trim()
 
-  // Country code map for common non-US cities
-  const countryMap: Record<string, string> = {
-    london: "GB", manchester: "GB", birmingham: "GB", glasgow: "GB",
-    paris: "FR", berlin: "DE", amsterdam: "NL", toronto: "CA",
-    sydney: "AU", melbourne: "AU", tokyo: "JP",
-  }
-
-  const cityMatch = location.match(/^([^,]+)/)
-  const city = cityMatch?.[1]?.trim() ?? location
-  const stateMatch = location.match(/,\s*([A-Z]{2})/)
+  const city = location.split(",")[0]?.trim() ?? location
+  const stateMatch = location.match(/,\s*([A-Z]{2})$/)
   const stateCode = stateMatch?.[1] ?? ""
   const countryCode =
     countryMap[city.toLowerCase()] ?? (stateCode ? "US" : undefined)
 
-  // Build date range from trip or intent dates
   const startDate = trip?.startDate ?? getCheckinDate(trip)
   const endDate = trip?.endDate ?? getCheckoutDate(trip)
   const startDateTime = `${startDate}T00:00:00Z`
@@ -278,7 +190,7 @@ async function searchTicketmaster(
 
   const params = new URLSearchParams({
     apikey: key,
-    keyword: cleanQuery || query, // fallback to original if cleaning empties it
+    keyword: cleanQuery || query,
     size: "5",
     sort: "date,asc",
     startDateTime,
@@ -305,7 +217,6 @@ async function searchTicketmaster(
   }
 
   const data = await res.json()
-  console.log("TM RAW RESPONSE:", JSON.stringify(data, null, 2))
   const events = data._embedded?.events ?? []
   console.log("TM EVENTS FOUND:", events.length)
 
@@ -356,6 +267,8 @@ async function searchTicketmaster(
   return widgets
 }
 
+// ─── ROUTE HANDLER ───────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   console.log("SEARCH ROUTE HIT")
 
@@ -392,36 +305,33 @@ export async function POST(req: NextRequest) {
         const isFlight = /flight|fly|airline|airport|depart|arrive/i.test(intent.query)
         const isCar = /car|rental|drive|vehicle|rent/i.test(intent.query)
 
-      if (isFlight) {
-        // Extract IATA codes from query first — Claude outputs these reliably
-        // e.g. "flight SNA to JFK" → origin: "SNA", dest: "JFK"
-        const queryIataMatch = intent.query.match(/\b([A-Z]{3})\b.*?\b([A-Z]{3})\b/)
+        if (isFlight) {
+          const queryIataMatch = intent.query.match(/\b([A-Z]{3})\b.*?\b([A-Z]{3})\b/)
 
-        let originLoc: string
-        let destLoc: string
+          let originLoc: string
+          let destLoc: string
 
-        if (queryIataMatch) {
-          // Use IATA codes directly from the query — most reliable
-          originLoc = queryIataMatch[1]
-          destLoc = queryIataMatch[2]
-          console.log("IATA FROM QUERY:", originLoc, "→", destLoc)
-        } else {
-          // Fall back to splitting location string
-          const locationParts = intent.location.split(/\s+to\s+/i)
-          originLoc = locationParts[0]?.trim() ?? intent.location
-          destLoc = locationParts[1]?.trim() ?? intent.location
-          console.log("IATA FROM LOCATION:", originLoc, "→", destLoc)
+          if (queryIataMatch) {
+            originLoc = queryIataMatch[1]
+            destLoc = queryIataMatch[2]
+            console.log("IATA FROM QUERY:", originLoc, "→", destLoc)
+          } else {
+            const locationParts = intent.location.split(/\s+to\s+/i)
+            const originRaw = locationParts[0]?.trim().toLowerCase() ?? ""
+            const destRaw = locationParts[1]?.trim().toLowerCase() ?? ""
+            originLoc = cityToIata[originRaw] ?? locationParts[0]?.trim() ?? intent.location
+            destLoc = cityToIata[destRaw] ?? locationParts[1]?.trim() ?? intent.location
+            console.log("IATA FROM LOCATION:", originLoc, "→", destLoc)
+          }
+
+          const depDate = intent.departureDate ?? getCheckinDate(trip)
+          const adults = trip?.travelers?.length ?? 1
+
+          results = await searchGoogleFlights(originLoc, destLoc, depDate, adults, i)
+          console.log("FLIGHT RESULTS:", results.length)
         }
 
-        const depDate = intent.departureDate ?? getCheckinDate(trip)
-        const adults = trip?.travelers?.length ?? 1
-
-        results = await searchGoogleFlights(originLoc, destLoc, depDate, adults, i)
-        console.log("FLIGHT RESULTS:", results.length)
-      }
-
-        // Car rental fallback — Google Maps deep link for now
-        // Replace with Booking.com cars if you have that key
+        // Car rental / transit fallback
         if (!results.length) {
           results = [{
             id: `transit-${i}`,
@@ -442,25 +352,24 @@ export async function POST(req: NextRequest) {
 
       } else if (intent.type === "Reservation") {
         const isHotel = /hotel|stay|accommodation|hostel|resort|inn|lodge/i.test(intent.query)
-        const city = extractCity(intent.location)
 
         if (isHotel) {
           const checkIn = getCheckinDate(trip)
           const checkOut = getCheckoutDate(trip)
           const adults = trip?.travelers?.length ?? 2
-          results = await searchGoogleHotels(city, checkIn, checkOut, adults, i)
+          results = await searchGoogleHotels(intent.location, checkIn, checkOut, adults, i)
         } else {
-          // Ticketmaster only for live events
-          results = await searchTicketmaster(intent.query, city, i, trip)
+          // Ticketmaster for concerts/events/sports
+          results = await searchTicketmaster(intent.query, intent.location, i, trip)
         }
+
       } else {
-        // Food and Activity — TripAdvisor
-        results = await searchTripAdvisorWidgets(
+        // Food and Activity — SerpAPI TripAdvisor
+        results = await searchSerpTripAdvisor(
           intent.query,
-          extractCity(intent.location),
+          intent.location,
           intent.type,
-          i,
-          intent.query
+          i
         )
       }
 
@@ -524,6 +433,15 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  console.log("SEARCH DONE — intents:", intents.length, "widgets:", widgets.length)
-  return NextResponse.json({ widgets })
+  // Dedupe across all intents by title
+  const seen = new Set<string>()
+  const deduped = widgets.filter(w => {
+    const key = w.title?.toLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  console.log("SEARCH DONE — intents:", intents.length, "widgets:", widgets.length, "deduped:", deduped.length)
+  return NextResponse.json({ widgets: deduped })
 }
