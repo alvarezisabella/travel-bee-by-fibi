@@ -1,7 +1,7 @@
 "use client"
 
 import {
-  MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark,
+  MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark, FileText,
   X, Copy, Check, Loader2, UserPlus, MoveLeft
 } from "lucide-react"
 import { Trip, Widget } from "../types/types"
@@ -11,6 +11,7 @@ import LocationSearch from "./LocationSearch"
 import { createClient } from "@/lib/supabase/client"
 import { downloadICS } from "@/lib/ics"
 import { BookmarkCard } from "./BookmarkCard"
+import DocumentsPanel from "./DocumentsPanel"
 import TripList from "./TripCard"
 import dynamic from "next/dynamic"
 import CalendarGrid from "./CalendarGrid"
@@ -208,9 +209,10 @@ function TripDatePicker({ startDate, endDate, onSave }: TripDatePickerProps) {
 // ─── Main TripHeader ──────────────────────────────────────────────────────────
 
 export default function TripHeader({ trip }: Props) {
-  const [list, setList]         = useState(true)
-  const [map, setMap]           = useState(false)
-  const [calendar, setCalendar] = useState(false)
+  const [list, setList]           = useState(true)
+  const [map, setMap]             = useState(false)
+  const [calendar, setCalendar]   = useState(false)
+  const [documents, setDocuments] = useState(false)
 
   const router = useRouter()
   const [title, setTitle]     = useState(trip.title)
@@ -507,9 +509,10 @@ export default function TripHeader({ trip }: Props) {
 
             {/* Bottom Icons */}
             <div className="flex gap-5 mt-5 text-gray-600">
-              <button title="List View" onClick={() => { setList(true); setMap(false); setCalendar(false) }} className="cursor-pointer hover:text-black transition"><List size={20} /></button>
-              <button title="Calendar View" onClick={() => { setCalendar(true); setList(false); setMap(false) }} className="cursor-pointer hover:text-black transition"><CalendarDays size={20} /></button>
-              <button title="Map View" className="cursor-pointer hover:text-black transition" onClick={() => { setMap(true); setList(false); setCalendar(false) }}><Map size={20} /></button>
+              <button title="List View" onClick={() => { setList(true); setMap(false); setCalendar(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><List size={20} /></button>
+              <button title="Calendar View" onClick={() => { setCalendar(true); setList(false); setMap(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><CalendarDays size={20} /></button>
+              <button title="Map View" className="cursor-pointer hover:text-black transition" onClick={() => { setMap(true); setList(false); setCalendar(false); setDocuments(false) }}><Map size={20} /></button>
+              <button title="Documents" onClick={() => { setDocuments(true); setList(false); setMap(false); setCalendar(false) }} className="cursor-pointer hover:text-black transition"><FileText size={20} /></button>
               <button title="Bookmarks" onClick={() => { setBookmarkPanel(true); fetchBookmarks() }} className="cursor-pointer hover:text-black transition relative"><Bookmark size={20} /></button>
             </div>
 
@@ -704,6 +707,7 @@ export default function TripHeader({ trip }: Props) {
 
       {list && <TripList trip={trip} />}
       {map && <CaliforniaMap days={trip.days} />}
+      {documents && <DocumentsPanel tripId={trip.id} />}
       {calendar && (
         <CalendarGrid
           days={trip.days.filter(d => d.date).map(d => ({ id: d.id, date: d.date!, events: d.events }))}
