@@ -23,28 +23,43 @@ export default function ChatUI({
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    const userMsg: Message = { role: "user", text: input };
-
-    // ADD USER MESSAGE
-    setMessages((prev) => [...prev, userMsg]);
+    const currentInput = input.trim();
+    setMessages((prev) => [...prev, { role: "user", text: currentInput }]);
     setInput("");
     setLoading(true);
 
     try {
-      // call API route 
-    const res = await fetch("/api/chat", {
-  method: "POST",
-  body: JSON.stringify({ message: input }),
-});
+      const apiMessages = [
+        ...messages.map(m => ({
+          role: m.role === "user" ? "user" as const : "assistant" as const,
+          content: m.text,
+        })),
+        { role: "user" as const, content: currentInput },
+      ];
 
-const data = await res.json();
-const reply = data.reply;
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
 
-      // ADD AI RESPONSE
-      setMessages((prev) => [
-        ...prev,
-        { role: "agent", text: reply },
-      ]);
+      let botText = "";
+      setMessages((prev) => [...prev, { role: "agent", text: "" }]);
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          botText += decoder.decode(value);
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: "agent", text: botText };
+            return updated;
+          });
+        }
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
