@@ -1,9 +1,6 @@
 "use client"; // REQUIRED (this component uses state)
 
-
 import { useState } from "react";
-//import { Trip } from "../itinerary/types/types";
-import { ChatMessage } from "@/lib/ai/types";
 //import { getAIResponse } from "@/lib/ai/anthropic"; //
 
 type Message = {
@@ -20,59 +17,50 @@ export default function ChatUI({
     { role: "agent", text: "Hi! I'm Agent Atlas, your AI travel assistant. Ask me anything about your next trip! ✈️" },
   ]);
   const [input, setInput] = useState("");
-  //const [isTyping, setIsTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    console.log(" Sending message:", input);
-
-    const userMsg: Message = { role: "user", text: input };
-
-    //create updated message list first
-    const updatedMessage = [...messages, userMsg];
-
-    // ADD USER MESSAGE
-    //setMessages((prev) => [...prev, userMsg]);
-    setMessages(updatedMessage);
+    const currentInput = input.trim();
+    setMessages((prev) => [...prev, { role: "user", text: currentInput }]);
     setInput("");
     setLoading(true);
 
     try {
-      //convert UI messages -> API Format
-      const apiMessages = updatedMessage.map((m) => ({
-      role: m.role === "agent" ? "assistant" : "user",
-      content: m.text,}));
+      const apiMessages = [
+        ...messages.map(m => ({
+          role: m.role === "user" ? "user" as const : "assistant" as const,
+          content: m.text,
+        })),
+        { role: "user" as const, content: currentInput },
+      ];
 
-      // call API route 
-    const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({ 
-            message: apiMessages,
-            tripContext: {},
-            itineraryId: "demo-id"
-        }),
-    });
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
 
-    console.log("response status:", res.status);
+      let botText = "";
+      setMessages((prev) => [...prev, { role: "agent", text: "" }]);
 
-    const data = await res.json();
-
-    console.log("data:", data);
-    const reply = data.reply;
-
-      // ADD AI RESPONSE
-      setMessages((prev) => [
-        ...prev,
-        { role: "agent", text: reply || "No reply returned." },
-      ]);
-    } catch (err) {
-      console.error(' Fetch error:', err);
-
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          botText += decoder.decode(value);
+          setMessages((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { role: "agent", text: botText };
+            return updated;
+          });
+        }
+      }
+    } catch {
       setMessages((prev) => [
         ...prev,
         { role: "agent", text: "Error getting response." },
@@ -85,7 +73,7 @@ export default function ChatUI({
   return (
     <div
       className={`
-        border-4 border-blue-500 rounded-2xl overflow-hidden bg-white shadow-lg flex flex-col
+        rounded-2xl overflow-hidden bg-white shadow-lg flex flex-col
         ${compact ? "w-full max-w-[600px] h-[500px]" : "w-full h-screen"}
       `}
     >
@@ -102,7 +90,7 @@ export default function ChatUI({
       </div>
 
       {/* CHAT AREA */}
-      <div className="flex-1 bg-gray-200 p-4 space-y-4 overflow-y-auto">
+      <div className="flex-1 bg-#e6e6e6 p-4 space-y-4 overflow-y-auto">
 
         {/*  MESSAGES LOOP */}
         {messages.map((msg, i) => (
@@ -150,13 +138,13 @@ export default function ChatUI({
       </div>
 
       {/* INPUT */}
-      <div className="flex items-center gap-2 p-3 border-t">
+      <div className="flex items-center gap-2 p-3 border-t border-gray-200">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           placeholder="Ask Agent Atlas anything..."
-          className="flex-1 px-4 py-2 rounded-full border focus:outline-none text-sm"
+          className="flex-1 px-4 py-2 rounded-full border border-gray-300 focus:outline-none text-sm"
         />
         <button
           onClick={sendMessage}

@@ -1,13 +1,20 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Rectangle, Marker, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 50);
+    return () => clearTimeout(id);
+  }, [map]);
+  return null;
+}
 import { fixLeafletIcons } from '@/lib/map/leaflet-fix';
-import { LatLngBoundsExpression } from 'leaflet';
 import { ShowTrip } from './show_trip';
 
-const CALIFORNIA_BOUNDS: LatLngBoundsExpression = [[32.5, -124.5], [42.0, -114.1]] as const;
-const CALIFORNIA_CENTER: [number, number] = [36.7783, -119.4179];
+const WORLD_CENTER: [number, number] = [20, 0];
 
 interface TripMember {
   user_id: string
@@ -35,25 +42,27 @@ interface MapProps {
 export default function ProfileMap({ trips }: MapProps) {
   useEffect(() => { fixLeafletIcons(); }, []);
 
+  const tripsWithCoords = trips.filter(t => t.lat && t.lng);
+  const center: [number, number] = tripsWithCoords.length > 0
+    ? [
+        tripsWithCoords.reduce((sum, t) => sum + t.lat!, 0) / tripsWithCoords.length,
+        tripsWithCoords.reduce((sum, t) => sum + t.lng!, 0) / tripsWithCoords.length,
+      ]
+    : WORLD_CENTER;
+
   return (
-    <div className='py-4'>
-      <div className="bg-white rounded-2xl shadow-sm p-6 gap-3" style={{ position: 'relative', zIndex: 0 }}>
-        <p className="pb-2 text-sm font-semibold text-gray-800">Places I've Been</p>
+    <div className='py-0'>
+      <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-4" style={{ position: 'relative', zIndex: 0 }}>
+        <p className="pb-2 text-base font-semibold text-gray-800">Places I've Been</p>
         <MapContainer
-          center={CALIFORNIA_CENTER}
-          zoom={6}
-          maxBounds={CALIFORNIA_BOUNDS}
-          maxBoundsViscosity={0.8}
-          minZoom={5}
-          style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0 }}
+          center={center}
+          zoom={2}
+          style={{ height: '300px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
         >
+          <MapResizer />
           <TileLayer
             url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
             attribution='&copy; OpenStreetMap contributors & CARTO'
-          />
-          <Rectangle
-            bounds={CALIFORNIA_BOUNDS}
-            pathOptions={{ color: '#2563eb', weight: 2, fillOpacity: 0.03, dashArray: '6 4' }}
           />
           {trips.map(t => t.lat && t.lng && (
             <Marker key={t.id} position={[t.lat, t.lng]}>

@@ -4,9 +4,12 @@ import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ProfileHeader from "./components/ProfileHeader"
 import TripHistory from "./components/TripHistory"
-import ProfileMap from "./components/profile_map"
+import ProfileMapClient from "./components/ProfileMapClient"
 import UpcomingTripsCalendar from "./components/UpcomingTripsCalendar"
 import { ShowGeneratedItinerary } from "./components/sample_itin"
+import TripCountdown from "./components/TripCountdown"
+import TravelStats from "./components/TravelStats"
+
 export const dynamic = "force-dynamic"
 
 export default async function ProfilePage() {
@@ -94,24 +97,41 @@ export default async function ProfilePage() {
         <ProfileHeader />
         <div className="flex gap-6 items-start">
 
-          {/* Left sidebar */}
-          <div className="w-80 shrink-0 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <p className="text-sm font-semibold text-gray-800 mb-0.5">Upcoming Trips</p>
-              <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
-              <UpcomingTripsCalendar trips={calendarTrips} />
-            </div>
-            <ProfileMap trips={trips} />
+        {/* Left sidebar */}
+        <div className="w-80 shrink-0 flex flex-col gap-4">
+
+          {/* Calendar card */}
+          <div className="bg-white rounded-2xl shadow-sm p-5">
+            <p className="text-sm font-semibold text-gray-800 mb-0.5">Upcoming Trips</p>
+            <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
+            <UpcomingTripsCalendar trips={calendarTrips} />
           </div>
 
-          {/* Main content */}
-          <div className="flex-1 flex flex-col gap-6">
-            {/* My Trips — regular trips only */}
-            <TripHistory trips={trips} />
-
-            {/* Agent Atlas Recommendations */}
-            <ShowGeneratedItinerary />
+          {/* Next Departure */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 min-h-[200px] flex flex-col justify-center">
+            <p className="text-sm font-semibold text-gray-800 mb-0.5">Next Departure</p>
+            <p className="text-xs text-gray-400 mb-3">Counting down to your next trip</p>
+            <TripCountdown trips={itineraries ?? []} />
           </div>
+
+          {/* Travel Stats */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 min-h-[180px] flex flex-col justify-center">
+            <p className="text-sm font-semibold text-gray-800 mb-0.5">Travel Stats</p>
+            <p className="text-xs text-gray-400 mb-3">Your journey by the numbers</p>
+            <TravelStats
+              trips={allItineraries}
+              collaboratorCount={allMembers ? new Set(allMembers.map(m => m.user_id)).size - 1 : 0}
+            />
+          </div>
+
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col gap-6">
+          <TripHistory trips={trips} />
+          <ShowGeneratedItinerary />
+          <ProfileMapClient trips={trips} />
+        </div>
 
         </div>
       </div>

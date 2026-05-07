@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, KeyboardEvent } from "react";
+import React, { useRef, useEffect, useState, KeyboardEvent } from "react";
 import { chat } from "./chat";
 import { Message, Trip, Widget, ItineraryUpdate } from "../types/types";
 import styles from "../../../styles/chat.module.css";
@@ -8,7 +8,7 @@ import { PdfEventWidget } from "./PdfEventWidget";
 import { Paperclip } from "lucide-react";
 import { Day } from "../day";
 import { useBookmarks } from "./useBookmarks";
-import {Compass} from "lucide-react"
+import { Compass } from "lucide-react"
 import { TripUpdates } from "./get_updates";
 import { getItineraryUpdates } from "@/lib/hooks/updates";
 
@@ -28,7 +28,6 @@ interface ChatSidebarProps {
   days: Day[];
 }
 
-
 interface MessageBubbleProps {
   msg: Message;
   trip: Trip;
@@ -38,8 +37,6 @@ interface MessageBubbleProps {
   addBotMessage: (text: string) => void;
 }
 
-// Defined at module scope so React can reuse instances across renders —
-// avoids the remounting that would happen if this were defined inside ChatSidebar.
 const MessageBubble: React.FC<MessageBubbleProps> = ({
   msg, trip, days, isBookmarked, onToggleBookmark, addBotMessage,
 }) => {
@@ -48,6 +45,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     .replace(/<widgets>[\s\S]*$/, "")
     .replace(/<search>\s*[\s\S]*?\s*<\/search>/, "")
     .replace(/<search>[\s\S]*$/, "")
+    .replace(/<itinerary-action>[\s\S]*?<\/itinerary-action>/, "")
+    .replace(/<itinerary-action>[\s\S]*$/, "")
     .trim();
 
   return (
@@ -85,8 +84,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 };
 
-export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
-
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   const { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading } =
     chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -94,12 +92,28 @@ export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id);
 
+  // Track scroll position to push sidebar down as user scrolls
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 300)
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   useEffect(() => {
     refetch();
   }, [messages, refetch]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < 80) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -109,15 +123,15 @@ export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     }
   };
 
-
   return (
     <aside
       className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
+      style={{ top: scrolled ? "110px" : "15px", transition: "top 0.3s ease, width 0.25s ease" }}
       aria-label="Chat sidebar"
     >
       {/* Header */}
       <header className={styles.header}>
-        {!isCollapsed && <div  className={styles.title}>🐝<span className="px-3">Agent Atlas</span></div>}
+        {!isCollapsed && <div className={styles.title}>🐝<span className="px-3">Agent Atlas</span></div>}
         <button
           className={styles.toggleBtn}
           onClick={toggle}
@@ -131,7 +145,6 @@ export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
       {/* Messages */}
       {!isCollapsed && (
         <>
-        
           <div ref={messagesRef} className={styles.messages} role="log" aria-live="polite">
             {messages.map((msg) => (
               <MessageBubble
@@ -144,10 +157,12 @@ export const  ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
                 addBotMessage={addBotMessage}
               />
             ))}
-            <TripUpdates trip={trip.id}/>
-             {isLoading && ( <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
+            <TripUpdates trip={trip.id} />
+            {isLoading && (
+              <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
                 <span>Atlas is typing…</span>
-              </div>)}
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 

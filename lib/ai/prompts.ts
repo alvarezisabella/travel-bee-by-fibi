@@ -23,27 +23,31 @@ export function buildChatSystemPrompt(trip?: Trip): string {
       : "dates not set"
     : "dates not set"
 
-  const daysWithEvents = (trip?.days ?? []).filter(d => d.events && d.events.length > 0)
+  const allDays = trip?.days ?? []
 
-  const itinerarySection = daysWithEvents.length === 0 ? "" : `
+  const itinerarySection = allDays.length === 0 ? "" : `
     Scheduled itinerary:
-    ${daysWithEvents.map((day, idx) => {
+    ${allDays.map((day, idx) => {
         const dateLabel = day.date
           ? new Date(day.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
           : `Day ${idx + 1}`
 
-        const eventsText = day.events.map(event => {
-          const lines = [`  - ${event.startTime} | ${event.title} | ${event.type} | (${event.status})`]
-          if (event.location)
-            lines.push(`      Location: ${event.location}`)
-          if (event.duration)
-            lines.push(`      Duration: ${event.duration} min`)
-          if (event.description)
-            lines.push(`      Description: ${event.description}`)
-          return lines.join("\n")
-        }).join("\n")
+        const dateTag = day.date ? ` [date:${day.date}]` : ""
 
-        return `Day ${idx + 1} - ${dateLabel}:\n${eventsText}`
+        const eventsText = day.events.length === 0
+          ? "  (no events scheduled)"
+          : day.events.map(event => {
+            const lines = [`  - [id:${event.id}] ${event.startTime} | ${event.title} | ${event.type} | (${event.status})`]
+            if (event.location)
+              lines.push(`      Location: ${event.location}`)
+            if (event.duration)
+              lines.push(`      Duration: ${event.duration} min`)
+            if (event.description)
+              lines.push(`      Description: ${event.description}`)
+            return lines.join("\n")
+          }).join("\n")
+
+        return `Day ${idx + 1} - ${dateLabel}${dateTag}:\n${eventsText}`
       }).join("\n\n")}`
 
   const tripIntro = trip
@@ -93,7 +97,42 @@ ${tripDetails}
           - NEVER say shows "are likely to be playing" — always use a <search> block to find real current listings.
           - location must be as specific as possible — use neighborhood, city, or region
           - output 2-4 search intents per response covering diverse options
-          - Write 1 sentence of plain text context before the <search> block. Nothing after.`
+          - Write 1 sentence of plain text context before the <search> block. Nothing after.
+
+          ## Itinerary editing
+
+          You can add and delete events on the user's itinerary.
+
+          ### Deleting an event
+          When the user asks you to delete, remove, or cancel a scheduled event:
+          - Use the event ID shown in [id:...] next to the event in the scheduled itinerary above.
+          - If the user is vague and multiple events could match, ask which one before acting.
+          - NEVER invent or make up event IDs. Only use the IDs shown in the itinerary above, and only delete events that are actually listed there.
+          - NEVER delete more than one event at a time. If the user asks to delete multiple events, ask them to specify which one to delete first, then handle them one at a time.
+          - NEVER delete all events in a day or an itinerary at once. This is meant to be a careful, manual process. Always ask for confirmation before deleting anything, even if it's clear which event to delete.
+          - ALWAYS ask to confirm with the user before deleting an event. Even if it is clear which event to delete, you must ask for confirmation before proceeding.
+          - Say what you did (e.g. "Done! I've removed [title] from your itinerary.") then output the action block.
+
+          Format:
+          <itinerary-action>{"type":"delete","eventId":"[id]","eventTitle":"[title]"}</itinerary-action>
+
+          ### Adding an event
+          When the user asks you to add, schedule, or book an event on a specific day:
+          - Use the date shown in [date:YYYY-MM-DD] next to the day in the scheduled itinerary above.
+          - Ask for any required details you don't have: title, day, and start time are required.
+          - Say what you did (e.g. "Done! I've added [title] to Day 2.") then output the action block.
+          - "eventType" must be exactly one of: "Activity", "Transit", "Reservation", "Food".
+          - "status" must be exactly one of: "Confirmed", "Pending", "Idea". Default to "Confirmed".
+          - "startTime" must be in 24-hour HH:MM format. "duration" is minutes as an integer.
+          - "location" should be a real street address if possible, or null if not known. Do not use vague locations like "downtown" or "near the hotel". Do not include the venue/building name in the address field — only the street address.
+
+          Format:
+          <itinerary-action>{"type":"add","date":"YYYY-MM-DD","title":"[title]","startTime":"HH:MM","duration":60,"eventType":"Activity","status":"Confirmed","location":"[location or null]","description":"[one sentence or null]"}</itinerary-action>
+
+          ### General rules for itinerary editing
+          - ONLY use event IDs and dates from the scheduled itinerary above. Never invent them.
+          - Output the <itinerary-action> block after your confirmation sentence, not before.
+          - Do not output a <search> block alongside an itinerary edit action.`
 
 }
 
@@ -108,7 +147,7 @@ Use this exact structure:
   "date": "YYYY-MM-DD or null",
   "startTime": "HH:MM in 24-hour format or null",
   "endTime": "HH:MM in 24-hour format or null",
-  "location": "Venue name and/or address or null",
+  "location": "street address or null",
   "type": "Reservation",
   "description": "Brief one-sentence description or null"
 }
@@ -149,7 +188,7 @@ Return this exact JSON structure:
           "status": "Confirmed",
           "startTime": "HH:MM",
           "duration": 90,
-          "location": "Specific venue name and address"
+          "location": "Street address or null"
         }
       ]
     }
@@ -164,6 +203,7 @@ Rules:
 - "status" must be "Confirmed" for all events.
 - "startTime" must be in 24-hour HH:MM format (e.g. "09:00", "14:30").
 - "duration" is an integer representing minutes (e.g. 60, 90, 120).
+- "location" should be a real street address if possible, or null if not known. Do not use vague locations like "downtown" or "near the hotel". Do not include the venue/building name in the address field — only the street address.
 - Events within a day must not overlap in time.
 - The first event of each day should start no earlier than 07:00.
 - Schedule realistic travel and meal times appropriate for ${params.location}.
