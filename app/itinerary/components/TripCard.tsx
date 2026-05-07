@@ -67,11 +67,11 @@ export default function TripList({ trip }: TripProps) {
         router.refresh()
     }
 
-    const handleDeleteEvent = async (dayId: string, eventId: string) => {
+    const handleDeleteEvent = async (dayId: string, eventId: string, title:string) => {
         const res = await fetch('/api/auth/event', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: eventId })
+            body: JSON.stringify({itineraryid:trip.id,  id: eventId, title: title })
         })
         if (!res.ok) { console.error('Failed to delete event'); return }
         setDays(prev =>
@@ -218,18 +218,18 @@ export default function TripList({ trip }: TripProps) {
 
     const [hovered, setHovered] = useState(false)
     return (
-        <div className="pt-16 px-4 text-gray-800">
+        <div className="pt-10 pb-4 text-gray-800">
             <div className="w-full max-w-8xl mx-auto grid grid-cols-auto">
 
                 {/* Sidebar */}
-                <div className="shrink-0 col-span-3 ">
+                <div className="shrink-0 max-w-xl col-span-3 ">
                     <ChatSidebar
                         trip={trip}
                         days={days}
                     />
                 </div>
 
-                <div className=" col-span-7 col-start-4">
+                <div className=" min-w-3xl col-span-7 col-start-4 pe-3">
                     {days.map((day) => (
                         <DayCell
                             key={day.id}
@@ -258,13 +258,13 @@ export default function TripList({ trip }: TripProps) {
                         className="
                             w-full bg-[#fafafa] cursor-pointer
                             flex items-center justify-center gap-2
-                            py-4 shadow-md inset-shadow
+                            py-4 shadow-sm inset-shadow
                             text-xl font-semibold
                             transition rounded-xl
                         "
                         style={{
                             borderWidth: "0.5px",
-                            borderColor: hovered? "rgba(250, 197, 37, 0.5)" : "#c9c9c9",
+                            borderColor: hovered? "rgba(250, 197, 37, 0.5)" : "#fff",
                             boxShadow: hovered ? "0 2px 10px rgba(250, 197, 37, 0.7)" : "0 2px 16px rgba(0,0,0,0.07)",
                         }}
                         onMouseEnter={() => setHovered(true)}

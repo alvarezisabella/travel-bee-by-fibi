@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getItinerariesByUser } from "@/lib/supabase/itinerary"
 import ProfileHeader from "./components/ProfileHeader"
 import TripHistory from "./components/TripHistory"
-import ProfileMap from "./components/profile_map"
+import ProfileMapClient from "./components/ProfileMapClient"
 import UpcomingTripsCalendar from "./components/UpcomingTripsCalendar"
 import { ShowGeneratedItinerary } from "./components/sample_itin"
 export const dynamic = "force-dynamic"
@@ -101,7 +101,7 @@ export default async function ProfilePage() {
               <p className="text-xs text-gray-400 mb-4">Your next planned adventures</p>
               <UpcomingTripsCalendar trips={calendarTrips} />
             </div>
-            <ProfileMap trips={trips} />
+            <ProfileMapClient trips={trips} />
           </div>
 
           {/* Main content */}

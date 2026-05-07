@@ -2,13 +2,16 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useUser } from './useUser';
+import { getUserNameById } from './getUser';
 
 type LockState = {
   lockedBy: string | null;
+  lockName: string | null;
   isLockedByMe: boolean;
 };
 
 const supabase = createClient();
+
 
 export function useEventLock(eventId: string) {
   const user = useUser();
@@ -16,18 +19,21 @@ export function useEventLock(eventId: string) {
 
   const [lock, setLock] = useState<LockState>({
     lockedBy: null,
+    lockName: null,
     isLockedByMe: false,
   });
 
   // if lock is expired or empty, give current requesting user the lock
   const acquireLock = useCallback(async () => {
     if (!user) return false;
-
+    
+    const lockName = await getUserNameById(user.id);
     const { error } = await supabase.from('event_locks').upsert({
         event_id: eventId,
         locked_by: user.id,
         locked_at: new Date().toISOString(),
         expires: new Date(Date.now() + 30_000).toISOString(),
+        lock_name: lockName,
     })
 
     if (error) return false; // someone else holds the lock
@@ -64,11 +70,12 @@ export function useEventLock(eventId: string) {
         filter: `event_id=eq.${eventId}`,
       }, (payload) => {
         if (payload.eventType === 'DELETE' || !payload.new) {
-          setLock({ lockedBy: null, isLockedByMe: false });
+          setLock({ lockedBy: null, lockName: null, isLockedByMe: false });
         } else {
           const row = payload.new as any;
           setLock({
             lockedBy: row.locked_by,
+            lockName: row.lock_name,
             isLockedByMe: row.locked_by === user?.id,
           });
         }
@@ -85,6 +92,7 @@ export function useEventLock(eventId: string) {
         if (data) {
           setLock({
             lockedBy: data.locked_by,
+            lockName: data.lock_name,
             isLockedByMe: data.locked_by === user?.id,
           });
         }

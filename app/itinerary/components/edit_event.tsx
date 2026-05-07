@@ -84,6 +84,8 @@ export default function EditEvent({day, date, trip, event, members, onClose, onS
         const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
         altEvent.id = eventId
         altEvent.travelers = travelerNames
+        altEvent.lat = geo?.lat
+        altEvent.lng = geo?.lng
         onSave(altEvent);
         onClose();
     };

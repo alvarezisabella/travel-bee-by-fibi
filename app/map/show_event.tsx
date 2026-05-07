@@ -1,5 +1,13 @@
-import { ThumbsUp, ThumbsDown } from "lucide-react"
-import { Event, EventLabel, EventStatus, cardColor, STATUS_MAP, LABEL_MAP } from "@/app/itinerary/types/types";
+import { Event, cardColor, STATUS_MAP, LABEL_MAP } from "@/app/itinerary/types/types";
+
+function formatTime(time: string): string {
+  if (!time) return ""
+  const [h, m] = time.split(":").map(Number)
+  if (isNaN(h) || isNaN(m)) return time
+  const period = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, "0")} ${period}`
+}
 
 
 interface EventProp {
@@ -38,7 +46,7 @@ export function ShowEvent({event}: EventProp) {
         )}
 
         <div className={`flex items-center gap-1.5 mt-2 text-xs ${cardColor.time}`}>
-            <span>{event.startTime}</span>
+            <span>{formatTime(event.startTime)}</span>
             <span className="opacity-40">·</span>
             <span>{event.duration}</span>
         </div>
