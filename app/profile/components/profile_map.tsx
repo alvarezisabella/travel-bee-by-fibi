@@ -57,7 +57,7 @@ export default function ProfileMap({ trips }: MapProps) {
         <MapContainer
           center={center}
           zoom={2}
-          style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
+          style={{ height: '300px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
         >
           <MapResizer />
           <TileLayer
