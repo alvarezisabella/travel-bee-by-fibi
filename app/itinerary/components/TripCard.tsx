@@ -23,14 +23,13 @@ export default function TripList({ trip }: TripProps) {
   const [footerHeight, setFooterHeight] = useState(0)
 
   useEffect(() => {
-    const footer = document.querySelector("footer")
-    if (!footer) return
-    const observer = new ResizeObserver(() => {
-      setFooterHeight(footer.getBoundingClientRect().height)
-    })
-    observer.observe(footer)
-    setFooterHeight(footer.getBoundingClientRect().height)
-    return () => observer.disconnect()
+    const measure = () => {
+        const footer = document.querySelector("footer")
+        if (footer) setFooterHeight(footer.getBoundingClientRect().height)
+    }
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
   }, [])
 
   useEffect(() => { setDays(trip.days) }, [trip])
@@ -194,12 +193,12 @@ export default function TripList({ trip }: TripProps) {
       {/* Floating bee — hidden when any form is open */}
       {!anyFormOpen && (
         <button
-          onClick={() => setChatOpen(o => !o)}
-          className="fixed right-6 z-50 w-16 h-16 bg-yellow-400 hover:bg-yellow-500 active:scale-95 rounded-full shadow-xl flex items-center justify-center text-3xl transition-all hover:shadow-2xl"
-          style={{ bottom: `calc(${footerHeight}px + 24px)` }}
-          aria-label="Open Agent Atlas"
+            onClick={() => setChatOpen(o => !o)}
+            className="fixed z-50 w-16 h-16 bg-yellow-400 hover:bg-yellow-500 active:scale-95 rounded-full shadow-xl flex items-center justify-center text-3xl transition-all hover:shadow-2xl"
+            style={{ bottom: `calc(${footerHeight}px - 100px)`, right: "24px" }}
+            aria-label="Open Agent Atlas"
         >
-          🐝
+            🐝
         </button>
       )}
 
@@ -213,7 +212,7 @@ export default function TripList({ trip }: TripProps) {
           <div
             className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100"
             style={{
-              bottom: `calc(${footerHeight}px + 50px)`,
+              bottom: `calc(${footerHeight}px + 100px)`,
               right: "24px",
               width: "min(420px, calc(100vw - 48px))",
               height: "min(500px, calc(100vh - 160px))",
