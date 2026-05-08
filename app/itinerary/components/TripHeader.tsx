@@ -40,13 +40,10 @@ const MONTHS = ["January","February","March","April","May","June","July","August
 const DAYS_OF_WEEK = ["Su","Mo","Tu","We","Th","Fr","Sa"]
 
 function toKey(d: Date) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}` }
-
 function fmtDisplay(d: Date) {
   return `${(d.getMonth()+1).toString().padStart(2,"0")}/${d.getDate().toString().padStart(2,"0")}/${d.getFullYear()}`
 }
-
 function dateToISO(d: Date) { return d.toISOString().split("T")[0] }
-
 function parseISO(s: string): Date | null {
   if (!s) return null
   const [y, m, d] = s.split("-").map(Number)
@@ -122,7 +119,7 @@ interface TripDatePickerProps {
 }
 
 function TripDatePicker({ startDate, endDate, onSave }: TripDatePickerProps) {
-  const [openCal, setOpenCal]     = useState<"start" | "end" | null>(null)
+  const [openCal, setOpenCal]       = useState<"start" | "end" | null>(null)
   const [localStart, setLocalStart] = useState<Date | null>(startDate)
   const [localEnd,   setLocalEnd]   = useState<Date | null>(endDate)
   const [startView,  setStartView]  = useState(startDate ?? new Date())
@@ -131,9 +128,7 @@ function TripDatePicker({ startDate, endDate, onSave }: TripDatePickerProps) {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpenCal(null)
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpenCal(null)
     }
     document.addEventListener("mousedown", handler)
     return () => document.removeEventListener("mousedown", handler)
@@ -158,48 +153,27 @@ function TripDatePicker({ startDate, endDate, onSave }: TripDatePickerProps) {
   }
 
   return (
-    <div ref={containerRef} className="flex items-center gap-1">
+    <div ref={containerRef} className="flex items-center gap-1 flex-wrap">
       <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-
-      {/* Start date */}
       <div className="relative">
-        <button
-          onClick={() => setOpenCal(prev => prev === "start" ? null : "start")}
-          className="text-sm text-gray-600 hover:text-black cursor-pointer bg-transparent border-none outline-none"
-        >
+        <button onClick={() => setOpenCal(prev => prev === "start" ? null : "start")} className="text-sm text-gray-600 hover:text-black cursor-pointer bg-transparent border-none outline-none">
           {localStart ? fmtDisplay(localStart) : "Add start date"}
         </button>
         {openCal === "start" && (
-          <CalPopup
-            viewDate={startView}
-            startDate={localStart}
-            endDate={localEnd}
-            which="start"
+          <CalPopup viewDate={startView} startDate={localStart} endDate={localEnd} which="start"
             onShift={dir => setStartView(v => new Date(v.getFullYear(), v.getMonth()+dir, 1))}
-            onPick={pickStart}
-          />
+            onPick={pickStart} />
         )}
       </div>
-
       {(localStart || localEnd) && <span className="text-gray-400 text-sm mx-0.5">–</span>}
-
-      {/* End date */}
       <div className="relative">
-        <button
-          onClick={openEnd}
-          className="text-sm text-gray-600 hover:text-black cursor-pointer bg-transparent border-none outline-none"
-        >
+        <button onClick={openEnd} className="text-sm text-gray-600 hover:text-black cursor-pointer bg-transparent border-none outline-none">
           {localEnd ? fmtDisplay(localEnd) : "Add end date"}
         </button>
         {openCal === "end" && (
-          <CalPopup
-            viewDate={endView}
-            startDate={localStart}
-            endDate={localEnd}
-            which="end"
+          <CalPopup viewDate={endView} startDate={localStart} endDate={localEnd} which="end"
             onShift={dir => setEndView(v => new Date(v.getFullYear(), v.getMonth()+dir, 1))}
-            onPick={pickEnd}
-          />
+            onPick={pickEnd} />
         )}
       </div>
     </div>
@@ -219,9 +193,7 @@ export default function TripHeader({ trip }: Props) {
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (editing) inputRef.current?.select()
-  }, [editing])
+  useEffect(() => { if (editing) inputRef.current?.select() }, [editing])
 
   const [location, setLocation]               = useState(trip.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
@@ -263,8 +235,7 @@ export default function TripHeader({ trip }: Props) {
   const saveCoorinates = async (location: string) => {
     let geo = null
     if (location.trim()) {
-      let city = location.trim()
-      const res2 = await fetch("/api/geocode", { method: "POST", body: JSON.stringify({ city }) })
+      const res2 = await fetch("/api/geocode", { method: "POST", body: JSON.stringify({ city: location.trim() }) })
       geo = await res2.json()
       if (!res2.ok) throw new Error(geo.error)
     }
@@ -277,12 +248,8 @@ export default function TripHeader({ trip }: Props) {
   }
 
   const saveItinerary = async (fields: {
-    title?: string
-    location?: string
-    start_date?: string
-    end_date?: string
-    cover_photo_url?: string | null
-    confirm_date_shift?: boolean
+    title?: string; location?: string; start_date?: string; end_date?: string
+    cover_photo_url?: string | null; confirm_date_shift?: boolean
   }) => {
     setDateError(null)
     const res = await fetch('/api/auth/itinerary', {
@@ -314,15 +281,11 @@ export default function TripHeader({ trip }: Props) {
   const handleConfirmStartForward = async () => {
     if (!startForwardConflict) return
     setStartForwardConflict(null)
-    await saveItinerary({
-      start_date: startForwardConflict.newStart,
-      end_date: startForwardConflict.suggestedEnd,
-      confirm_date_shift: true,
-    })
+    await saveItinerary({ start_date: startForwardConflict.newStart, end_date: startForwardConflict.suggestedEnd, confirm_date_shift: true })
   }
 
-  const [coverImage, setCoverImage] = useState<string | null>(trip.cover_photo_url || null)
-  const [uploading, setUploading]   = useState(false)
+  const [coverImage, setCoverImage]   = useState<string | null>(trip.cover_photo_url || null)
+  const [uploading, setUploading]     = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -338,11 +301,7 @@ export default function TripHeader({ trip }: Props) {
       if (uploadErr) throw uploadErr
       const { data: { publicUrl } } = supabase.storage.from("itinerary-covers").getPublicUrl(filePath)
       const bustUrl = `${publicUrl}?t=${Date.now()}`
-      const res = await fetch('/api/auth/itinerary', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: trip.id, cover_photo_url: bustUrl }),
-      })
+      const res = await fetch('/api/auth/itinerary', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: trip.id, cover_photo_url: bustUrl }) })
       if (!res.ok) throw new Error('Failed to save cover photo')
       setCoverImage(bustUrl)
     } catch (err) {
@@ -359,16 +318,8 @@ export default function TripHeader({ trip }: Props) {
   const handleClearItinerary = async () => {
     setClearing(true)
     try {
-      await fetch('/api/auth/event/clear', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itinerary_id: trip.id }),
-      })
-      await fetch('/api/auth/itinerary', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: trip.id, title: 'New Trip', location: null, start_date: null, end_date: null, cover_photo_url: null }),
-      })
+      await fetch('/api/auth/event/clear', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itinerary_id: trip.id }) })
+      await fetch('/api/auth/itinerary', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: trip.id, title: 'New Trip', location: null, start_date: null, end_date: null, cover_photo_url: null }) })
       setShowClearModal(false)
       window.location.reload()
     } catch (err) {
@@ -378,12 +329,12 @@ export default function TripHeader({ trip }: Props) {
     }
   }
 
-  const [inviteModal, setInviteModal]   = useState(false)
-  const [inviteTab, setInviteTab]       = useState<InviteTab>("link")
-  const [emailInput, setEmailInput]     = useState("")
-  const [sentInvites, setSentInvites]   = useState<string[]>([])
-  const [copied, setCopied]             = useState(false)
-  const [travelers, setTravelers]       = useState(trip.travelers)
+  const [inviteModal, setInviteModal] = useState(false)
+  const [inviteTab, setInviteTab]     = useState<InviteTab>("link")
+  const [emailInput, setEmailInput]   = useState("")
+  const [sentInvites, setSentInvites] = useState<string[]>([])
+  const [copied, setCopied]           = useState(false)
+  const [travelers, setTravelers]     = useState(trip.travelers)
 
   const shareLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${trip.id}`
 
@@ -418,7 +369,7 @@ export default function TripHeader({ trip }: Props) {
       <div className="w-full mx-auto rounded-2xl shadow-lg bg-white">
 
         {/* HERO IMAGE */}
-        <div className="relative w-full h-[280px]">
+        <div className="relative w-full h-[200px] sm:h-[280px]">
           {coverImage ? (
             <>
               <img src={coverImage} alt="Trip cover" className="w-full h-full object-cover rounded-t-2xl" />
@@ -428,16 +379,14 @@ export default function TripHeader({ trip }: Props) {
               </label>
             </>
           ) : (
-            <>
-              <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors rounded-t-2xl ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
-                {uploading ? (
-                  <><Loader2 size={24} className="animate-spin text-gray-400" /><span>Uploading...</span></>
-                ) : (
-                  <><div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl">+</div><span>Upload cover photo</span></>
-                )}
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
-              </label>
-            </>
+            <label className={`w-full h-full flex flex-col items-center justify-center gap-2 text-gray-500 text-sm cursor-pointer hover:text-gray-700 transition-colors rounded-t-2xl ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+              {uploading ? (
+                <><Loader2 size={24} className="animate-spin text-gray-400" /><span>Uploading...</span></>
+              ) : (
+                <><div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white text-xl">+</div><span>Upload cover photo</span></>
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+            </label>
           )}
           {uploadError && (
             <div className="absolute bottom-3 left-3 bg-red-100 text-red-600 text-xs px-3 py-1.5 rounded-full">{uploadError}</div>
@@ -445,142 +394,129 @@ export default function TripHeader({ trip }: Props) {
         </div>
 
         {/* CONTENT */}
-        <div className="p-6 flex justify-between items-start">
-          <div>
+        <div className="p-4 sm:p-6">
 
-            {/* Editable Title */}
-            {editing ? (
-              <input
-                ref={inputRef}
-                className="text-2xl font-bold border border-yellow-400 rounded px-2 outline-none focus:ring-2 focus:ring-yellow-300"
-                value={title}
-                autoFocus
-                onChange={e => setTitle(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") { e.currentTarget.blur(); setEditing(false) }
-                  if (e.key === "Escape") setEditing(false)
-                }}
-                onBlur={() => { setEditing(false); saveItinerary({ title }) }}
-              />
-            ) : (
-              <h1 className="text-3xl font-bold cursor-pointer" onClick={() => setEditing(true)}>{title}</h1>
-            )}
+          {/* Title row + action buttons */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
 
-            {/* Trip Info */}
-            <div className="flex flex-wrap gap-6 mt-3 text-gray-500 text-sm">
-
-              {/* LOCATION */}
-              <div className="flex items-center gap-1">
-                <MapPin size={16} />
-                {editingLocation ? (
-                  <LocationSearch
-                    value={location}
-                    onChange={val => setLocation(val)}
-                    onClose={val => { setEditingLocation(false); saveCoorinates(val) }}
-                  />
-                ) : (
-                  <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
-                    {location || "Add location"}
-                  </span>
-                )}
-              </div>
-
-              {/* DATES — custom calendar picker */}
-              <div className="flex flex-col gap-1">
-                <TripDatePicker
-                  startDate={parseISO(startDate)}
-                  endDate={parseISO(endDate)}
-                  onSave={(start, end) => {
-                    setStartDate(start)
-                    setEndDate(end)
-                    saveItinerary({ start_date: start, end_date: end })
+            {/* Left: title + meta */}
+            <div className="min-w-0 flex-1">
+              {editing ? (
+                <input
+                  ref={inputRef}
+                  className="text-xl sm:text-2xl font-bold border border-yellow-400 rounded px-2 outline-none focus:ring-2 focus:ring-yellow-300 w-full"
+                  value={title}
+                  autoFocus
+                  onChange={e => setTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") { e.currentTarget.blur(); setEditing(false) }
+                    if (e.key === "Escape") setEditing(false)
                   }}
+                  onBlur={() => { setEditing(false); saveItinerary({ title }) }}
                 />
-                {dateError && <p className="text-xs text-red-500 ml-5">{dateError}</p>}
-              </div>
+              ) : (
+                <h1 className="text-2xl sm:text-3xl font-bold cursor-pointer truncate" onClick={() => setEditing(true)}>{title}</h1>
+              )}
 
-              {/* TRAVELERS */}
-              <div className="flex items-center gap-1">
-                <Users size={16} />
-                {trip.travelers.length} traveler(s)
-              </div>
-
-            </div>
-
-            {/* Bottom Icons */}
-            <div className="flex gap-5 mt-5 text-gray-600">
-              <button title="List View" onClick={() => { setList(true); setMap(false); setCalendar(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><List size={20} /></button>
-              <button title="Calendar View" onClick={() => { setCalendar(true); setList(false); setMap(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><CalendarDays size={20} /></button>
-              <button title="Map View" className="cursor-pointer hover:text-black transition" onClick={() => { setMap(true); setList(false); setCalendar(false); setDocuments(false) }}><Map size={20} /></button>
-              <button title="Documents" onClick={() => { setDocuments(true); setList(false); setMap(false); setCalendar(false) }} className="cursor-pointer hover:text-black transition"><FileText size={20} /></button>
-              <button title="Bookmarks" onClick={() => { setBookmarkPanel(true); fetchBookmarks() }} className="cursor-pointer hover:text-black transition relative"><Bookmark size={20} /></button>
-            </div>
-
-          </div>
-
-          {/* BOOKMARKS SIDE PANEL */}
-          {bookmarkPanel && (
-            <div className="fixed inset-0 z-50 flex justify-end">
-              <div className="absolute inset-0 bg-black/30" onClick={() => setBookmarkPanel(false)} />
-              <div className="relative z-10 w-full max-w-sm bg-white h-full shadow-2xl flex flex-col overflow-y-auto">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Bookmark size={18} className="text-gray-700" />
-                    <h2 className="text-base font-semibold text-gray-900">Saved ideas</h2>
-                  </div>
-                  <button onClick={() => setBookmarkPanel(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={20} /></button>
-                </div>
-                <div className="flex-1 p-4 flex flex-col gap-3">
-                  {loadingBookmarks ? (
-                    <div className="flex items-center justify-center mt-8"><Loader2 size={20} className="animate-spin text-gray-400" /></div>
-                  ) : savedIdeas.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
+              {/* Trip meta info */}
+              <div className="flex flex-wrap gap-3 sm:gap-6 mt-3 text-gray-500 text-sm">
+                <div className="flex items-center gap-1">
+                  <MapPin size={16} />
+                  {editingLocation ? (
+                    <LocationSearch value={location} onChange={val => setLocation(val)} onClose={val => { setEditingLocation(false); saveCoorinates(val) }} />
                   ) : (
-                    savedIdeas.map(idea => (
-                      <BookmarkCard
-                        key={idea.id}
-                        idea={idea}
-                        tripId={trip.id}
-                        days={trip.days}
-                        onAdded={() => { setBookmarkPanel(false); router.refresh() }}
-                        onDelete={() => handleDeleteWidget(idea.id)}
-                      />
-                    ))
+                    <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
+                      {location || "Add location"}
+                    </span>
                   )}
                 </div>
+                <div className="flex flex-col gap-1">
+                  <TripDatePicker
+                    startDate={parseISO(startDate)}
+                    endDate={parseISO(endDate)}
+                    onSave={(start, end) => { setStartDate(start); setEndDate(end); saveItinerary({ start_date: start, end_date: end }) }}
+                  />
+                  {dateError && <p className="text-xs text-red-500 ml-5">{dateError}</p>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users size={16} />
+                  {trip.travelers.length} traveler(s)
+                </div>
+              </div>
+
+              {/* View icons */}
+              <div className="flex gap-4 sm:gap-5 mt-4 text-gray-600">
+                <button title="List View" onClick={() => { setList(true); setMap(false); setCalendar(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><List size={20} /></button>
+                <button title="Calendar View" onClick={() => { setCalendar(true); setList(false); setMap(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><CalendarDays size={20} /></button>
+                <button title="Map View" onClick={() => { setMap(true); setList(false); setCalendar(false); setDocuments(false) }} className="cursor-pointer hover:text-black transition"><Map size={20} /></button>
+                <button title="Documents" onClick={() => { setDocuments(true); setList(false); setMap(false); setCalendar(false) }} className="cursor-pointer hover:text-black transition"><FileText size={20} /></button>
+                <button title="Bookmarks" onClick={() => { setBookmarkPanel(true); fetchBookmarks() }} className="cursor-pointer hover:text-black transition relative"><Bookmark size={20} /></button>
               </div>
             </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex flex-col gap-2 items-end">
-            <div className="flex gap-3">
+            {/* Right: action buttons — stacks on mobile, row on desktop */}
+            <div className="flex flex-col gap-2 items-start sm:items-end shrink-0">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setInviteModal(true); setInviteTab("link") }}
+                  className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+                >
+                  <UserPlus size={16} />
+                  <span className="hidden sm:inline">Invite Friends</span>
+                  <span className="sm:hidden">Invite</span>
+                </button>
+                <button
+                  onClick={() => downloadICS(trip)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+                >
+                  <Calendar size={16} />
+                  <span className="hidden sm:inline">Save to Calendar</span>
+                  <span className="sm:hidden">Export</span>
+                </button>
+              </div>
               <button
-                onClick={() => { setInviteModal(true); setInviteTab("link") }}
-                className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+                onClick={() => setShowClearModal(true)}
+                className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-full transition-all"
               >
-                <UserPlus size={16} /> Invite Friends
-              </button>
-              <button
-                onClick={() => downloadICS(trip)}
-                className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 hover:border-yellow-500 px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
-              >
-                <Calendar size={16} /> Save to Calendar
+                Clear Itinerary
               </button>
             </div>
-            <button
-              onClick={() => setShowClearModal(true)}
-              className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-full transition-all"
-            >
-              Clear Itinerary
-            </button>
           </div>
         </div>
 
+        {/* BOOKMARKS SIDE PANEL */}
+        {bookmarkPanel && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-black/30" onClick={() => setBookmarkPanel(false)} />
+            <div className="relative z-10 w-full max-w-sm bg-white h-full shadow-2xl flex flex-col overflow-y-auto">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <Bookmark size={18} className="text-gray-700" />
+                  <h2 className="text-base font-semibold text-gray-900">Saved ideas</h2>
+                </div>
+                <button onClick={() => setBookmarkPanel(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={20} /></button>
+              </div>
+              <div className="flex-1 p-4 flex flex-col gap-3">
+                {loadingBookmarks ? (
+                  <div className="flex items-center justify-center mt-8"><Loader2 size={20} className="animate-spin text-gray-400" /></div>
+                ) : savedIdeas.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
+                ) : (
+                  savedIdeas.map(idea => (
+                    <BookmarkCard key={idea.id} idea={idea} tripId={trip.id} days={trip.days}
+                      onAdded={() => { setBookmarkPanel(false); router.refresh() }}
+                      onDelete={() => handleDeleteWidget(idea.id)} />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* INVITE MODAL */}
         {inviteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => { if (e.target === e.currentTarget) setInviteModal(false) }}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4" onClick={e => { if (e.target === e.currentTarget) setInviteModal(false) }}>
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Invite Friends</h2>
                 <button onClick={() => setInviteModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -588,7 +524,7 @@ export default function TripHeader({ trip }: Props) {
               <div className="flex border-b border-gray-200">
                 {(["link", "email", "travelers"] as InviteTab[]).map(tab => (
                   <button key={tab} onClick={() => setInviteTab(tab)}
-                    className={`px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-all ${inviteTab === tab ? "border-yellow-400 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+                    className={`px-3 sm:px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-all ${inviteTab === tab ? "border-yellow-400 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
                     {tab === "link" ? "Share Link" : tab === "email" ? "Send Invite" : "Travelers"}
                   </button>
                 ))}
@@ -643,9 +579,7 @@ export default function TripHeader({ trip }: Props) {
                         {t.avatar_url ? (
                           <img src={t.avatar_url} alt={t.name} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">
-                            {t.name.charAt(0)}
-                          </div>
+                          <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-sm font-semibold text-yellow-800">{t.name.charAt(0)}</div>
                         )}
                         <span className="flex-1 text-sm text-gray-800">
                           {t.name}
@@ -668,8 +602,8 @@ export default function TripHeader({ trip }: Props) {
 
         {/* CLEAR CONFIRMATION MODAL */}
         {showClearModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={e => { if (e.target === e.currentTarget) setShowClearModal(false) }}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4" onClick={e => { if (e.target === e.currentTarget) setShowClearModal(false) }}>
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h2 className="text-lg font-bold text-gray-900">Clear itinerary?</h2>
                 <p className="text-sm text-gray-500">This will remove all events, dates, location, and the cover photo. This cannot be undone.</p>
@@ -686,8 +620,8 @@ export default function TripHeader({ trip }: Props) {
 
         {/* START FORWARD CONFIRMATION MODAL */}
         {startForwardConflict && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h2 className="text-lg font-bold text-gray-900">Adjust trip dates?</h2>
                 <p className="text-sm text-gray-500">

@@ -1,14 +1,8 @@
 "use client"
-import {useState} from "react"
-import {Event, EventStatus, EventLabel} from "../types/types"
-import { emptyEvent } from "../types/types"
-import { Traveler } from "../types/types"
-import { Trip } from "../types/types"
+import { useState } from "react"
+import { Event, EventStatus, EventLabel, emptyEvent, Traveler, Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
-import {
-  MapPin, Users, Tag, CalendarCheck, Clock, TimerIcon
-} from "lucide-react"
-
+import { MapPin, Users, Tag, CalendarCheck, Clock } from "lucide-react"
 
 interface EditEventProps {
   day: string
@@ -16,205 +10,201 @@ interface EditEventProps {
   trip: string
   event?: Event
   members?: Traveler[]
-  onClose: () =>void;
-  onSave: (event: Event) => void;
+  onClose: () => void
+  onSave: (event: Event) => void
 }
 
-const cardColor = {bg: "bg-[#fcfcfc]", bar: "bg-[#dbdbdb]", text: "text-[#262626]", time: "text-[#3a4042]"}
-const EVENT_COLORS: { value: EventLabel; label: string; bg: string; text: string , ring:string}[] = [
-{ value: "Activity",     label: "Activity",        bg: "bg-[#eef4f0]", text: "text-[#3a5a46]", ring: "ring-[#3a5a46]"},
-{ value: "Transit",      label: "Transit",         bg: "bg-[#edf0f4]", text: "text-[#2a3d52]", ring: "ring-[#2a3d52]"},
-{ value: "Reservation",  label: "Reservation",     bg: "bg-[#f8f3e6]", text: "text-[#5a420a]", ring: "ring-[#5a420a]"},
-{ value: "Food",         label: "Food",            bg: "bg-[#f8eff2]", text: "text-[#5a2234]", ring: "ring-[#5a2234]"},
-];
+const cardColor = { bg: "bg-[#fcfcfc]", bar: "bg-[#dbdbdb]", text: "text-[#262626]", time: "text-[#3a4042]" }
 
-// Color options for event status with corresponding labels and styles
-const STATUS_COLORS: {value: EventStatus; bg: string}[] = [
-    {value: "Idea", bg: "bg-[#9c8a8a]"},
-    {value: "Pending", bg: "bg-[#ffcd59]"},
-    {value: "Confirmed", bg: "bg-[#98d99f]"}
+const EVENT_COLORS: { value: EventLabel; label: string; bg: string; text: string; ring: string }[] = [
+  { value: "Activity",    label: "Activity",    bg: "bg-[#eef4f0]", text: "text-[#3a5a46]", ring: "ring-[#3a5a46]" },
+  { value: "Transit",     label: "Transit",     bg: "bg-[#edf0f4]", text: "text-[#2a3d52]", ring: "ring-[#2a3d52]" },
+  { value: "Reservation", label: "Reservation", bg: "bg-[#f8f3e6]", text: "text-[#5a420a]", ring: "ring-[#5a420a]" },
+  { value: "Food",        label: "Food",        bg: "bg-[#f8eff2]", text: "text-[#5a2234]", ring: "ring-[#5a2234]" },
 ]
 
-export default function EditEvent({day, date, trip, event, members, onClose, onSave}: EditEventProps) {
-    // variables that can be entered when adding an event
-    // title is required
-    const [altEvent, setEvent] = useState<Event>(event? event : emptyEvent)
-    const [editingLocation, setEditingLocation] = useState(false)
-    const [travelers, setTravelers] = useState<string[]>(() => {
+const STATUS_COLORS: { value: EventStatus; bg: string }[] = [
+  { value: "Idea",      bg: "bg-[#9c8a8a]" },
+  { value: "Pending",   bg: "bg-[#ffcd59]" },
+  { value: "Confirmed", bg: "bg-[#98d99f]" },
+]
+
+export default function EditEvent({ day, date, trip, event, members, onClose, onSave }: EditEventProps) {
+  const [altEvent, setEvent] = useState<Event>(event ? event : emptyEvent)
+  const [editingLocation, setEditingLocation] = useState(false)
+  const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
     const names = event.travelers.split(', ').filter(Boolean)
     return members.filter(m => names.includes(m.name)).map(m => m.id)
+  })
+
+  altEvent.dayid = day
+  altEvent.itineraryid = trip
+
+  const handleChange = (field: string, value: any) => {
+    setEvent(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSubmit = async () => {
+    if (!altEvent.title.trim()) return
+
+    let geo = null
+    if (altEvent.location.trim()) {
+      const res2 = await fetch("/api/geocode", {
+        method: "POST",
+        body: JSON.stringify({ city: altEvent.location.trim() }),
+      })
+      geo = await res2.json()
+      if (!res2.ok) throw new Error(geo.error)
+    }
+
+    const res = await fetch("/api/auth/event", {
+      method: event ? "PUT" : "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: event?.id, itineraryid: trip, day: date,
+        title: altEvent.title.trim(), description: altEvent.description.trim(),
+        status: altEvent.status, startTime: altEvent.startTime,
+        duration: altEvent.duration, location: altEvent.location,
+        type: altEvent.type, travelers, lat: geo?.lat, lng: geo?.lng
+      })
     })
-    altEvent.dayid=day
-    altEvent.itineraryid=trip
 
-    const handleChange = (field: string, value: any) => {
-        setEvent((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
+    const data = await res.json()
+    if (!res.ok) { console.error(data.error); return }
 
-    const handleSubmit = async () => {
-        if (!altEvent.title.trim()) return;
+    const eventId = event ? event.id : data.event.id
+    const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
+    altEvent.id = eventId
+    altEvent.travelers = travelerNames
+    altEvent.lat = geo?.lat
+    altEvent.lng = geo?.lng
+    onSave(altEvent)
+    onClose()
+  }
 
-        let geo = null  // get coordinates of location
-        if(altEvent.location.trim()) {
-          let city = altEvent.location.trim()
-          const res2 = await fetch("/api/geocode", {
-            method: "POST",
-            body: JSON.stringify({city}),
-          });
-          geo = await res2.json();
+  return (
+    <div
+      className={`w-full relative flex gap-3 ${cardColor.bg} rounded-xl p-4 sm:p-6`}
+      style={{ boxShadow: "0 4px 16px rgba(0, 0, 0, 0.18)" }}
+    >
+      {/* Left accent bar */}
+      <div className={`w-1 rounded-full ${cardColor.bar} flex-shrink-0`} />
 
-          if (!res2.ok) throw new Error(geo.error);
-        }
-        
-        // Calls POST (insert) or PUT (update) function from api/auth/event with event variables and trip id
-        const res = await fetch("/api/auth/event", {
-        method: event ? "PUT" : "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: event?.id, itineraryid: trip, day: date, title: altEvent.title.trim(), description: altEvent.description.trim(), status: altEvent.status, startTime: altEvent.startTime, duration:altEvent.duration, location:altEvent.location, type:altEvent.type, travelers, lat:geo?.lat, lng:geo?.lng})})
+      <div className="flex-1 min-w-0 space-y-4">
 
-        // If unsuccessful, logs error. If successful, calls onAdd with new event details and closes add event card
-        const data = await res.json()
-        if(!res.ok) {console.error(data.error); return;}
+        {/* Title */}
+        <input
+          type="text"
+          value={altEvent.title}
+          onChange={e => handleChange("title", e.target.value)}
+          placeholder="Add Title *"
+          className={`w-full font-medium text-base ${cardColor.text} focus:outline-none focus:border-b focus:border-[#ffbd2e] transition-colors bg-transparent`}
+          style={{ fontFamily: "Helvetica, serif" }}
+        />
 
-        const eventId = event ? event.id : data.event.id
-        const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
-        altEvent.id = eventId
-        altEvent.travelers = travelerNames
-        altEvent.lat = geo?.lat
-        altEvent.lng = geo?.lng
-        onSave(altEvent);
-        onClose();
-    };
-
-    return (
-    <div className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-6`}
-        style={{ boxShadow: "0 4px 16px rgba(0, 0, 0, 0.18)"}}>
-        <div className={`w-1 rounded-full ${cardColor.bar} flex-shrink-0`} />
-
-        {/*Status*/}
-        <div className="absolute top-7 right-8">
-            <div className="flex gap-4 flex-wrap border border-[#e3e3e3] p-2 rounded-xl shadow-sm">
-                <div className="relative top-1 flex-shrink-0"><CalendarCheck size={16}/></div>  
-                {STATUS_COLORS.map((c) => (
-                <div key={c.value} className="flex flex-col items-center">
-                <button
-                    onClick={() => handleChange("status", c.value as EventStatus)}
-                    className={`max-w-24 h-6 rounded-xl ${c.bg} shadow-sm transition-all transform duration-200 ease-in-out
-                    ${altEvent.status === c.value ? "ring ring-offset-2 ring-[#1a1812] scale-105" : "hover:scale-120"}`}
-                    style={{fontFamily:"Helvetica"}}
-                >
-                <span className="px-2 py-1 text-white text-xs">{c.value}</span>
-       \         </button>
-                </div>
-                ))}                
-            </div>
-        </div>
-
-
-        {/*Event Title*/}
-        <div className="flex-1 min-w-0 space-y-1.5 ">
-        <div className="flex items-start justify-between gap-2 px-2">
-            <input 
-                type="text"
-                value={altEvent.title}
-                onChange={(e) => handleChange("title", e.target.value)}
-                placeholder="Add Title *"
-                className={`font-medium text-md ${cardColor.text} focus:outline-none focus:border-[#ffbd2e] transition-colors`} style={{ fontFamily: "Helvetica, serif" }}
-            />
-        </div>
-
-        {/*Type*/}
-        <div className="p-2">
-            <div className="flex gap-4 flex-wrap">
-                <div className="relative top-1.5 flex-shrink-0"><Tag size={16}/></div>              
-                {EVENT_COLORS.map((c) => (
-                <div key={c.value} className="flex flex-col items-center">
-                <button
-                    onClick={() => handleChange("type", c.value)}
-                    className={`max-w-24 h-6 rounded-sm ${c.bg} shadow-sm transition-all transform duration-200 ease-in-out
-                    ${altEvent.type === c.value ? `ring ring-offset-2 ${c.ring} scale-105` : "hover:scale-120"}`}
-                    style={{fontFamily:"Helvetica"}}
-                >
-                <span className={`px-2 py-1 ${c.text} text-xs`}>{c.label}</span>
-                </button>
-                </div>
-                ))}                
-            </div>
-        </div>        
-
-
-        {/*Description*/}
-        <div className="p-2">
-            <textarea
-              value={altEvent.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Add details..."
-              rows={3}
-              style={{fontFamily: "Georgia, serif"}}
-              className={`w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 ${cardColor.time} placeholder-[#b0a48a] text-xs mt-1 opacity-80 focus:outline-none focus:border-[#8a7d5a] transition-colors`}
-            />
-        </div>
-
-        {/*Time & Duration*/}
-
-          <div className="grid grid-cols-4 gap-3 px-2 py-1">
-            <div>
-              <label className="block text-[#1a1812] text-xs uppercase font-medium mb-1.5">
-                Start Time
-              </label>
-              <input
-                type="time"
-                value={altEvent.startTime}
-                onChange={(e) => handleChange("startTime", e.target.value)}
-                className={`w-full bg-white border border-[#e3e3e3] ${cardColor.time} rounded-lg px-3.5 py-2.5 text-xs focus:outline-none focus:border-[#e3e3e3] transition-colors`}
-              />
-            </div>
-            <div>
-              <label className="block text-[#1a1812] text-xs uppercase font-medium mb-1.5">
-                Duration
-              </label>
-              <select
-                value={altEvent.duration}
-                onChange={(e) => handleChange("duration", Number(e.target.value))}
-                className={`w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 ${cardColor.time} text-xs focus:outline-none focus:border-[#8a7d5a] transition-colors`}
+        {/* Status row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <CalendarCheck size={15} className="text-gray-400 flex-shrink-0" />
+          <div className="flex gap-2 flex-wrap">
+            {STATUS_COLORS.map(c => (
+              <button
+                key={c.value}
+                onClick={() => handleChange("status", c.value as EventStatus)}
+                className={`h-7 px-3 rounded-full ${c.bg} shadow-sm transition-all duration-200 text-white text-xs font-medium
+                  ${altEvent.status === c.value ? "ring-2 ring-offset-2 ring-gray-700 scale-105" : "hover:scale-105 opacity-80 hover:opacity-100"}`}
               >
-                <option value={15}>15 min</option>
-                <option value={30}>30 min</option>
-                <option value={45}>45 min</option>
-                <option value={60}>1 hour</option>
-                <option value={90}>1.5 hours</option>
-                <option value={120}>2 hours</option>
-                <option value={180}>3 hours</option>
-                <option value={240}>4 hours</option>
-                <option value={480}>All day</option>
-              </select>
-            </div>
+                {c.value}
+              </button>
+            ))}
           </div>
+        </div>
 
-        {/*Location*/}
-        <div className="flex space-x-4 items-center px-2 py-1">
-          <div className="flex-shrink-0"><MapPin size={16}/></div>
+        {/* Type row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Tag size={15} className="text-gray-400 flex-shrink-0" />
+          <div className="flex gap-2 flex-wrap">
+            {EVENT_COLORS.map(c => (
+              <button
+                key={c.value}
+                onClick={() => handleChange("type", c.value)}
+                className={`h-7 px-3 rounded-sm ${c.bg} shadow-sm transition-all duration-200 text-xs font-medium
+                  ${altEvent.type === c.value ? `ring-2 ring-offset-2 ${c.ring} scale-105` : "hover:scale-105"}`}
+              >
+                <span className={c.text}>{c.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Description */}
+        <textarea
+          value={altEvent.description}
+          onChange={e => handleChange("description", e.target.value)}
+          placeholder="Add details..."
+          rows={3}
+          style={{ fontFamily: "Georgia, serif" }}
+          className={`w-full bg-white border border-[#e3e3e3] rounded-lg px-3.5 py-2.5 ${cardColor.time} placeholder-[#b0a48a] text-xs opacity-80 focus:outline-none focus:border-[#8a7d5a] transition-colors resize-none`}
+        />
+
+        {/* Time & Duration — stack on mobile, row on sm+ */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <label className="block text-[#1a1812] text-xs uppercase font-medium mb-1.5">
+              Start Time
+            </label>
+            <input
+              type="time"
+              value={altEvent.startTime}
+              onChange={e => handleChange("startTime", e.target.value)}
+              className={`w-full bg-white border border-[#e3e3e3] ${cardColor.time} rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#e3e3e3] transition-colors`}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-[#1a1812] text-xs uppercase font-medium mb-1.5">
+              Duration
+            </label>
+            <select
+              value={altEvent.duration}
+              onChange={e => handleChange("duration", Number(e.target.value))}
+              className={`w-full bg-white border border-[#e3e3e3] rounded-lg px-3 py-2 ${cardColor.time} text-xs focus:outline-none focus:border-[#8a7d5a] transition-colors`}
+            >
+              <option value={15}>15 min</option>
+              <option value={30}>30 min</option>
+              <option value={45}>45 min</option>
+              <option value={60}>1 hour</option>
+              <option value={90}>1.5 hours</option>
+              <option value={120}>2 hours</option>
+              <option value={180}>3 hours</option>
+              <option value={240}>4 hours</option>
+              <option value={480}>All day</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="flex items-center gap-3">
+          <MapPin size={15} className="text-gray-400 flex-shrink-0" />
           {editingLocation ? (
             <LocationSearch
               value={altEvent.location}
-              onChange={(val) => handleChange("location", val)}
+              onChange={val => handleChange("location", val)}
               onClose={() => setEditingLocation(false)}
             />
-            ) : (
-              <span
-                className={`cursor-pointer opacity-80 text-sm`}
-                onClick={() => setEditingLocation(true)}>
-                {altEvent.location || "Add location"}
-              </span>)}
-        </div>  
+          ) : (
+            <span
+              className="cursor-pointer opacity-80 text-sm hover:opacity-100 hover:text-black transition-opacity"
+              onClick={() => setEditingLocation(true)}
+            >
+              {altEvent.location || "Add location"}
+            </span>
+          )}
+        </div>
 
-        <div className="flex space-x-4 items-start p-2">
-          <div className="flex-shrink-0 mt-1"><Users size={16} /></div>
-          <div className="flex flex-col gap-2 w-full">
+        {/* Travelers */}
+        <div className="flex items-start gap-3">
+          <Users size={15} className="text-gray-400 flex-shrink-0 mt-1" />
+          <div className="flex flex-col gap-2 w-full min-w-0">
             {(members ?? []).length === 0 && (
               <span className="text-sm text-[#b0a48a]">No members on this trip yet.</span>
             )}
@@ -222,7 +212,7 @@ export default function EditEvent({day, date, trip, event, members, onClose, onS
               <span className="text-sm text-[#b0a48a]">@traveler...</span>
             )}
             <div className="flex flex-wrap gap-2">
-              {(members ?? []).map((m) => (
+              {(members ?? []).map(m => (
                 <button
                   key={m.id}
                   type="button"
@@ -240,26 +230,26 @@ export default function EditEvent({day, date, trip, event, members, onClose, onS
               ))}
             </div>
           </div>
-        </div> 
-    
-              {/*Save & Cancel */}
-              <div className="px-6 py-5 flex gap-3">
-              <button
-                onClick={onClose}
-                className="flex-1 border border-[#e3e3e3] text-[#8a7d5a] rounded-lg py-2.5 text-sm tracking-wide hover:bg-[#f5f3f0] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!altEvent.title.trim()}
-                className="flex-1 bg-[#fac643] text-[#ffffff] rounded-lg py-2.5 text-sm tracking-wide hover: transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Save
-              </button>
-            </div>
-    
-          </div> 
-          </div> 
-      );
+        </div>
+
+        {/* Cancel & Save */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-[#e3e3e3] text-[#8a7d5a] rounded-lg py-2.5 text-sm tracking-wide hover:bg-[#f5f3f0] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!altEvent.title.trim()}
+            className="flex-1 bg-[#fac643] text-white rounded-lg py-2.5 text-sm tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Save
+          </button>
+        </div>
+
+      </div>
+    </div>
+  )
 }
