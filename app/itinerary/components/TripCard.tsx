@@ -195,7 +195,7 @@ export default function TripList({ trip }: TripProps) {
         <button
             onClick={() => setChatOpen(o => !o)}
             className="fixed z-50 w-16 h-16 bg-yellow-400 hover:bg-yellow-500 active:scale-95 rounded-full shadow-xl flex items-center justify-center text-3xl transition-all hover:shadow-2xl"
-            style={{ bottom: `calc(${footerHeight}px - 100px)`, right: "24px" }}
+            style={{ bottom: "24px", right: "24px" }}
             aria-label="Open Agent Atlas"
         >
             🐝
@@ -212,8 +212,9 @@ export default function TripList({ trip }: TripProps) {
           <div
             className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100"
             style={{
-              bottom: `calc(${footerHeight}px + 100px)`,
-              right: "24px",
+                bottom: "24px", right: "24px",
+            //   bottom: `calc(${footerHeight}px + 100px)`,
+            //   right: "24px",
               width: "min(420px, calc(100vw - 48px))",
               height: "min(500px, calc(100vh - 160px))",
             }}
