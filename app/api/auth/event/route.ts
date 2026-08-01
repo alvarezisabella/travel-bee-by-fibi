@@ -73,7 +73,7 @@ export async function DELETE(req: NextRequest) {
 
     // Safety check — this route only deletes a single event, never a whole itinerary
     const { data: event } = await supabase
-      .from('itinerary_activities')
+      .from('events') //itinerary_activities
       .select('id')
       .eq('id', id)
       .single()

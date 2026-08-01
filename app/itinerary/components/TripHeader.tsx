@@ -335,6 +335,7 @@ export default function TripHeader({ trip }: Props) {
   const [sentInvites, setSentInvites] = useState<string[]>([])
   const [copied, setCopied]           = useState(false)
   const [travelers, setTravelers]     = useState(trip.travelers)
+  const [travelerToRemove, setTravelerToRemove] = useState<{ id: string; name: string } | null>(null)
 
   const shareLink = `${process.env.NEXT_PUBLIC_SITE_URL}/accept-invite?tripId=${trip.id}`
 
@@ -363,6 +364,13 @@ export default function TripHeader({ trip }: Props) {
   }
 
   const handleRemoveTraveler = (id: string) => setTravelers(prev => prev.filter(t => t.id !== id))
+
+  const confirmRemoveTraveler = () => {
+  if (travelerToRemove) {
+    handleRemoveTraveler(travelerToRemove.id)
+    setTravelerToRemove(null)
+  }
+}
 
   return (
     <div>
@@ -586,13 +594,34 @@ export default function TripHeader({ trip }: Props) {
                           {t.role && <span className="ml-2 text-xs text-gray-400 capitalize">{t.role}</span>}
                         </span>
                         {t.role !== "owner" && (
-                          <button onClick={() => handleRemoveTraveler(t.id)} className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded transition-all">
+                          <button
+                            onClick={() => setTravelerToRemove({ id: t.id, name: t.name })}
+                            className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded transition-all"
+                          >
                             <X size={14} />
                           </button>
                         )}
                       </div>
                     ))}
                     {travelers.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No travelers yet.</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* REMOVE TRAVELER CONFIRMATION MODAL */}
+              {travelerToRemove && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4" onClick={e => { if (e.target === e.currentTarget) setTravelerToRemove(null) }}>
+                  <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <h2 className="text-lg font-bold text-gray-900">Remove traveler?</h2>
+                      <p className="text-sm text-gray-500">Are you sure you want to remove {travelerToRemove.name} from this trip? This action cannot be undone.</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => setTravelerToRemove(null)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">Cancel</button>
+                      <button onClick={confirmRemoveTraveler} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                        Yes, remove
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
