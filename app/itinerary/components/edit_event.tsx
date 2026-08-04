@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Event, EventStatus, EventLabel, emptyEvent, Traveler, Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
 import { MapPin, Users, Tag, CalendarCheck, Clock } from "lucide-react"
@@ -9,9 +9,11 @@ interface EditEventProps {
   date?: string
   trip: string
   event?: Event
+  initialStartTime?: string
   members?: Traveler[]
   onClose: () => void
   onSave: (event: Event) => void
+  onTimeChange?: (startTime: string, duration: number) => void
 }
 
 const cardColor = { bg: "bg-[#fcfcfc]", bar: "bg-[#dbdbdb]", text: "text-[#262626]", time: "text-[#3a4042]" }
@@ -29,8 +31,8 @@ const STATUS_COLORS: { value: EventStatus; bg: string }[] = [
   { value: "Confirmed", bg: "bg-[#98d99f]" },
 ]
 
-export default function EditEvent({ day, date, trip, event, members, onClose, onSave }: EditEventProps) {
-  const [altEvent, setEvent] = useState<Event>(event ? event : emptyEvent)
+export default function EditEvent({ day, date, trip, event, initialStartTime, members, onClose, onSave, onTimeChange }: EditEventProps) {
+  const [altEvent, setEvent] = useState<Event>(event ? event : { ...emptyEvent, startTime: initialStartTime || emptyEvent.startTime })
   const [editingLocation, setEditingLocation] = useState(false)
   const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
@@ -40,6 +42,11 @@ export default function EditEvent({ day, date, trip, event, members, onClose, on
 
   altEvent.dayid = day
   altEvent.itineraryid = trip
+
+  useEffect(() => {
+    onTimeChange?.(altEvent.startTime, altEvent.duration)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [altEvent.startTime, altEvent.duration])
 
   const handleChange = (field: string, value: any) => {
     setEvent(prev => ({ ...prev, [field]: value }))
