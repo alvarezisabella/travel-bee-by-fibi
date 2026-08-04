@@ -68,7 +68,7 @@ export default function TripList({ trip }: TripProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itineraryid: trip.id, id: eventId, title })
     })
-    if (!res.ok) { console.error('Failed to delete event'); return }
+    if (!res.ok) { console.error('Failed to delete event', res.status, await res.text()); return }
     setDays(prev =>
       prev.map(day =>
         day.id === dayId
