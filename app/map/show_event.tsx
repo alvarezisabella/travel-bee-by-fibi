@@ -9,6 +9,14 @@ function formatTime(time: string): string {
   return `${hour}:${String(m).padStart(2, "0")} ${period}`
 }
 
+function formatDuration(minutes: number): string {
+  if (!minutes) return ""
+  if (minutes < 60) return `${minutes}m`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
 
 interface EventProp {
     event: Event;
@@ -48,7 +56,7 @@ export function ShowEvent({event}: EventProp) {
         <div className={`flex items-center gap-1.5 mt-2 text-xs ${cardColor.time}`}>
             <span>{formatTime(event.startTime)}</span>
             <span className="opacity-40">·</span>
-            <span>{event.duration}</span>
+            <span>{formatDuration(event.duration)}</span>
         </div>
 
         </div>

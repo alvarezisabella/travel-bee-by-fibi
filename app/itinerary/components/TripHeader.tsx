@@ -362,7 +362,22 @@ export default function TripHeader({ trip }: Props) {
     }
   }
 
-  const handleRemoveTraveler = (id: string) => setTravelers(prev => prev.filter(t => t.id !== id))
+  const handleRemoveTraveler = async (id: string) => {
+    const prevTravelers = travelers
+    setTravelers(prev => prev.filter(t => t.id !== id))
+    try {
+      const res = await fetch('/api/auth/itineraryMembers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, itinerary_id: trip.id }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      router.refresh()
+    } catch (err) {
+      console.error(err)
+      setTravelers(prevTravelers)
+    }
+  }
 
   return (
     <div>
