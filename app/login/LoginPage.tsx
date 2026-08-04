@@ -31,7 +31,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(redirect || "/");
+    router.push(redirect || "/profile");
     router.refresh();
   };
 
