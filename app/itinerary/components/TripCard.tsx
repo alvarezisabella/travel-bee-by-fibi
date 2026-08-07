@@ -21,6 +21,7 @@ export default function TripList({ trip }: TripProps) {
   const [hovered, setHovered] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [footerHeight, setFooterHeight] = useState(0)
+  const [eventToDelete, setEventToDelete] = useState<{ dayId: string; eventId: string; title: string } | null>(null)
 
   useEffect(() => {
     const measure = () => {
@@ -62,13 +63,19 @@ export default function TripList({ trip }: TripProps) {
     router.refresh()
   }
 
-  const handleDeleteEvent = async (dayId: string, eventId: string, title: string) => {
+  const requestDeleteEvent = (dayId: string, eventId: string, title: string) => {
+  setEventToDelete({ dayId, eventId, title })
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!eventToDelete) return
+    const { dayId, eventId, title } = eventToDelete
     const res = await fetch('/api/auth/event', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itineraryid: trip.id, id: eventId, title })
     })
-    if (!res.ok) { console.error('Failed to delete event', res.status, await res.text()); return }
+    if (!res.ok) { console.error('Failed to delete event', res.status, await res.text()); setEventToDelete(null); return }
     setDays(prev =>
       prev.map(day =>
         day.id === dayId
@@ -76,6 +83,7 @@ export default function TripList({ trip }: TripProps) {
           : day
       )
     )
+    setEventToDelete(null)
   }
 
   const handleAddDay = async () => {
@@ -157,7 +165,7 @@ export default function TripList({ trip }: TripProps) {
             members={trip.travelers}
             onAddEvent={handleAddEvent}
             onEditEvent={handleEdit}
-            onDeleteEvent={handleDeleteEvent}
+            onDeleteEvent={requestDeleteEvent}
             onUpvote={handleUpvote}
             onDownvote={handleDownvote}
           />
@@ -189,6 +197,29 @@ export default function TripList({ trip }: TripProps) {
           <span className="px-2 pt-1">Add Day</span>
         </button>
       </div>
+
+      {eventToDelete && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-5 w-80 flex flex-col gap-4">
+            <h2 className="text-lg font-bold text-gray-900">Delete Event?</h2>
+            <p className="text-sm text-gray-500">Are you sure you want to remove <span className="font-semibold">{eventToDelete.title}</span> from this trip? This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEventToDelete(null)}
+                className="px-3 py-1.5 text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteEvent}
+                className="px-3 py-1.5 text-sm rounded-md bg-red-500 text-white hover:bg-red-600"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating bee — hidden when any form is open */}
       {!anyFormOpen && (
