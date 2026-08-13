@@ -57,19 +57,12 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
     }
   }
 
-  const allTravelerIds = [
-    ...new Set(rawEvents.flatMap(ev => (ev.travelers as string[] | null) ?? []))
-  ]
-
-  const profileMap = new Map<string, string>()
-  if (allTravelerIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, username')
-      .in('id', allTravelerIds)
-    for (const p of profiles ?? []) {
-      profileMap.set(p.id, p.username)
-    }
+  // events.travelers stores itinerary_members.id (not profiles.id/auth user id) —
+  // see edit_event.tsx / add_event.tsx, which save the member row's own id, and
+  // removeTravelerFromItineraryEvents in lib/supabase/event.ts, which matches on it too.
+  const memberNameMap = new Map<string, string>()
+  for (const m of members ?? []) {
+    memberNameMap.set(m.id, m.name)
   }
 
   rawEvents.sort((a, b) => {
@@ -89,7 +82,7 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
   const mapEvent = (ev: typeof rawEvents[0], dayId: string): Event => {
     const duration = ev.starts_at && ev.ends_at ? timeDiffMinutes(ev.starts_at, ev.ends_at) : 0
     const travelerNames = ((ev.travelers as string[] | null) ?? [])
-      .map(id => profileMap.get(id) ?? id)
+      .map(id => memberNameMap.get(id) ?? id)
       .join(', ')
     return {
       id: ev.id,
