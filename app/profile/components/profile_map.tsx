@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 50);
+    return () => clearTimeout(id);
+  }, [map]);
+  return null;
+}
 import { fixLeafletIcons } from '@/lib/map/leaflet-fix';
 import { ShowTrip } from './show_trip';
 
@@ -42,14 +51,15 @@ export default function ProfileMap({ trips }: MapProps) {
     : WORLD_CENTER;
 
   return (
-    <div className='py-4'>
-      <div className="bg-white rounded-2xl shadow-sm p-6 gap-3" style={{ position: 'relative', zIndex: 0 }}>
-        <p className="pb-2 text-sm font-semibold text-gray-800">Places I've Been</p>
+    <div className='py-0'>
+      <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-4" style={{ position: 'relative', zIndex: 0 }}>
+        <p className="pb-2 text-base font-semibold text-gray-800">Places I've Been</p>
         <MapContainer
           center={center}
           zoom={2}
-          style={{ height: '600px', width: '100%', borderRadius: '12px', zIndex: 0 }}
+          style={{ height: '300px', width: '100%', borderRadius: '12px', zIndex: 0, overflow: 'hidden' }}
         >
+          <MapResizer />
           <TileLayer
             url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
             attribution='&copy; OpenStreetMap contributors & CARTO'

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Plane, Utensils, CalendarCheck, Zap } from "lucide-react"
 import { Event, LABEL_MAP, Traveler } from "../types/types"
-import AddEvent from "../add_event"
+import EditEvent from "./edit_event"
 
 interface DayWithDate {
   id: string      // day counter, e.g. "1"
@@ -140,6 +140,9 @@ interface AddModal {
   dayId: string
   date: string
   startTime: string
+  duration: number
+  x: number
+  y: number
 }
 
 export default function CalendarGrid({ days, tripId, members }: CalendarGridProps) {
@@ -186,15 +189,21 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
 
   const gridCols = `${TIME_COL_WIDTH}px repeat(${days.length}, minmax(120px, 1fr))`
 
-  // Click on a time slot — snap to nearest 15 min
+  // Click on a time slot — snap to nearest 30 min, default to a 1-hour block
   const handleCellClick = (e: React.MouseEvent<HTMLDivElement>, day: DayWithDate) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const rawMinutes = ((e.clientY - rect.top) / HOUR_HEIGHT) * 60 + START_HOUR * 60
-    const snapped = Math.round(rawMinutes / 15) * 15
+    const snapped = Math.round(rawMinutes / 30) * 30
     const h = Math.min(Math.floor(snapped / 60), END_HOUR - 1)
     const m = snapped % 60
     const startTime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
-    setAddModal({ dayId: day.id, date: day.date, startTime })
+
+    const popupWidth = 420
+    const popupMaxHeight = 560
+    const x = Math.min(e.clientX + 16, window.innerWidth - popupWidth - 16)
+    const y = Math.min(Math.max(e.clientY - 40, 16), window.innerHeight - popupMaxHeight - 16)
+
+    setAddModal({ dayId: day.id, date: day.date, startTime, duration: 60, x: Math.max(x, 16), y: Math.max(y, 16) })
   }
 
   const handleEventAdded = (event: Event, dayId: string) => {
@@ -369,6 +378,22 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
                     )
                   })}
 
+                  {/* Draft event block — live preview of the event being created */}
+                  {addModal && addModal.dayId === day.id && (() => {
+                    const pos = getEventPos({ startTime: addModal.startTime, duration: addModal.duration } as Event)
+                    if (!pos) return null
+                    return (
+                      <div
+                        className="absolute left-1 right-1 rounded-lg border-2 border-dashed border-[#fac643] bg-[#fac643]/20 pointer-events-none z-10"
+                        style={{ top: pos.top + 1, height: pos.height - 2 }}
+                      >
+                        <div className="px-1.5 py-1 text-[11px] font-semibold text-[#8a6820] truncate">
+                          {formatTime(addModal.startTime)}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   {/* Empty state */}
                   {allEvents.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -441,20 +466,32 @@ export default function CalendarGrid({ days, tripId, members }: CalendarGridProp
         )
       })()}
 
-      {/* ADD EVENT MODAL */}
+      {/* ADD EVENT POPUP — click-anywhere-outside catcher, no dimming, positioned by the click like Google Calendar */}
       {addModal && (
-        <AddEvent
-          day={addModal.dayId}
-          date={addModal.date}
-          trip={tripId}
-          members={members}
-          initialStartTime={addModal.startTime}
-          onClose={() => setAddModal(null)}
-          onAdd={(event) => {
-            handleEventAdded(event, addModal.dayId)
-            setAddModal(null)
-          }}
-        />
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setAddModal(null)} />
+          <div
+            className="fixed z-50 w-full max-w-[420px] max-h-[85vh] overflow-y-auto rounded-2xl shadow-2xl"
+            style={{ top: addModal.y, left: addModal.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <EditEvent
+              day={addModal.dayId}
+              date={addModal.date}
+              trip={tripId}
+              members={members}
+              initialStartTime={addModal.startTime}
+              onClose={() => setAddModal(null)}
+              onSave={(event: Event) => {
+                handleEventAdded(event, addModal.dayId)
+                setAddModal(null)
+              }}
+              onTimeChange={(startTime, duration) => {
+                setAddModal(prev => prev ? { ...prev, startTime, duration } : prev)
+              }}
+            />
+          </div>
+        </>
       )}
     </>
   )

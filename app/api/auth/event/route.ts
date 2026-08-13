@@ -71,10 +71,19 @@ export async function DELETE(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
 
+    // Safety check — this route only deletes a single event, never a whole itinerary
+    const { data: event } = await supabase
+      .from('events') //itinerary_activities
+      .select('id')
+      .eq('id', id)
+      .single()
+
+    if (!event) return NextResponse.json({ error: 'Event not found.' }, { status: 404 })
+
     const { error } = await deleteEvent(supabase, id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     const updated_by = await getUserNameById(user.id) || undefined
-    await addItineraryUpdate(supabase, itineraryid, 'Removed', title, updated_by ?? 'Unknown');
+    await addItineraryUpdate(supabase, itineraryid, 'Removed', title, updated_by ?? 'Unknown')
     return NextResponse.json({ success: true }, { status: 200 })
 }

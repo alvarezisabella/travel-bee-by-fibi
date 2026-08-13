@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 50);
+    return () => clearTimeout(id);
+  }, [map]);
+  return null;
+}
 import { fixLeafletIcons } from '../../lib/map/leaflet-fix';
 import { Day } from '@/app/itinerary/day';
 import { ShowEvent } from './show_event';
@@ -28,8 +37,8 @@ export default function CaliforniaMap({ days }: MapProps) {
       <style>
         {`
           .custom-popup .leaflet-popup-content {
-            width: 220px;
-            margin: 12px;
+            height: 10vw;
+            width: 18vw;
           }
         `}
       </style>
@@ -55,8 +64,9 @@ export default function CaliforniaMap({ days }: MapProps) {
       <MapContainer
         center={center}
         zoom={5}
-        style={{ height: '600px', width: '100%', borderRadius: '0 0 12px 12px' }}
+        style={{ height: '600px', width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}
       >
+        <MapResizer />
         <TileLayer
           url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
           attribution='&copy; OpenStreetMap contributors & CARTO'

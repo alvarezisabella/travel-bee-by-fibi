@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useRef, useEffect, useState, KeyboardEvent } from "react";
 import { chat } from "./chat";
 import { Message, Trip, Widget, ItineraryUpdate } from "../types/types";
@@ -26,6 +28,7 @@ const ChevronIcon: React.FC<{ flipped: boolean }> = ({ flipped }) => (
 interface ChatSidebarProps {
   trip: Trip;
   days: Day[];
+  mobileMode?: boolean;
 }
 
 interface MessageBubbleProps {
@@ -84,7 +87,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   );
 };
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days, mobileMode = false }) => {
   const { isCollapsed, toggle, messages, input, setInput, sendMessage, handlePdfUpload, addBotMessage, isLoading } =
     chat(trip);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -92,20 +95,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id);
 
-  // Track scroll position to push sidebar down as user scrolls
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 300)
-    }
+    if (mobileMode) return // don't track scroll in mobile drawer
+    const handleScroll = () => setScrolled(window.scrollY > 300)
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  }, [mobileMode])
 
-  useEffect(() => {
-    refetch();
-  }, [messages, refetch]);
+  useEffect(() => { refetch() }, [messages, refetch]);
 
   useEffect(() => {
     const container = messagesRef.current;
@@ -123,6 +122,78 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days }) => {
     }
   };
 
+  // ── Mobile mode: render inline inside the drawer, no fixed positioning ──
+  if (mobileMode) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Messages */}
+        <div ref={messagesRef} className={styles.messages} role="log" aria-live="polite" style={{ flex: 1, overflowY: "auto" }}>
+          {messages.map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              msg={msg}
+              trip={trip}
+              days={days}
+              isBookmarked={isBookmarked}
+              onToggleBookmark={toggleBookmark}
+              addBotMessage={addBotMessage}
+            />
+          ))}
+          <TripUpdates trip={trip.id} />
+          {isLoading && (
+            <div className={`${styles.msg} ${styles.bot}`} style={{ opacity: 0.6, fontStyle: "italic" }}>
+              <span>Atlas is typing…</span>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        <div className={styles.inputArea}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handlePdfUpload(file);
+              e.target.value = "";
+            }}
+          />
+          <button
+            className={styles.attachBtn}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            aria-label="Upload PDF"
+            type="button"
+          >
+            <Paperclip size={15} />
+          </button>
+          <textarea
+            className={styles.input}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message…"
+            rows={1}
+            aria-label="Chat message input"
+            disabled={isLoading}
+          />
+          <button
+            className={styles.sendBtn}
+            onClick={sendMessage}
+            disabled={!input.trim() || isLoading}
+            aria-label="Send message"
+          >
+            ↑
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Desktop mode: original fixed sidebar with collapse ──
   return (
     <aside
       className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
