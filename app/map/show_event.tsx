@@ -1,3 +1,4 @@
+import { Dot, Clock } from "lucide-react";
 import { Event, cardColor, STATUS_MAP, LABEL_MAP } from "@/app/itinerary/types/types";
 
 function formatTime(time: string): string {
