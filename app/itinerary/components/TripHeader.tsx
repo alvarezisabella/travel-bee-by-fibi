@@ -232,17 +232,11 @@ export default function TripHeader({ trip }: Props) {
     setSavedIdeas(prev => prev.filter(i => i.id !== ideaId))
   }
 
-  const saveCoorinates = async (location: string) => {
-    let geo = null
-    if (location.trim()) {
-      const res2 = await fetch("/api/geocode", { method: "POST", body: JSON.stringify({ city: location.trim() }) })
-      geo = await res2.json()
-      if (!res2.ok) throw new Error(geo.error)
-    }
+  const saveLocation = async (location: string, coords?: { lat: number; lng: number }) => {
     const res = await fetch('/api/auth/itinerary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: trip.id, lat: geo?.lat, lng: geo?.lng }),
+      body: JSON.stringify({ id: trip.id, location, lat: coords?.lat, lng: coords?.lng }),
     })
     if (!res.ok) console.log(await res.json())
   }
@@ -446,7 +440,7 @@ export default function TripHeader({ trip }: Props) {
                 <div className="flex items-center gap-1">
                   <MapPin size={16} />
                   {editingLocation ? (
-                    <LocationSearch value={location} onChange={val => setLocation(val)} onClose={val => { setEditingLocation(false); saveCoorinates(val) }} />
+                    <LocationSearch value={location} onChange={val => setLocation(val)} onClose={(val, coords) => { setEditingLocation(false); saveLocation(val, coords) }} />
                   ) : (
                     <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
                       {location || "Add location"}

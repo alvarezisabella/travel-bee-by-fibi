@@ -55,16 +55,6 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
   const handleSubmit = async () => {
     if (!altEvent.title.trim()) return
 
-    let geo = null
-    if (altEvent.location.trim()) {
-      const res2 = await fetch("/api/geocode", {
-        method: "POST",
-        body: JSON.stringify({ city: altEvent.location.trim() }),
-      })
-      geo = await res2.json()
-      if (!res2.ok) throw new Error(geo.error)
-    }
-
     const res = await fetch("/api/auth/event", {
       method: event ? "PUT" : "POST",
       headers: { 'Content-Type': 'application/json' },
@@ -73,7 +63,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
         title: altEvent.title.trim(), description: altEvent.description.trim(),
         status: altEvent.status, startTime: altEvent.startTime,
         duration: altEvent.duration, location: altEvent.location,
-        type: altEvent.type, travelers, lat: geo?.lat, lng: geo?.lng
+        type: altEvent.type, travelers, lat: altEvent.lat, lng: altEvent.lng
       })
     })
 
@@ -84,8 +74,6 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
     const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
     altEvent.id = eventId
     altEvent.travelers = travelerNames
-    altEvent.lat = geo?.lat
-    altEvent.lng = geo?.lng
     onSave(altEvent)
     onClose()
   }
@@ -196,7 +184,13 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
             <LocationSearch
               value={altEvent.location}
               onChange={val => handleChange("location", val)}
-              onClose={() => setEditingLocation(false)}
+              onClose={(val, coords) => {
+                setEditingLocation(false)
+                handleChange("location", val)
+                if (coords) {
+                  setEvent(prev => ({ ...prev, lat: coords.lat, lng: coords.lng }))
+                }
+              }}
             />
           ) : (
             <span
