@@ -37,8 +37,8 @@ export default function CaliforniaMap({ days }: MapProps) {
       <style>
         {`
           .custom-popup .leaflet-popup-content {
-            height: 10vw;
-            width: 18vw;
+            height: 25dvh;
+            width: 40dvh;
           }
         `}
       </style>
