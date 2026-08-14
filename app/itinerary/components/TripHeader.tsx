@@ -2,7 +2,7 @@
 
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark, FileText,
-  X, Copy, Check, Loader2, UserPlus, MoveLeft
+  X, Copy, Check, Loader2, UserPlus, MoveLeft, Compass
 } from "lucide-react"
 import { Trip, Widget } from "../types/types"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -474,6 +474,13 @@ export default function TripHeader({ trip }: Props) {
             {/* Right: action buttons — stacks on mobile, row on desktop */}
             <div className="flex flex-col gap-2 items-start sm:items-end shrink-0">
               <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/itinerary/${trip.id}/explore`}
+                  className="flex items-center gap-2 bg-white hover:bg-yellow-50 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+                >
+                  <Compass size={16} />
+                  <span>Explore</span>
+                </Link>
                 <button
                   onClick={() => { setInviteModal(true); setInviteTab("link") }}
                   className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
