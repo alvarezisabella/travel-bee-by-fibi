@@ -1,9 +1,13 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { X, MapPin } from "lucide-react"
-import { WORLD_LOCATIONS } from "@/app/itinerary/data/worldLocations"
+import { X, MapPin, Loader2 } from "lucide-react"
 import DateRangePicker from "@/components/landing/DateRangePicker"
+
+interface PlaceSuggestion {
+  placeId: string
+  description: string
+}
 
 const budgetTiers = [
   { label: "Budget",    range: "Under $500"    },
@@ -20,8 +24,11 @@ export default function TripSearchForm() {
   const [endDate, setEndDate] = useState<Date | null>(null)
   const [budgetTier, setBudgetTier] = useState(0)
   const [description, setDescription] = useState("")
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const taRef = useRef<HTMLTextAreaElement>(null)
   const destRef = useRef<HTMLDivElement>(null)
+  const sessionTokenRef = useRef(crypto.randomUUID())
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -34,15 +41,41 @@ export default function TripSearchForm() {
     return () => document.removeEventListener("mousedown", handler)
   }, [])
 
-  const filtered = destination.trim().length === 0
-    ? []
-    : WORLD_LOCATIONS.filter(loc =>
-        loc.toLowerCase().includes(destination.toLowerCase())
-      ).slice(0, 8)
+  // Debounced fetch of Google Places autocomplete suggestions
+  useEffect(() => {
+    if (destination.trim().length === 0) {
+      setSuggestions([])
+      setLoadingSuggestions(false)
+      return
+    }
+    setLoadingSuggestions(true)
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/places/autocomplete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: destination.trim(),
+            sessionToken: sessionTokenRef.current,
+            includedPrimaryTypes: ["locality", "country"],
+          }),
+        })
+        const data = await res.json()
+        setSuggestions(res.ok ? (data.suggestions ?? []) : [])
+      } catch {
+        setSuggestions([])
+      } finally {
+        setLoadingSuggestions(false)
+      }
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [destination])
 
-  function handleSelect(loc: string) {
-    setDestination(loc)
+  function handleSelect(suggestion: PlaceSuggestion) {
+    setDestination(suggestion.description)
     setDropdownOpen(false)
+    setSuggestions([])
+    sessionTokenRef.current = crypto.randomUUID()
   }
 
   function handlePlan() {
@@ -79,12 +112,13 @@ export default function TripSearchForm() {
               onFocus={() => setDropdownOpen(true)}
               onKeyDown={e => {
                 if (e.key === "Escape") setDropdownOpen(false)
-                if (e.key === "Enter" && filtered.length > 0) handleSelect(filtered[0])
+                if (e.key === "Enter" && suggestions.length > 0) handleSelect(suggestions[0])
               }}
               placeholder="Where are you headed?"
               className="flex-1 bg-transparent outline-none text-[15px] text-gray-900 placeholder:text-gray-300"
             />
-            {destination && (
+            {loadingSuggestions && <Loader2 size={13} className="text-gray-300 shrink-0 animate-spin" />}
+            {!loadingSuggestions && destination && (
               <button
                 onClick={() => { setDestination(""); setDropdownOpen(false) }}
                 className="text-gray-300 hover:text-gray-500 transition-colors"
@@ -95,32 +129,24 @@ export default function TripSearchForm() {
           </div>
 
           {/* Dropdown */}
-          {dropdownOpen && filtered.length > 0 && (
+          {dropdownOpen && suggestions.length > 0 && (
             <ul className="absolute top-full left-0 right-0 mt-1 mx-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
-              {filtered.map(loc => {
-                const parts = loc.split(", ")
-                const city = parts[0]
-                const country = parts.slice(1).join(", ")
-                return (
-                  <li key={loc}>
-                    <button
-                      onClick={() => handleSelect(loc)}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-yellow-50 transition-colors"
-                    >
-                      <MapPin size={13} className="text-yellow-500 shrink-0" />
-                      <span className="text-[14px] text-gray-800">{city}</span>
-                      {country && (
-                        <span className="text-[12px] text-gray-400 ml-auto">{country}</span>
-                      )}
-                    </button>
-                  </li>
-                )
-              })}
+              {suggestions.map(s => (
+                <li key={s.placeId}>
+                  <button
+                    onClick={() => handleSelect(s)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-yellow-50 transition-colors"
+                  >
+                    <MapPin size={13} className="text-yellow-500 shrink-0" />
+                    <span className="text-[14px] text-gray-800">{s.description}</span>
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
 
           {/* No results */}
-          {dropdownOpen && destination.trim().length > 0 && filtered.length === 0 && (
+          {dropdownOpen && !loadingSuggestions && destination.trim().length > 0 && suggestions.length === 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 mx-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 px-4 py-3">
               <p className="text-[13px] text-gray-400">
                 No matches — press <span className="font-medium text-gray-600">Enter</span> to use{" "}

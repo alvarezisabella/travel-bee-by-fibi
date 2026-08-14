@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { insertItineraryMember, updateItineraryMember, deleteItineraryMember, getItineraryMembers } from '@/lib/supabase/itineraryMembers'
+import { removeTravelerFromItineraryEvents } from '@/lib/supabase/event'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
@@ -57,8 +58,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE function to remove a member from an itinerary
 export async function DELETE(req: NextRequest) {
-    const { id } = await req.json()
-    if (!id) return NextResponse.json({ error: 'Member ID is required.' }, { status: 400 })
+    const { id, itinerary_id } = await req.json()
+    if (!id || !itinerary_id) return NextResponse.json({ error: 'Member ID and Itinerary ID are required.' }, { status: 400 })
 
     const cookieStore = await cookies()
     const supabase = await createClient(cookieStore)
@@ -68,6 +69,9 @@ export async function DELETE(req: NextRequest) {
 
     const { error } = await deleteItineraryMember(supabase, id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const { error: cleanupError } = await removeTravelerFromItineraryEvents(supabase, itinerary_id, id)
+    if (cleanupError) return NextResponse.json({ error: cleanupError.message }, { status: 500 })
 
     return NextResponse.json({ success: true }, { status: 200 })
 }

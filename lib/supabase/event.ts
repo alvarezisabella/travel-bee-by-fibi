@@ -38,3 +38,22 @@ export async function updateEvent(
 export async function deleteEvent(supabase: SupabaseClient, id: string) {
   return supabase.from('events').delete().eq('id', id)
 }
+
+// Removes a member's id from the travelers list of every event in the given itinerary
+// For cleaning up event traveler assignments when a member is removed from an itinerary
+export async function removeTravelerFromItineraryEvents(supabase: SupabaseClient, itineraryId: string, memberId: string) {
+  const { data: events, error } = await supabase
+    .from('events')
+    .select('id, travelers')
+    .eq('itinerary_id', itineraryId)
+    .contains('travelers', [memberId])
+
+  if (error) return { error }
+
+  for (const ev of events ?? []) {
+    const updated = ((ev.travelers as string[]) ?? []).filter(id => id !== memberId)
+    const { error: updateError } = await supabase.from('events').update({ travelers: updated }).eq('id', ev.id)
+    if (updateError) return { error: updateError }
+  }
+  return { error: null }
+}

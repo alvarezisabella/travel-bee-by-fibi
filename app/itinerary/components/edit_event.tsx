@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Event, EventStatus, EventLabel, emptyEvent, Traveler, Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
 import { MapPin, Users, Tag, CalendarCheck, Clock } from "lucide-react"
@@ -9,9 +9,11 @@ interface EditEventProps {
   date?: string
   trip: string
   event?: Event
+  initialStartTime?: string
   members?: Traveler[]
   onClose: () => void
   onSave: (event: Event) => void
+  onTimeChange?: (startTime: string, duration: number) => void
 }
 
 const cardColor = { bg: "bg-[#fcfcfc]", bar: "bg-[#dbdbdb]", text: "text-[#262626]", time: "text-[#3a4042]" }
@@ -29,8 +31,8 @@ const STATUS_COLORS: { value: EventStatus; bg: string }[] = [
   { value: "Confirmed", bg: "bg-[#98d99f]" },
 ]
 
-export default function EditEvent({ day, date, trip, event, members, onClose, onSave }: EditEventProps) {
-  const [altEvent, setEvent] = useState<Event>(event ? event : emptyEvent)
+export default function EditEvent({ day, date, trip, event, initialStartTime, members, onClose, onSave, onTimeChange }: EditEventProps) {
+  const [altEvent, setEvent] = useState<Event>(event ? event : { ...emptyEvent, startTime: initialStartTime || emptyEvent.startTime })
   const [editingLocation, setEditingLocation] = useState(false)
   const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
@@ -41,22 +43,17 @@ export default function EditEvent({ day, date, trip, event, members, onClose, on
   altEvent.dayid = day
   altEvent.itineraryid = trip
 
+  useEffect(() => {
+    onTimeChange?.(altEvent.startTime, altEvent.duration)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [altEvent.startTime, altEvent.duration])
+
   const handleChange = (field: string, value: any) => {
     setEvent(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = async () => {
     if (!altEvent.title.trim()) return
-
-    let geo = null
-    if (altEvent.location.trim()) {
-      const res2 = await fetch("/api/geocode", {
-        method: "POST",
-        body: JSON.stringify({ city: altEvent.location.trim() }),
-      })
-      geo = await res2.json()
-      if (!res2.ok) throw new Error(geo.error)
-    }
 
     const res = await fetch("/api/auth/event", {
       method: event ? "PUT" : "POST",
@@ -66,7 +63,7 @@ export default function EditEvent({ day, date, trip, event, members, onClose, on
         title: altEvent.title.trim(), description: altEvent.description.trim(),
         status: altEvent.status, startTime: altEvent.startTime,
         duration: altEvent.duration, location: altEvent.location,
-        type: altEvent.type, travelers, lat: geo?.lat, lng: geo?.lng
+        type: altEvent.type, travelers, lat: altEvent.lat, lng: altEvent.lng
       })
     })
 
@@ -77,8 +74,6 @@ export default function EditEvent({ day, date, trip, event, members, onClose, on
     const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
     altEvent.id = eventId
     altEvent.travelers = travelerNames
-    altEvent.lat = geo?.lat
-    altEvent.lng = geo?.lng
     onSave(altEvent)
     onClose()
   }
@@ -189,7 +184,13 @@ export default function EditEvent({ day, date, trip, event, members, onClose, on
             <LocationSearch
               value={altEvent.location}
               onChange={val => handleChange("location", val)}
-              onClose={() => setEditingLocation(false)}
+              onClose={(val, coords) => {
+                setEditingLocation(false)
+                handleChange("location", val)
+                if (coords) {
+                  setEvent(prev => ({ ...prev, lat: coords.lat, lng: coords.lng }))
+                }
+              }}
             />
           ) : (
             <span

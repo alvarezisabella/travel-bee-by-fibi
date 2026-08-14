@@ -74,13 +74,6 @@ export default function GeneratedItineraries() {
             </div>
           ))}
         </div>
-
-        <div className="flex justify-center mt-12">
-          <button className="text-[14px] font-semibold text-[#b8860b] hover:text-[#F5C300] transition-colors">
-            Browse more itineraries →
-          </button>
-        </div>
-
       </div>
     </section>
   )

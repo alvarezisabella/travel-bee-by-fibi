@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { insertItinerary } from "@/lib/supabase/itinerary"
 import { insertEvent } from "@/lib/supabase/event"
-import { insertItineraryMember } from "@/lib/supabase/itineraryMembers"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 import { GeneratedItinerary } from "@/app/api/ai/generate-itinerary/route"
@@ -71,14 +70,8 @@ export async function POST(req: NextRequest) {
 
   const itineraryId = itineraryData.id
 
-  // Adds the creator as the owner member so they have full permissions on the trip.
-  // The existing itinerary list query (getItinerariesByUser) picks up trips via
-  // created_by, but itinerary_members is needed for role-based UI logic in TripHeader.
-  await insertItineraryMember(supabase, {
-    itinerary_id: itineraryId,
-    user_id: user.id,
-    role: 'owner',
-  })
+  // itineraries_add_owner_trigger (DB trigger) inserts the owner row into
+  // itinerary_members automatically — no app-level insert needed here.
 
   // Inserts all events in parallel for efficiency. Each event's ends_at is
   // computed from startTime + duration using the same formula as the event route.

@@ -98,6 +98,7 @@ ${tripDetails}
           - location must be as specific as possible — use neighborhood, city, or region
           - output 2-4 search intents per response covering diverse options
           - Write 1 sentence of plain text context before the <search> block. Nothing after.
+          - IMPORTANT: If the user asks for recommendations, alternatives, or options (even for an existing event like "a different breakfast option"), ALWAYS output a <search> block. Never use <itinerary-action> for recommendation requests.
 
           ## Itinerary editing
 
