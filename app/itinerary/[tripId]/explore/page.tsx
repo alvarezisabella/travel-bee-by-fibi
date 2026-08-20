@@ -35,6 +35,7 @@ type ExploreItem = {
 }
 
 const items: ExploreItem[] = [
+  // Stays
   {
     id: 1,
     title: "Dear Lisbon – Bairro Alto",
@@ -59,6 +60,51 @@ const items: ExploreItem[] = [
   },
   {
     id: 3,
+    title: "The Lumiares Hotel & Spa",
+    location: "Bairro Alto",
+    price: "$320",
+    rating: "4.9",
+    category: "Stays",
+    meta: "Luxury hotel",
+    image:
+      "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 4,
+    title: "Santiago de Alfama",
+    location: "Alfama",
+    price: "$175",
+    rating: "4.6",
+    category: "Stays",
+    meta: "Boutique hotel",
+    image:
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 5,
+    title: "Palácio Ramalhete",
+    location: "Santos",
+    price: "$290",
+    rating: "4.8",
+    category: "Stays",
+    meta: "Historic mansion",
+    image:
+      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 6,
+    title: "Convento do Salvador",
+    location: "Alfama",
+    price: "$260",
+    rating: "4.7",
+    category: "Stays",
+    meta: "Design hotel",
+    image:
+      "https://images.unsplash.com/photo-1521783988139-89397d761dce?auto=format&fit=crop&w=900&q=85",
+  },
+  // Activities
+  {
+    id: 7,
     title: "Sintra & Cascais Tour",
     location: "Sintra",
     price: "$89",
@@ -69,7 +115,7 @@ const items: ExploreItem[] = [
       "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=900&q=85",
   },
   {
-    id: 4,
+    id: 8,
     title: "Belém Food Walk",
     location: "Belém",
     price: "$49",
@@ -80,7 +126,7 @@ const items: ExploreItem[] = [
       "https://images.unsplash.com/photo-1559628233-100c798642d4?auto=format&fit=crop&w=900&q=85",
   },
   {
-    id: 5,
+    id: 9,
     title: "Fado Show & Dinner",
     location: "Alfama",
     price: "$75",
@@ -91,7 +137,41 @@ const items: ExploreItem[] = [
       "https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=900&q=85",
   },
   {
-    id: 6,
+    id: 10,
+    title: "Tagus River Cruise",
+    location: "Cais do Sodré",
+    price: "$38",
+    rating: "4.6",
+    category: "Activities",
+    meta: "Sunset · 2 hours",
+    image:
+      "https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 11,
+    title: "LX Factory Street Art Tour",
+    location: "Alcântara",
+    price: "$29",
+    rating: "4.5",
+    category: "Activities",
+    meta: "2.5 hours",
+    image:
+      "https://images.unsplash.com/photo-1541417904950-b855846fe074?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 12,
+    title: "Oceanário de Lisboa Visit",
+    location: "Parque das Nações",
+    price: "$24",
+    rating: "4.8",
+    category: "Activities",
+    meta: "Half day",
+    image:
+      "https://images.unsplash.com/photo-1524704796725-9fc3044a58b2?auto=format&fit=crop&w=900&q=85",
+  },
+  // Dining
+  {
+    id: 13,
     title: "Time Out Market Lisboa",
     location: "Cais do Sodré",
     price: "$35",
@@ -102,7 +182,7 @@ const items: ExploreItem[] = [
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=85",
   },
   {
-    id: 7,
+    id: 14,
     title: "Rooftop at Bairro",
     location: "Bairro Alto",
     price: "$95",
@@ -113,7 +193,52 @@ const items: ExploreItem[] = [
       "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=900&q=85",
   },
   {
-    id: 8,
+    id: 15,
+    title: "A Cevicheria",
+    location: "Príncipe Real",
+    price: "$110",
+    rating: "4.7",
+    category: "Dining",
+    meta: "Seafood",
+    image:
+      "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 16,
+    title: "Cantinho do Avillez",
+    location: "Chiado",
+    price: "$105",
+    rating: "4.6",
+    category: "Dining",
+    meta: "Portuguese",
+    image:
+      "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 17,
+    title: "Pastéis de Belém",
+    location: "Belém",
+    price: "$8",
+    rating: "4.9",
+    category: "Dining",
+    meta: "Bakery",
+    image:
+      "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 18,
+    title: "Taberna da Rua das Flores",
+    location: "Chiado",
+    price: "$68",
+    rating: "4.7",
+    category: "Dining",
+    meta: "Tapas",
+    image:
+      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=85",
+  },
+  // Transportation
+  {
+    id: 19,
     title: "Lisbon Card 72h",
     location: "Citywide",
     price: "$46",
@@ -122,6 +247,61 @@ const items: ExploreItem[] = [
     meta: "Transit + attractions",
     image:
       "https://images.unsplash.com/photo-1525207934214-58e69a8f8a93?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 20,
+    title: "Airport Transfer",
+    location: "LIS Airport",
+    price: "$55",
+    rating: "4.6",
+    category: "Transportation",
+    meta: "Private transfer",
+    image:
+      "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 21,
+    title: "24h Public Transport Pass",
+    location: "Citywide",
+    price: "$12",
+    rating: "4.4",
+    category: "Transportation",
+    meta: "Metro, bus & tram",
+    image:
+      "https://images.unsplash.com/photo-1555881400-69a2384ed1af?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 22,
+    title: "Hop-on Hop-off Bus",
+    location: "Citywide",
+    price: "$32",
+    rating: "4.5",
+    category: "Transportation",
+    meta: "48h pass",
+    image:
+      "https://images.unsplash.com/photo-1519452575417-564c1401ecc0?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 23,
+    title: "Tuk-tuk City Tour",
+    location: "Alfama",
+    price: "$40",
+    rating: "4.6",
+    category: "Transportation",
+    meta: "1.5 hours",
+    image:
+      "https://images.unsplash.com/photo-1580654712603-eb43273aff33?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    id: 24,
+    title: "Car Rental",
+    location: "LIS Airport",
+    price: "$38",
+    rating: "4.3",
+    category: "Transportation",
+    meta: "Per day",
+    image:
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=85",
   },
 ]
 
@@ -168,7 +348,7 @@ function ResultCard({
           type="button"
           onClick={onSave}
           aria-label={`Save ${item.title}`}
-          className="absolute right-3 top-3 rounded-full bg-white/95 p-2 shadow-sm"
+          className="absolute right-2.5 top-2.5 rounded-full bg-white/95 p-1.5 shadow-sm"
         >
           <Heart
             className={`h-4 w-4 ${
@@ -179,13 +359,13 @@ function ResultCard({
           />
         </button>
 
-        <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-700">
+        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-white/95 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
           {item.category}
         </span>
       </div>
 
-      <div className="p-4">
-        <h3 className="line-clamp-1 font-semibold text-slate-900">
+      <div className="p-3.5">
+        <h3 className="line-clamp-1 text-sm font-semibold text-slate-900">
           {item.title}
         </h3>
 
@@ -193,13 +373,13 @@ function ResultCard({
           {item.meta} · {item.location}
         </p>
 
-        <div className="mt-4 flex items-end justify-between">
+        <div className="mt-3 flex items-end justify-between">
           <span className="flex items-center gap-1 text-sm font-medium">
             <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
             {item.rating}
           </span>
 
-          <span className="font-bold text-slate-900">
+          <span className="text-sm font-bold text-slate-900">
             {item.price}
             <small className="font-normal text-slate-500">
               {" "}
@@ -518,7 +698,7 @@ export default function ExploreTripPage() {
                 </button>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                 {categoryItems.map((item) => (
                   <ResultCard
                     key={item.id}
