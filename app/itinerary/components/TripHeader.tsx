@@ -520,19 +520,33 @@ export default function TripHeader({ trip }: Props) {
                 </div>
                 <button onClick={() => setBookmarkPanel(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={20} /></button>
               </div>
-              <div className="flex-1 p-4 flex flex-col gap-3">
-                {loadingBookmarks ? (
-                  <div className="flex items-center justify-center mt-8"><Loader2 size={20} className="animate-spin text-gray-400" /></div>
-                ) : savedIdeas.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
-                ) : (
-                  savedIdeas.map(idea => (
-                    <BookmarkCard key={idea.id} idea={idea} tripId={trip.id} days={trip.days}
-                      onAdded={() => { setBookmarkPanel(false); router.refresh() }}
-                      onDelete={() => handleDeleteWidget(idea.id)} />
-                  ))
-                )}
-              </div>
+                <div className="flex-1 p-4 flex flex-col gap-5">
+                  {loadingBookmarks ? (
+                    <div className="flex items-center justify-center mt-8"><Loader2 size={20} className="animate-spin text-gray-400" /></div>
+                  ) : savedIdeas.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center mt-8">No saved ideas yet.</p>
+                  ) : (
+                    trip.days.map((day, index) => {
+                      const ideas = savedIdeas.filter(i => i.day === day.date)
+                      if (ideas.length === 0) return null
+                      return (
+                        <div key={day.id}>
+                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                            Day {index + 1}
+                            {day.date && ` · ${new Date(day.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                          </h3>
+                          <div className="flex flex-col gap-3">
+                            {ideas.map(idea => (
+                              <BookmarkCard key={idea.id} idea={idea} tripId={trip.id} days={trip.days}
+                                onAdded={() => { setBookmarkPanel(false); router.refresh() }}
+                                onDelete={() => handleDeleteWidget(idea.id)} />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
             </div>
           </div>
         )}

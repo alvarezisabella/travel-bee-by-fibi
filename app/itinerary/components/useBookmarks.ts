@@ -24,9 +24,7 @@ export function useBookmarks(tripId: string) {
     }
   }, [tripId])
 
-  useEffect(() => {
-    fetchBookmarks()
-  }, [fetchBookmarks])
+  useEffect(() => { fetchBookmarks() }, [fetchBookmarks])
 
   useEffect(() => {
     window.addEventListener('widget-bookmarked', fetchBookmarks)
@@ -41,58 +39,55 @@ export function useBookmarks(tripId: string) {
     return bookmarkMap[`${title}__${location ?? ""}`] ?? null
   }
 
-  async function toggleBookmark(widget: Widget) {
+  async function removeBookmark(widget: Widget) {
     const key = `${widget.title}__${widget.location ?? ""}`
     const existingId = bookmarkMap[key]
+    if (!existingId) return
+    setBookmarkMap(prev => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    try {
+      await fetch(`/api/auth/widgets?id=${existingId}`, { method: 'DELETE' })
+      window.dispatchEvent(new CustomEvent('widget-bookmarked'))
+    } catch {
+      setBookmarkMap(prev => ({ ...prev, [key]: existingId }))
+    }
+  }
 
-    if (existingId) {
-      // optimistically remove
+  // NEW — save requires a day to be chosen first
+  async function addBookmark(widget: Widget, day: string) {
+    const key = `${widget.title}__${widget.location ?? ""}`
+    const tempId = 'temp-' + crypto.randomUUID()
+    setBookmarkMap(prev => ({ ...prev, [key]: tempId }))
+    try {
+      const res = await fetch('/api/auth/widgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itinerary_id: tripId,
+          title: widget.title,
+          type: widget.type,
+          location: widget.location,
+          description: widget.description,
+          image_url: widget.image_url,
+          rating: widget.rating,
+          price: widget.price,
+          day,
+        }),
+      })
+      const json = await res.json()
+      setBookmarkMap(prev => ({ ...prev, [key]: json?.id ?? tempId }))
+      window.dispatchEvent(new CustomEvent('widget-bookmarked'))
+    } catch {
       setBookmarkMap(prev => {
         const next = { ...prev }
         delete next[key]
         return next
       })
-      try {
-        await fetch(`/api/auth/widgets?id=${existingId}`, { method: 'DELETE' })
-        window.dispatchEvent(new CustomEvent('widget-bookmarked'))
-      } catch {
-        // revert on failure
-        setBookmarkMap(prev => ({ ...prev, [key]: existingId }))
-      }
-    } else {
-      // optimistically add with a temp id
-      const tempId = 'temp-' + crypto.randomUUID()
-      setBookmarkMap(prev => ({ ...prev, [key]: tempId }))
-      try {
-        const res = await fetch('/api/auth/widgets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            itinerary_id: tripId,
-            title: widget.title,
-            type: widget.type,
-            location: widget.location,
-            description: widget.description,
-            image_url: widget.image_url,
-            rating: widget.rating,
-            price: widget.price,
-          }),
-        })
-        const json = await res.json()
-        const realId = json?.id ?? null
-        // replace temp id with real id
-        setBookmarkMap(prev => ({ ...prev, [key]: realId }))
-        window.dispatchEvent(new CustomEvent('widget-bookmarked'))
-      } catch {
-        // revert on failure
-        setBookmarkMap(prev => {
-          const next = { ...prev }
-          delete next[key]
-          return next
-        })
-      }
     }
   }
 
-  return { isBookmarked, getSavedId, toggleBookmark, loading, refetch: fetchBookmarks }
+  return { isBookmarked, getSavedId, removeBookmark, addBookmark, loading, refetch: fetchBookmarks }
 }

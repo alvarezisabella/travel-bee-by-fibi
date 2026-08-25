@@ -12,7 +12,8 @@ interface EventWidgetProps {
   tripId: string;
   days: Day[];
   isBookmarked: boolean;
-  onToggleBookmark: (widget: Widget) => void;
+  onRemoveBookmark: (widget: Widget) => void;
+  onAddBookmark: (widget: Widget, day: string) => void;
 }
 
 function extractHex(twClass: string): string {
@@ -21,17 +22,29 @@ function extractHex(twClass: string): string {
 }
 
 export const EventWidget: React.FC<EventWidgetProps> = ({
-  widget, tripId, days, isBookmarked, onToggleBookmark
+  widget, tripId, days, isBookmarked, onRemoveBookmark, onAddBookmark
 }) => {
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Day | null>(null);
   const [added, setAdded] = useState(false);
+  const [savedBookmark, setSavedBookmark] = useState(false);
   const bannerColor = extractHex(LABEL_MAP[widget.type]?.bar ?? "")
 
-  function handleBookmarkToggle(e: React.MouseEvent) {
+  function handleBookmarkClick(e: React.MouseEvent) {
     e.stopPropagation()
-    onToggleBookmark(widget)
+    if (isBookmarked) {
+      onRemoveBookmark(widget)
+    } else {
+      setOpen(true) // must pick a day to save
+    }
+  }
+
+  function handleSaveBookmark() {
+    if (!selectedDay?.date) return;
+    onAddBookmark(widget, selectedDay.date)
+    setSavedBookmark(true)
+    setTimeout(() => { setOpen(false); setSavedBookmark(false); setSelectedDay(null) }, 800)
   }
 
   function handleTicketLink(e: React.MouseEvent) {
@@ -40,7 +53,7 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
   }
 
   async function handleAdd() {
-    if (!selectedDay) return;
+    if (!selectedDay?.date) return;
     setAdding(true);
     try {
       const supabase = createClient();
@@ -49,7 +62,7 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
 
       const { data, error } = await insertEvent(supabase, {
         itinerary_id: tripId,
-        day: selectedDay,
+        day: selectedDay.date,
         title: widget.title,
         description: widget.description ?? "",
         type: widget.type,
@@ -63,7 +76,7 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
         detail: {
           id: data.id,
           itineraryid: tripId,
-          dayid: days.find(d => d.date === selectedDay)?.id,
+          dayid: selectedDay.id,
           title: widget.title,
           description: widget.description ?? "",
           status: "Pending",
@@ -90,48 +103,27 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
 
   return (
     <>
-      {/* Card */}
       <div className={w.card} onClick={() => setOpen(o => !o)}>
-
-        {/* Banner */}
         <div className={w.banner} style={{ backgroundColor: bannerColor }}>
-          {widget.image_url && (
-            <img src={widget.image_url} className={w.bannerImg} alt={widget.title} />
-          )}
+          {widget.image_url && <img src={widget.image_url} className={w.bannerImg} alt={widget.title} />}
           {widget.type && (
-            <div className={w.bannerBadge}>
-              <span className={w.bannerBadgeText}>{widget.type}</span>
-            </div>
+            <div className={w.bannerBadge}><span className={w.bannerBadgeText}>{widget.type}</span></div>
           )}
         </div>
 
-        {/* Body */}
         <div className={w.body}>
           <p className={w.title}>{widget.title}</p>
-          {widget.description && (
-            <p className={w.description}>{widget.description}</p>
-          )}
-          {widget.location && (
-            <p className={w.location}>{widget.location}</p>
-          )}
+          {widget.description && <p className={w.description}>{widget.description}</p>}
+          {widget.location && <p className={w.location}>{widget.location}</p>}
           <div className={w.footer}>
-            {widget.rating !== undefined && (
-              <span className={w.rating}>★ {widget.rating}</span>
-            )}
+            {widget.rating !== undefined && <span className={w.rating}>★ {widget.rating}</span>}
             {widget.price !== undefined && (
-              <span className={w.price}>
-                {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
-              </span>
+              <span className={w.price}>{widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}</span>
             )}
           </div>
           <div className={w.link} onClick={handleTicketLink}>
-          {/* Ticket link inline on card — only for Reservation type */}
             {widget.url && (widget.type === "Reservation" || widget.type === "Transit") && (
-              <button
-                onClick={handleTicketLink}
-                className={w.ticketLink}
-                aria-label="Buy tickets"
-              >
+              <button onClick={handleTicketLink} className={w.ticketLink} aria-label="Buy tickets">
                 <ExternalLink size={11} />
                 <span>{widget.type === "Transit" ? "Book flight" : "Tickets"}</span>
               </button>
@@ -139,79 +131,48 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
           </div>
         </div>
 
-        {/* Bookmark button */}
-        <button
-          onClick={handleBookmarkToggle}
-          className={w.deleteBtn}
-          aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}
-        >
-          <Bookmark
-            size={12}
-            fill={isBookmarked ? "#000000" : "none"}
-            stroke={isBookmarked ? "#000000" : "currentColor"}
-          />
+        <button onClick={handleBookmarkClick} className={w.deleteBtn} aria-label={isBookmarked ? "Remove bookmark" : "Save bookmark"}>
+          <Bookmark size={12} fill={isBookmarked ? "#000000" : "none"} stroke={isBookmarked ? "#000000" : "currentColor"} />
         </button>
-
       </div>
 
-      {/* Detail modal */}
       {open && (
         <div className={styles.modal}>
-          <div className={styles.modalHandle}>
-            <div className={styles.modalHandleBar} />
-          </div>
+          <div className={styles.modalHandle}><div className={styles.modalHandleBar} /></div>
 
           <div className={styles.modalBody}>
-
             <div className={styles.modalHeader}>
               <div>
                 <h3 className={styles.modalTitle}>{widget.title}</h3>
-                {widget.location && (
-                  <p className={styles.modalLocation}>{widget.location}</p>
-                )}
+                {widget.location && <p className={styles.modalLocation}>{widget.location}</p>}
               </div>
-              <button onClick={() => setOpen(false)} className={styles.modalCloseBtn}>
-                <X size={18} />
-              </button>
+              <button onClick={() => setOpen(false)} className={styles.modalCloseBtn}><X size={18} /></button>
             </div>
 
-            {widget.description && (
-              <p className={styles.modalDescription}>{widget.description}</p>
-            )}
+            {widget.description && <p className={styles.modalDescription}>{widget.description}</p>}
 
             <div className={w.footer}>
-              {widget.rating !== undefined && (
-                <span className={w.rating}>★ {widget.rating}</span>
-              )}
+              {widget.rating !== undefined && <span className={w.rating}>★ {widget.rating}</span>}
               {widget.price !== undefined && (
-                <span className={w.price}>
-                  {widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}
-                </span>
+                <span className={w.price}>{widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`}</span>
               )}
             </div>
 
-            {/* Ticket link in modal — full button for Reservation type */}
-              {widget.url && (widget.type === "Reservation" || widget.type === "Transit") && (
-                <button
-                  onClick={handleTicketLink}
-                  className={styles.ticketBtn}
-                  aria-label="Buy tickets"
-                >
-                  <ExternalLink size={14} />
-                  <span>
-                    {widget.type === "Transit" ? "Book on Google Flights" : "Buy Tickets"}
-                  </span>
-                </button>
-              )}
+            {widget.url && (widget.type === "Reservation" || widget.type === "Transit") && (
+              <button onClick={handleTicketLink} className={styles.ticketBtn} aria-label="Buy tickets">
+                <ExternalLink size={14} />
+                <span>{widget.type === "Transit" ? "Book on Google Flights" : "Buy Tickets"}</span>
+              </button>
+            )}
 
             <div className={styles.dayPicker}>
-              <p className={styles.dayPickerLabel}>Add to day</p>
+              <p className={styles.dayPickerLabel}>Choose a day</p>
               <div className={styles.dayPickerScroll}>
                 {days.map((day, index) => (
                   <button
                     key={day.id}
-                    onClick={() => setSelectedDay(day.date ?? null)}
-                    className={`${styles.dayBtn} ${selectedDay === day.date ? styles.dayBtnSelected : ""}`}
+                    onClick={() => setSelectedDay(day)}
+                    className={`${styles.dayBtn} ${selectedDay?.id === day.id ? styles.dayBtnSelected : ""}`}
                   >
                     <span className={styles.dayBtnLabel}>Day {index + 1}</span>
                     {day.date && (
@@ -224,19 +185,22 @@ export const EventWidget: React.FC<EventWidgetProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={handleAdd}
-              disabled={adding || !selectedDay || added}
-              className={styles.addBtn}
-            >
-              {added
-                ? <><Check size={14} /> Added!</>
-                : adding
-                ? <><Loader2 size={14} className={styles.spinner} /> Adding...</>
-                : "Add to itinerary"
-              }
-            </button>
-
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleSaveBookmark}
+                disabled={!selectedDay || savedBookmark}
+                className={styles.addBtn}
+              >
+                {savedBookmark ? <><Check size={14} /> Saved!</> : "Save bookmark"}
+              </button>
+              <button
+                onClick={handleAdd}
+                disabled={adding || !selectedDay || added}
+                className={styles.addBtn}
+              >
+                {added ? <><Check size={14} /> Added!</> : adding ? <><Loader2 size={14} className={styles.spinner} /> Adding...</> : "Add to itinerary"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -121,6 +121,7 @@ export interface Widget {
   rating?: number
   price?: number
   url?: string
+  day?: string
 }
 
 export interface ItineraryUpdate {

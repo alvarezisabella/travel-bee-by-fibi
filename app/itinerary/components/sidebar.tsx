@@ -36,12 +36,13 @@ interface MessageBubbleProps {
   trip: Trip;
   days: Day[];
   isBookmarked: (title: string, location?: string) => boolean;
-  onToggleBookmark: (widget: Widget) => void;
+  onRemoveBookmark: (widget: Widget) => void;
+  onAddBookmark: (widget: Widget, dayId: string) => void;
   addBotMessage: (text: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
-  msg, trip, days, isBookmarked, onToggleBookmark, addBotMessage,
+  msg, trip, days, isBookmarked, onRemoveBookmark, onAddBookmark, addBotMessage,
 }) => {
   const displayText = msg.text
     ?.replace(/<widgets>\s*[\s\S]*?\s*<\/widgets>/, "")
@@ -66,7 +67,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           tripId={trip.id}
           days={days}
           isBookmarked={isBookmarked(widget.title, widget.location)}
-          onToggleBookmark={onToggleBookmark}
+          onRemoveBookmark={onRemoveBookmark}
+          onAddBookmark={onAddBookmark}
         />
       ))}
       {msg.pdfEvent && (
@@ -93,7 +95,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days, mobileMode
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isBookmarked, toggleBookmark, refetch } = useBookmarks(trip.id);
+  const { isBookmarked, removeBookmark, addBookmark, refetch } = useBookmarks(trip.id);
 
   const [scrolled, setScrolled] = useState(false)
 
@@ -135,7 +137,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days, mobileMode
               trip={trip}
               days={days}
               isBookmarked={isBookmarked}
-              onToggleBookmark={toggleBookmark}
+              onRemoveBookmark={removeBookmark}
+              onAddBookmark={addBookmark}
               addBotMessage={addBotMessage}
             />
           ))}
@@ -224,7 +227,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ trip, days, mobileMode
                 trip={trip}
                 days={days}
                 isBookmarked={isBookmarked}
-                onToggleBookmark={toggleBookmark}
+                onRemoveBookmark={removeBookmark}
+                onAddBookmark={addBookmark}
                 addBotMessage={addBotMessage}
               />
             ))}
