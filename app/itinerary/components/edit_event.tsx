@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { Event, EventStatus, EventLabel, emptyEvent, Traveler, Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
-import { MapPin, Users, Tag, CalendarCheck, Clock } from "lucide-react"
+import { MapPin, Users, Tag, CalendarCheck, Clock, Loader2 } from "lucide-react"
 
 interface EditEventProps {
   day: string
@@ -34,6 +34,7 @@ const STATUS_COLORS: { value: EventStatus; bg: string }[] = [
 export default function EditEvent({ day, date, trip, event, initialStartTime, members, onClose, onSave, onTimeChange }: EditEventProps) {
   const [altEvent, setEvent] = useState<Event>(event ? event : { ...emptyEvent, startTime: initialStartTime || emptyEvent.startTime })
   const [editingLocation, setEditingLocation] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
     const names = event.travelers.split(', ').filter(Boolean)
@@ -53,6 +54,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
   }
 
   const handleSubmit = async () => {
+    setSaving(true)
     if (!altEvent.title.trim()) return
 
     const res = await fetch("/api/auth/event", {
@@ -75,6 +77,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
     altEvent.id = eventId
     altEvent.travelers = travelerNames
     onSave(altEvent)
+    setSaving(false)
     onClose()
   }
 
@@ -237,16 +240,17 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 border border-[#e3e3e3] text-[#8a7d5a] rounded-lg py-2.5 text-sm tracking-wide hover:bg-[#f5f3f0] transition-colors cursor-pointer"
+            disabled={saving}
+            className="flex-1 border border-[#e3e3e3] text-[#8a7d5a] rounded-lg py-2.5 text-sm tracking-wide hover:bg-[#f5f3f0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!altEvent.title.trim()}
+            disabled={!altEvent.title.trim() || saving}
             className="flex-1 bg-[#fac643] text-white rounded-lg py-2.5 text-sm tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            Save
+            {saving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : "Save"}
           </button>
         </div>
 
