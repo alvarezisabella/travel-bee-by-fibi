@@ -18,9 +18,11 @@ import { useParams } from "next/navigation"
 import TripInfoBar, {
   ExploreCategory,
 } from "./components/TripInfoBar"
+import { Widget } from "@/app/itinerary/types/types"
+import { useExploreSearch } from "./useExploreSearch"
 
 type ExploreItem = {
-  id: number
+  id: number | string
   title: string
   location: string
   price: string
@@ -32,6 +34,78 @@ type ExploreItem = {
     | "Dining"
     | "Transportation"
   meta: string
+  // Defaults to "/ person" when omitted. Live dining results pass "" because
+  // their price is a tier, not a per-head figure.
+  priceNote?: string
+}
+
+const CARD_GRID =
+  "grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+
+// Placeholder count matches RESULT_LIMIT in the search route so the layout
+// doesn't jump when real results land
+function DiningSkeletonGrid() {
+  return (
+    <div className={CARD_GRID}>
+      {Array.from({ length: 12 }).map((_, index) => (
+        <div
+          key={index}
+          className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white"
+        >
+          <div className="aspect-[4/3] w-full bg-slate-100" />
+
+          <div className="space-y-2 p-3.5">
+            <div className="h-4 w-3/4 rounded bg-slate-100" />
+            <div className="h-3 w-1/2 rounded bg-slate-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DiningErrorBlock({
+  message,
+  onRetry,
+}: {
+  message: string
+  onRetry: () => void
+}) {
+  return (
+    <div className="rounded-2xl border border-red-200 bg-white p-8 text-center">
+      <p className="text-sm font-medium text-red-600">{message}</p>
+
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-4 rounded-xl bg-amber-400 px-5 py-2 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
+
+function widgetToExploreItem(widget: Widget): ExploreItem {
+  // Widget.price holds a 0 to 4 Places price tier here, not an amount
+  let price = ""
+  if (widget.price === 0) {
+    price = "Free"
+  } else if (widget.price) {
+    price = "$".repeat(widget.price)
+  }
+
+  return {
+    id: widget.id,
+    title: widget.title,
+    location: widget.location ?? "",
+    price,
+    priceNote: "",
+    rating: widget.rating ? widget.rating.toFixed(1) : "",
+    image: widget.image_url ?? "",
+    category: "Dining",
+    meta: widget.description ?? "",
+  }
 }
 
 const items: ExploreItem[] = [
@@ -335,14 +409,22 @@ function ResultCard({
   saved: boolean
   onSave: () => void
 }) {
+  // Mock items omit priceNote and keep the original suffix. Live dining
+  // results pass an empty string, which hides it.
+  const priceNote = item.priceNote ?? "/ person"
+
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={item.image}
-          alt={item.title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-        />
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.title}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full bg-slate-100" />
+        )}
 
         <button
           type="button"
@@ -369,22 +451,30 @@ function ResultCard({
           {item.title}
         </h3>
 
-        <p className="mt-1 text-sm text-slate-500">
-          {item.meta} · {item.location}
+        <p className="mt-1 line-clamp-1 text-sm text-slate-500">
+          {[item.meta, item.location]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
 
         <div className="mt-3 flex items-end justify-between">
-          <span className="flex items-center gap-1 text-sm font-medium">
-            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-            {item.rating}
-          </span>
+          {item.rating ? (
+            <span className="flex items-center gap-1 text-sm font-medium">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              {item.rating}
+            </span>
+          ) : (
+            <span />
+          )}
 
           <span className="text-sm font-bold text-slate-900">
             {item.price}
-            <small className="font-normal text-slate-500">
-              {" "}
-              / person
-            </small>
+            {priceNote && (
+              <small className="font-normal text-slate-500">
+                {" "}
+                {priceNote}
+              </small>
+            )}
           </span>
         </div>
       </div>
@@ -399,8 +489,25 @@ export default function ExploreTripPage() {
   const [activeTab, setActiveTab] =
     useState<ExploreCategory>("All")
 
-  const [saved, setSaved] = useState<number[]>([])
+  const [saved, setSaved] = useState<(number | string)[]>([])
   const [query, setQuery] = useState("")
+
+  // Mock sections collapse on their own when a tab filters them out, but live
+  // dining has to be gated explicitly
+  const diningVisible =
+    activeTab === "All" || activeTab === "Dining"
+
+  const {
+    widgets: diningWidgets,
+    loading: diningLoading,
+    error: diningError,
+    retry: retryDining,
+  } = useExploreSearch(tripId, "Dining", query, diningVisible)
+
+  const diningItems = useMemo(
+    () => diningWidgets.map(widgetToExploreItem),
+    [diningWidgets],
+  )
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
@@ -464,15 +571,8 @@ export default function ExploreTripPage() {
           onCategoryChange={(category) => {
             setActiveTab(category)
           }}
-          onSearch={(tripInfo) => {
-            console.log("Searching Explore with:", {
-              tripId,
-              category: activeTab,
-              destination: tripInfo.location,
-              startDate: tripInfo.startDate,
-              endDate: tripInfo.endDate,
-              travelers: tripInfo.travelerCount,
-            })
+          onSearch={() => {
+            retryDining()
           }}
         />
       </section>
@@ -652,9 +752,19 @@ export default function ExploreTripPage() {
             "Transportation",
           ] as const
         ).map((category) => {
-          const categoryItems = byCategory(category)
+          const isDining = category === "Dining"
 
-          if (!categoryItems.length) {
+          const categoryItems = isDining
+            ? diningItems
+            : byCategory(category)
+
+          // Dining renders its own loading and error states, so its section
+          // stays mounted even with nothing to show yet
+          if (!isDining && !categoryItems.length) {
+            return null
+          }
+
+          if (isDining && !diningVisible) {
             return null
           }
 
@@ -666,6 +776,46 @@ export default function ExploreTripPage() {
           }
 
           const Icon = icons[category]
+
+          let sectionBody = (
+            <div className={CARD_GRID}>
+              {categoryItems.map((item) => (
+                <ResultCard
+                  key={item.id}
+                  item={item}
+                  saved={saved.includes(item.id)}
+                  onSave={() => {
+                    setSaved((current) =>
+                      current.includes(item.id)
+                        ? current.filter(
+                            (id) => id !== item.id,
+                          )
+                        : [...current, item.id],
+                    )
+                  }}
+                />
+              ))}
+            </div>
+          )
+
+          if (isDining) {
+            if (diningError) {
+              sectionBody = (
+                <DiningErrorBlock
+                  message={diningError}
+                  onRetry={retryDining}
+                />
+              )
+            } else if (diningLoading) {
+              sectionBody = <DiningSkeletonGrid />
+            } else if (!categoryItems.length) {
+              sectionBody = (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
+                  No dining results for this search.
+                </div>
+              )
+            }
+          }
 
           return (
             <section key={category}>
@@ -698,29 +848,15 @@ export default function ExploreTripPage() {
                 </button>
               </div>
 
-              <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {categoryItems.map((item) => (
-                  <ResultCard
-                    key={item.id}
-                    item={item}
-                    saved={saved.includes(item.id)}
-                    onSave={() => {
-                      setSaved((current) =>
-                        current.includes(item.id)
-                          ? current.filter(
-                              (id) => id !== item.id,
-                            )
-                          : [...current, item.id],
-                      )
-                    }}
-                  />
-                ))}
-              </div>
+              {sectionBody}
             </section>
           )
         })}
 
-        {!filtered.length && (
+        {!filtered.length &&
+          !diningLoading &&
+          !diningError &&
+          !diningItems.length && (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
             <Clock3 className="mx-auto h-8 w-8 text-slate-400" />
 

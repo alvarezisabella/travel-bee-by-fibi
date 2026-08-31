@@ -214,6 +214,119 @@ export async function searchGoogleFlights(
   }
 }
 
+// ─── SERP TRIPADVISOR ─────────────────────────────────────────────────────────
+
+function simplifyQuery(query: string): string {
+  return query
+    .replace(/\b(specialty|artisan|independent|authentic|traditional|modern|trendy|popular|best|top|local|hidden|unique|cozy|upscale|casual|third wave)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+// limit and placeTypes are optional so the chat pipeline keeps its original
+// behavior. Explore passes a higher limit and restricts place_type.
+// Throws on API failure so callers can tell "no matches" from a SerpAPI outage.
+export async function searchSerpTripAdvisor(
+  query: string,
+  location: string,
+  type: EventLabel,
+  intentIndex: number,
+  limit = 3,
+  placeTypes?: string[]
+): Promise<Widget[]> {
+  const key = process.env.SERPAPI_KEY
+  if (!key) {
+    console.error("SERPAPI_KEY not set")
+    throw new Error("SERPAPI_KEY is not configured")
+  }
+
+  const simplified = simplifyQuery(query)
+  console.log("SERP TA QUERY:", query, "→ simplified:", simplified)
+
+  const params = new URLSearchParams({
+    engine: "tripadvisor",
+    q: `${simplified || query} ${location}`,
+    api_key: key,
+  })
+
+  const url = `https://serpapi.com/search?${params.toString()}`
+  console.log("SERP TA URL:", url)
+
+  const res = await fetch(url)
+  if (!res.ok) {
+    console.error("SERP TA ERROR:", res.status, await res.text())
+    throw new Error(`SerpAPI TripAdvisor request failed (${res.status})`)
+  }
+
+  const data = await res.json()
+
+  const places: any[] = data.places ?? []
+  console.log("SERP TA PLACES:", places.length)
+
+  const widgets: Widget[] = []
+  const seenTitles = new Set<string>()
+
+  for (let i = 0; i < places.length; i++) {
+    if (widgets.length >= limit) break
+    const place = places[i]
+
+    const title = place.title ?? place.name
+    if (!title || seenTitles.has(title.toLowerCase())) {
+      console.log("SERP TA SKIP (duplicate):", title)
+      continue
+    }
+
+    const photoUrl =
+      place.thumbnail ??
+      place.photo?.images?.large?.url ??
+      place.images?.[0]?.url
+
+    if (!photoUrl) {
+      console.log("SERP TA SKIP (no photo):", title)
+      continue
+    }
+
+    if (!place.rating) {
+      console.log("SERP TA SKIP (no rating):", title)
+      continue
+    }
+
+    // A generic query mixes ACCOMMODATION and ATTRACTION entries in with the
+    // EATERY ones, so callers can restrict which kinds they want
+    if (placeTypes && !placeTypes.includes(place.place_type)) {
+      console.log("SERP TA SKIP (place_type):", place.place_type, title)
+      continue
+    }
+
+    widgets.push({
+      id: `serp-ta-${place.location_id ?? place.place_id ?? i}-${intentIndex}`,
+      title,
+      location:
+        place.address ??
+        place.address_string ??
+        place.location ??
+        location,
+      description:
+        place.description ??
+        place.snippet ??
+        place.type ??
+        undefined,
+      type,
+      image_url: photoUrl,
+      rating: typeof place.rating === "number" ? place.rating : parseFloat(place.rating),
+      price: place.price_range
+        ? place.price_range.replace(/[^$]/g, "").length
+        : undefined,
+      url: place.link ?? place.web_url ?? undefined,
+    })
+
+    seenTitles.add(title.toLowerCase())
+    console.log("SERP TA WIDGET BUILT:", title, "| rating:", place.rating)
+  }
+
+  return widgets
+}
+
 export async function searchGoogleHotels(
   location: string,
   checkIn: string,

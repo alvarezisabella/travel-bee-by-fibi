@@ -70,8 +70,6 @@ export async function POST(req: NextRequest) {
 
   const itineraryId = itineraryData.id
 
-  // itineraries_add_owner_trigger (DB trigger) inserts the owner row into
-  // itinerary_members automatically — no app-level insert needed here.
 
   // Inserts all events in parallel for efficiency. Each event's ends_at is
   // computed from startTime + duration using the same formula as the event route.

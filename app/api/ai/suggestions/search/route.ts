@@ -5,6 +5,7 @@ import { Widget, EventLabel } from "@/app/itinerary/types/types"
 import {
   searchGoogleFlights,
   searchGoogleHotels,
+  searchSerpTripAdvisor,
 } from "@/lib/ai/serp"
 
 const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
@@ -23,103 +24,6 @@ function getCheckoutDate(trip?: any): string {
   const d = new Date()
   d.setDate(d.getDate() + 3)
   return d.toISOString().split("T")[0]
-}
-
-// ─── SERP TRIPADVISOR ─────────────────────────────────────────────────────────
-
-function simplifyQuery(query: string): string {
-  return query
-    .replace(/\b(specialty|artisan|independent|authentic|traditional|modern|trendy|popular|best|top|local|hidden|unique|cozy|upscale|casual|third wave)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-async function searchSerpTripAdvisor(
-  query: string,
-  location: string,
-  type: EventLabel,
-  intentIndex: number
-): Promise<Widget[]> {
-  const key = process.env.SERPAPI_KEY
-  if (!key) {
-    console.error("SERPAPI_KEY not set")
-    return []
-  }
-
-  const simplified = simplifyQuery(query)
-  console.log("SERP TA QUERY:", query, "→ simplified:", simplified)
-
-  const params = new URLSearchParams({
-    engine: "tripadvisor",
-    q: `${simplified || query} ${location}`,
-    api_key: key,
-  })
-
-  const url = `https://serpapi.com/search?${params.toString()}`
-  console.log("SERP TA URL:", url)
-
-  const res = await fetch(url)
-  if (!res.ok) {
-    console.error("SERP TA ERROR:", res.status, await res.text())
-    return []
-  }
-
-  const data = await res.json()
-
-  const places: any[] = data.places ?? []
-  console.log("SERP TA PLACES:", places.length)
-
-  const widgets: Widget[] = []
-  const seenTitles = new Set<string>()
-
-  for (let i = 0; i < places.length; i++) {
-    if (widgets.length >= 3) break
-    const place = places[i]
-
-    const title = place.title ?? place.name
-    if (!title || seenTitles.has(title.toLowerCase())) {
-      console.log("SERP TA SKIP (duplicate):", title)
-      continue
-    }
-
-    const photoUrl =
-      place.thumbnail ??
-      place.photo?.images?.large?.url ??
-      place.images?.[0]?.url
-
-    if (!photoUrl) {
-      console.log("SERP TA SKIP (no photo):", title)
-      continue
-    }
-
-    if (!place.rating) {
-      console.log("SERP TA SKIP (no rating):", title)
-      continue
-    }
-
-    widgets.push({
-      id: `serp-ta-${place.location_id ?? place.place_id ?? i}-${intentIndex}`,
-      title,
-      location: place.address ?? place.address_string ?? location,
-      description:
-        place.description ??
-        place.snippet ??
-        place.type ??
-        undefined,
-      type,
-      image_url: photoUrl,
-      rating: typeof place.rating === "number" ? place.rating : parseFloat(place.rating),
-      price: place.price_range
-        ? place.price_range.replace(/[^$]/g, "").length
-        : undefined,
-      url: place.link ?? place.web_url ?? undefined,
-    })
-
-    seenTitles.add(title.toLowerCase())
-    console.log("SERP TA WIDGET BUILT:", title, "| rating:", place.rating)
-  }
-
-  return widgets
 }
 
 // ─── TICKETMASTER ────────────────────────────────────────────────────────────

@@ -20,8 +20,6 @@ export async function POST(req: NextRequest){
     if(authError || !user) {return NextResponse.json({error: 'Unauthorized.'}, {status: 401})}
 
     // Inserts row into supabase itinerary table using user id
-    // itineraries_add_owner_trigger (DB trigger) inserts the owner row into
-    // itinerary_members automatically — no app-level insert needed here.
     const {data, error} = await insertItinerary(supabase, {created_by: user.id})
     if(error) {return NextResponse.json({error: error.message}, {status: 500})}
 

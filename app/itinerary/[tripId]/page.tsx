@@ -57,9 +57,7 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
     }
   }
 
-  // events.travelers stores itinerary_members.id (not profiles.id/auth user id) —
-  // see edit_event.tsx / add_event.tsx, which save the member row's own id, and
-  // removeTravelerFromItineraryEvents in lib/supabase/event.ts, which matches on it too.
+
   const memberNameMap = new Map<string, string>()
   for (const m of members ?? []) {
     memberNameMap.set(m.id, m.name)
