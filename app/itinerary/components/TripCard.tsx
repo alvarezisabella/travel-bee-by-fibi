@@ -206,13 +206,13 @@ export default function TripList({ trip }: TripProps) {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setEventToDelete(null)}
-                className="px-3 py-1.5 text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+                className="px-3 py-1.5 text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteEvent}
-                className="px-3 py-1.5 text-sm rounded-md bg-red-500 text-white hover:bg-red-600"
+                className="px-3 py-1.5 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 cursor-pointer transition"
               >
                 Confirm
               </button>

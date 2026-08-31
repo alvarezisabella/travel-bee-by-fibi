@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { Event, EventStatus, EventLabel, emptyEvent, Traveler, Trip } from "../types/types"
 import LocationSearch from "./LocationSearch"
-import { MapPin, Users, Tag, CalendarCheck, Clock } from "lucide-react"
+import { MapPin, Users, Tag, CalendarCheck, Clock, Loader2 } from "lucide-react"
 
 interface EditEventProps {
   day: string
@@ -34,6 +34,7 @@ const STATUS_COLORS: { value: EventStatus; bg: string }[] = [
 export default function EditEvent({ day, date, trip, event, initialStartTime, members, onClose, onSave, onTimeChange }: EditEventProps) {
   const [altEvent, setEvent] = useState<Event>(event ? event : { ...emptyEvent, startTime: initialStartTime || emptyEvent.startTime })
   const [editingLocation, setEditingLocation] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
     const names = event.travelers.split(', ').filter(Boolean)
@@ -53,6 +54,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
   }
 
   const handleSubmit = async () => {
+    setSaving(true)
     if (!altEvent.title.trim()) return
 
     const res = await fetch("/api/auth/event", {
@@ -75,6 +77,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
     altEvent.id = eventId
     altEvent.travelers = travelerNames
     onSave(altEvent)
+    setSaving(false)
     onClose()
   }
 
@@ -106,7 +109,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
               <button
                 key={c.value}
                 onClick={() => handleChange("status", c.value as EventStatus)}
-                className={`h-7 px-3 rounded-full ${c.bg} shadow-sm transition-all duration-200 text-white text-xs font-medium
+                className={`h-7 px-3 rounded-full ${c.bg} shadow-sm transition-all duration-200 text-white text-xs font-medium cursor-pointer
                   ${altEvent.status === c.value ? "ring-2 ring-offset-2 ring-gray-700 scale-105" : "hover:scale-105 opacity-80 hover:opacity-100"}`}
               >
                 {c.value}
@@ -123,7 +126,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
               <button
                 key={c.value}
                 onClick={() => handleChange("type", c.value)}
-                className={`h-7 px-3 rounded-sm ${c.bg} shadow-sm transition-all duration-200 text-xs font-medium
+                className={`h-7 px-3 rounded-sm ${c.bg} shadow-sm transition-all duration-200 text-xs font-medium cursor-pointer
                   ${altEvent.type === c.value ? `ring-2 ring-offset-2 ${c.ring} scale-105` : "hover:scale-105"}`}
               >
                 <span className={c.text}>{c.label}</span>
@@ -152,7 +155,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
               type="time"
               value={altEvent.startTime}
               onChange={e => handleChange("startTime", e.target.value)}
-              className={`w-full bg-white border border-[#e3e3e3] ${cardColor.time} rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#e3e3e3] transition-colors`}
+              className={`w-full bg-white border border-[#e3e3e3] ${cardColor.time} rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#e3e3e3] transition-colors cursor-pointer`}
             />
           </div>
           <div className="flex-1">
@@ -162,7 +165,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
             <select
               value={altEvent.duration}
               onChange={e => handleChange("duration", Number(e.target.value))}
-              className={`w-full bg-white border border-[#e3e3e3] rounded-lg px-3 py-2 ${cardColor.time} text-xs focus:outline-none focus:border-[#8a7d5a] transition-colors`}
+              className={`w-full bg-white border border-[#e3e3e3] rounded-lg px-3 py-2 ${cardColor.time} text-xs focus:outline-none focus:border-[#8a7d5a] transition-colors cursor-pointer`}
             >
               <option value={15}>15 min</option>
               <option value={30}>30 min</option>
@@ -220,7 +223,7 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
                   onClick={() => setTravelers(prev =>
                     prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
                   )}
-                  className={`px-3 py-1 rounded-full text-sm border transition-all ${
+                  className={`px-3 py-1 rounded-full text-sm border transition-all cursor-pointer ${
                     travelers.includes(m.id)
                       ? 'bg-[#fac643] border-[#fac643] text-white'
                       : 'bg-white border-[#e3e3e3] text-[#1a1812] hover:border-[#fac643]'
@@ -237,16 +240,17 @@ export default function EditEvent({ day, date, trip, event, initialStartTime, me
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 border border-[#e3e3e3] text-[#8a7d5a] rounded-lg py-2.5 text-sm tracking-wide hover:bg-[#f5f3f0] transition-colors"
+            disabled={saving}
+            className="flex-1 border border-[#e3e3e3] text-[#8a7d5a] rounded-lg py-2.5 text-sm tracking-wide hover:bg-[#f5f3f0] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!altEvent.title.trim()}
-            className="flex-1 bg-[#fac643] text-white rounded-lg py-2.5 text-sm tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={!altEvent.title.trim() || saving}
+            className="flex-1 bg-[#fac643] text-white rounded-lg py-2.5 text-sm tracking-wide transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            Save
+            {saving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : "Save"}
           </button>
         </div>
 

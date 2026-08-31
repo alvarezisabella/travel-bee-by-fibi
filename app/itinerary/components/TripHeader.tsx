@@ -483,7 +483,7 @@ export default function TripHeader({ trip }: Props) {
                 </Link>
                 <button
                   onClick={() => { setInviteModal(true); setInviteTab("link") }}
-                  className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+                  className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                 >
                   <UserPlus size={16} />
                   <span className="hidden sm:inline">Invite Friends</span>
@@ -491,7 +491,7 @@ export default function TripHeader({ trip }: Props) {
                 </button>
                 <button
                   onClick={() => downloadICS(trip)}
-                  className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all"
+                  className="flex items-center gap-2 bg-gradient-to-r from-yellow-300 to-yellow-500 hover:from-yellow-400 hover:to-yellow-600 border border-yellow-400 px-3 sm:px-4 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-gray-900 transition-all cursor-pointer"
                 >
                   <Calendar size={16} />
                   <span className="hidden sm:inline">Save to Calendar</span>
@@ -500,7 +500,7 @@ export default function TripHeader({ trip }: Props) {
               </div>
               <button
                 onClick={() => setShowClearModal(true)}
-                className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-full transition-all"
+                className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-full transition-all cursor-pointer"
               >
                 Clear Itinerary
               </button>
@@ -518,7 +518,7 @@ export default function TripHeader({ trip }: Props) {
                   <Bookmark size={18} className="text-gray-700" />
                   <h2 className="text-base font-semibold text-gray-900">Saved ideas</h2>
                 </div>
-                <button onClick={() => setBookmarkPanel(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={20} /></button>
+                <button onClick={() => setBookmarkPanel(false)} className="text-gray-400 hover:text-gray-600 transition cursor-pointer"><X size={20} /></button>
               </div>
                 <div className="flex-1 p-4 flex flex-col gap-5">
                   {loadingBookmarks ? (
@@ -557,12 +557,12 @@ export default function TripHeader({ trip }: Props) {
             <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Invite Friends</h2>
-                <button onClick={() => setInviteModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                <button onClick={() => setInviteModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer"><X size={20} /></button>
               </div>
               <div className="flex border-b border-gray-200">
                 {(["link", "email", "travelers"] as InviteTab[]).map(tab => (
                   <button key={tab} onClick={() => setInviteTab(tab)}
-                    className={`px-3 sm:px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-all ${inviteTab === tab ? "border-yellow-400 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+                    className={`px-3 sm:px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-all cursor-pointer ${inviteTab === tab ? "border-yellow-400 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
                     {tab === "link" ? "Share Link" : tab === "email" ? "Send Invite" : "Travelers"}
                   </button>
                 ))}
@@ -574,7 +574,7 @@ export default function TripHeader({ trip }: Props) {
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
                     <span className="flex-1 text-sm text-gray-600 truncate">{shareLink}</span>
                     <button onClick={handleCopyLink}
-                      className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${copied ? "bg-green-100 text-green-700" : "bg-yellow-400 hover:bg-yellow-500 text-gray-900"}`}>
+                      className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${copied ? "bg-green-100 text-green-700" : "bg-yellow-400 hover:bg-yellow-500 text-gray-900"}`}>
                       {copied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
                     </button>
                   </div>
@@ -590,7 +590,7 @@ export default function TripHeader({ trip }: Props) {
                       onChange={e => setEmailInput(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter") handleSendInvite() }}
                       className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 transition-all" />
-                    <button onClick={handleSendInvite} className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-xl text-sm font-medium">Send</button>
+                    <button onClick={handleSendInvite} className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-xl text-sm font-medium cursor-pointer">Send</button>
                   </div>
                   {sentInvites.length > 0 && (
                     <div className="flex flex-col gap-2">
@@ -626,7 +626,7 @@ export default function TripHeader({ trip }: Props) {
                         {t.role !== "owner" && (
                           <button
                             onClick={() => setTravelerToRemove({ id: t.id, name: t.name })}
-                            className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded transition-all"
+                            className="text-gray-300 hover:text-red-400 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
                           >
                             <X size={14} />
                           </button>
@@ -647,8 +647,8 @@ export default function TripHeader({ trip }: Props) {
                       <p className="text-sm text-gray-500">Are you sure you want to remove {travelerToRemove.name} from this trip? This action cannot be undone.</p>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setTravelerToRemove(null)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">Cancel</button>
-                      <button onClick={confirmRemoveTraveler} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all flex items-center justify-center gap-1.5">
+                      <button onClick={() => setTravelerToRemove(null)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all cursor-pointer">Cancel</button>
+                      <button onClick={confirmRemoveTraveler} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                         Yes, remove
                       </button>
                     </div>
@@ -668,8 +668,8 @@ export default function TripHeader({ trip }: Props) {
                 <p className="text-sm text-gray-500">This will remove all events, dates, location, and the cover photo. This cannot be undone.</p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowClearModal(false)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">Cancel</button>
-                <button onClick={handleClearItinerary} disabled={clearing} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5">
+                <button onClick={() => setShowClearModal(false)} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all cursor-pointer">Cancel</button>
+                <button onClick={handleClearItinerary} disabled={clearing} className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer">
                   {clearing ? <><Loader2 size={14} className="animate-spin" /> Clearing...</> : "Yes, clear it"}
                 </button>
               </div>
@@ -689,8 +689,8 @@ export default function TripHeader({ trip }: Props) {
                 </p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => { setStartForwardConflict(null); setStartDate(trip.startDate || "") }} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">Cancel</button>
-                <button onClick={handleConfirmStartForward} className="flex-1 py-2.5 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-xl transition-all">Adjust end date</button>
+                <button onClick={() => { setStartForwardConflict(null); setStartDate(trip.startDate || "") }} className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all cursor-pointer">Cancel</button>
+                <button onClick={handleConfirmStartForward} className="flex-1 py-2.5 text-sm font-semibold text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-xl transition-all cursor-pointer">Adjust end date</button>
               </div>
             </div>
           </div>

@@ -57,7 +57,7 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
 
   return (
     <div
-      className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow`}
+      className={`max-w-5xl relative flex gap-3 ${cardColor.bg} rounded-xl p-3.5 border border-[#c9c9c9] transition-shadow cursor-pointer`}
       style={{ boxShadow: hovered ? "0 4px 16px rgba(0,0,0,0.08)" : "none" }}
       onClick={() => onOpen(event.id)}
       onMouseEnter={() => setHovered(true)}
@@ -84,7 +84,7 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
               onDelete(event.id)
             }}
             style={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s" }}
-            className="text-[#b0a48a] hover:text-[#c17c6e] text-lg leading-none flex-shrink-0 -mt-0.5"
+            className="text-[#b0a48a] hover:text-[#c17c6e] text-lg leading-none flex-shrink-0 -mt-0.5 cursor-pointer"
           >
             ×
           </button>
@@ -107,7 +107,7 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
 
         <div className="absolute top-2 right-30 flex items-center gap-4 mt-2">
           <button
-          className={`flex items-center gap-1 text-xs transition
+          className={`flex items-center gap-1 text-xs transition cursor-pointer
             ${event.hasUpvoted ? "text-green-600" : "hover:text-green-600"}
           `}
             onClick={(e) => {
@@ -120,7 +120,7 @@ export function EventCard({ event, onDelete, onOpen, onUpvote, onDownvote }: Eve
           </button>
 
           <button
-            className={`flex items-center gap-1 text-xs transition
+            className={`flex items-center gap-1 text-xs transition cursor-pointer
               ${event.hasDownvoted ? "text-orange-600" : "hover:text-orange-600"}
             `}
             onClick={(e) => {
