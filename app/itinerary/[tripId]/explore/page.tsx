@@ -529,11 +529,19 @@ export default function ExploreTripPage() {
     isVisible("Stays"),
   )
 
+  const activities = useExploreSearch(
+    tripId,
+    "Activities",
+    submittedQuery,
+    isVisible("Activities"),
+  )
+
   const live: Partial<
     Record<ExploreItem["category"], typeof dining>
   > = {
     Dining: dining,
     Stays: stays,
+    Activities: activities,
   }
 
   const liveItems = useMemo(() => {
@@ -544,8 +552,11 @@ export default function ExploreTripPage() {
       Stays: stays.widgets.map((w) =>
         widgetToExploreItem(w, "Stays"),
       ),
+      Activities: activities.widgets.map((w) =>
+        widgetToExploreItem(w, "Activities"),
+      ),
     } as Partial<Record<ExploreItem["category"], ExploreItem[]>>
-  }, [dining.widgets, stays.widgets])
+  }, [dining.widgets, stays.widgets, activities.widgets])
 
   function handleSubmitQuery() {
     setSubmittedQuery(query.trim())

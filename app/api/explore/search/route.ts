@@ -8,23 +8,26 @@ import { searchGoogleHotels } from "@/lib/ai/serp"
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const RESULT_LIMIT = 12
 
-// Activities gets added here as its own mini task lands; Transportation needs a
-// different data source entirely.
+// Transportation is still mock data, since it needs a different data source
+// entirely.
 const CATEGORY_TO_TYPE: Record<string, EventLabel> = {
   Dining: "Food",
   Stays: "Reservation",
+  Activities: "Activity",
 }
 
 // Restricts results to one Places type so a search can't drift into hotels.
-// Dining only, since this is a Places concept and Stays uses SerpAPI.
+// Stays is absent because it uses SerpAPI rather than Places.
 const CATEGORY_TO_PLACE_TYPE: Record<string, string> = {
   Dining: "restaurant",
+  Activities: "tourist_attraction",
 }
 
 // Used when the user hasn't typed anything into the search box
 const DEFAULT_QUERIES: Record<string, string> = {
   Dining: "restaurants",
   Stays: "hotels",
+  Activities: "things to do",
 }
 
 // Widget.price is a number, so the Places enum is stored as a 0 to 4 tier and
