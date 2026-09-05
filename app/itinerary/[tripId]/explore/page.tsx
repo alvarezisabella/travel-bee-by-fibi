@@ -44,7 +44,7 @@ const CARD_GRID =
 
 // Placeholder count matches RESULT_LIMIT in the search route so the layout
 // doesn't jump when real results land
-function DiningSkeletonGrid() {
+function SkeletonGrid() {
   return (
     <div className={CARD_GRID}>
       {Array.from({ length: 12 }).map((_, index) => (
@@ -64,7 +64,7 @@ function DiningSkeletonGrid() {
   )
 }
 
-function DiningErrorBlock({
+function ErrorBlock({
   message,
   onRetry,
 }: {
@@ -86,10 +86,21 @@ function DiningErrorBlock({
   )
 }
 
-function widgetToExploreItem(widget: Widget): ExploreItem {
-  // Widget.price holds a 0 to 4 Places price tier here, not an amount
+// The two sources mean different things by Widget.price. Dining sends a 0 to 4
+// Places tier, Stays sends a nightly dollar amount from SerpAPI.
+function widgetToExploreItem(
+  widget: Widget,
+  category: ExploreItem["category"],
+): ExploreItem {
   let price = ""
-  if (widget.price === 0) {
+  let priceNote = ""
+
+  if (category === "Stays") {
+    if (widget.price) {
+      price = `$${widget.price.toLocaleString()}`
+      priceNote = "/ night"
+    }
+  } else if (widget.price === 0) {
     price = "Free"
   } else if (widget.price) {
     price = "$".repeat(widget.price)
@@ -100,10 +111,10 @@ function widgetToExploreItem(widget: Widget): ExploreItem {
     title: widget.title,
     location: widget.location ?? "",
     price,
-    priceNote: "",
+    priceNote,
     rating: widget.rating ? widget.rating.toFixed(1) : "",
     image: widget.image_url ?? "",
-    category: "Dining",
+    category,
     meta: widget.description ?? "",
   }
 }
@@ -490,23 +501,64 @@ export default function ExploreTripPage() {
     useState<ExploreCategory>("All")
 
   const [saved, setSaved] = useState<(number | string)[]>([])
+
+  // query drives the client side filter on the mock rows and updates as you
+  // type. submittedQuery is what the API sees, and only changes on submit.
   const [query, setQuery] = useState("")
+  const [submittedQuery, setSubmittedQuery] = useState("")
 
   // Mock sections collapse on their own when a tab filters them out, but live
-  // dining has to be gated explicitly
-  const diningVisible =
-    activeTab === "All" || activeTab === "Dining"
+  // ones have to be gated explicitly
+  function isVisible(category: ExploreItem["category"]) {
+    return activeTab === "All" || activeTab === category
+  }
 
-  const {
-    widgets: diningWidgets,
-    loading: diningLoading,
-    error: diningError,
-    retry: retryDining,
-  } = useExploreSearch(tripId, "Dining", query, diningVisible)
+  // Hooks can't be called in a loop, so each live category gets its own call.
+  // Adding Activities means one more line here and one more entry below.
+  const dining = useExploreSearch(
+    tripId,
+    "Dining",
+    submittedQuery,
+    isVisible("Dining"),
+  )
 
-  const diningItems = useMemo(
-    () => diningWidgets.map(widgetToExploreItem),
-    [diningWidgets],
+  const stays = useExploreSearch(
+    tripId,
+    "Stays",
+    submittedQuery,
+    isVisible("Stays"),
+  )
+
+  const live: Partial<
+    Record<ExploreItem["category"], typeof dining>
+  > = {
+    Dining: dining,
+    Stays: stays,
+  }
+
+  const liveItems = useMemo(() => {
+    return {
+      Dining: dining.widgets.map((w) =>
+        widgetToExploreItem(w, "Dining"),
+      ),
+      Stays: stays.widgets.map((w) =>
+        widgetToExploreItem(w, "Stays"),
+      ),
+    } as Partial<Record<ExploreItem["category"], ExploreItem[]>>
+  }, [dining.widgets, stays.widgets])
+
+  function handleSubmitQuery() {
+    setSubmittedQuery(query.trim())
+  }
+
+  // The page level empty state should stay hidden while any live row still has
+  // something to show or say
+  const anyLiveContent = Object.values(live).some(
+    (section) =>
+      section &&
+      (section.loading ||
+        section.error ||
+        section.widgets.length > 0),
   )
 
   const filtered = useMemo(() => {
@@ -572,7 +624,7 @@ export default function ExploreTripPage() {
             setActiveTab(category)
           }}
           onSearch={() => {
-            retryDining()
+            handleSubmitQuery()
           }}
         />
       </section>
@@ -731,7 +783,13 @@ export default function ExploreTripPage() {
           </div>
         </section>
 
-        <label className="mx-auto flex max-w-2xl items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 shadow-sm">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            handleSubmitQuery()
+          }}
+          className="mx-auto flex max-w-2xl items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 shadow-sm"
+        >
           <Search className="h-5 w-5 text-slate-400" />
 
           <input
@@ -739,10 +797,10 @@ export default function ExploreTripPage() {
             onChange={(event) =>
               setQuery(event.target.value)
             }
-            placeholder="Search within your trip recommendations"
+            placeholder="Search within your trip recommendations, then press Enter"
             className="w-full bg-transparent text-sm outline-none"
           />
-        </label>
+        </form>
 
         {(
           [
@@ -752,19 +810,19 @@ export default function ExploreTripPage() {
             "Transportation",
           ] as const
         ).map((category) => {
-          const isDining = category === "Dining"
+          const liveData = live[category]
 
-          const categoryItems = isDining
-            ? diningItems
+          const categoryItems = liveData
+            ? liveItems[category] ?? []
             : byCategory(category)
 
-          // Dining renders its own loading and error states, so its section
-          // stays mounted even with nothing to show yet
-          if (!isDining && !categoryItems.length) {
+          // Live sections render their own loading and error states, so they
+          // stay mounted even with nothing to show yet
+          if (!liveData && !categoryItems.length) {
             return null
           }
 
-          if (isDining && !diningVisible) {
+          if (liveData && !isVisible(category)) {
             return null
           }
 
@@ -798,20 +856,20 @@ export default function ExploreTripPage() {
             </div>
           )
 
-          if (isDining) {
-            if (diningError) {
+          if (liveData) {
+            if (liveData.error) {
               sectionBody = (
-                <DiningErrorBlock
-                  message={diningError}
-                  onRetry={retryDining}
+                <ErrorBlock
+                  message={liveData.error}
+                  onRetry={liveData.retry}
                 />
               )
-            } else if (diningLoading) {
-              sectionBody = <DiningSkeletonGrid />
+            } else if (liveData.loading) {
+              sectionBody = <SkeletonGrid />
             } else if (!categoryItems.length) {
               sectionBody = (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-                  No dining results for this search.
+                  No results for this search.
                 </div>
               )
             }
@@ -853,10 +911,7 @@ export default function ExploreTripPage() {
           )
         })}
 
-        {!filtered.length &&
-          !diningLoading &&
-          !diningError &&
-          !diningItems.length && (
+        {!filtered.length && !anyLiveContent && (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
             <Clock3 className="mx-auto h-8 w-8 text-slate-400" />
 

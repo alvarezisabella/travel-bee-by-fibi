@@ -327,22 +327,33 @@ export async function searchSerpTripAdvisor(
   return widgets
 }
 
+// limit defaults to the chat pipeline's original behavior. Explore passes a
+// higher one.
+// query lets the explore search box filter results. The engine does respect a
+// qualifier, so "boutique" returns a genuinely different set.
+// Throws on API failure so callers can tell "no matches" from a SerpAPI outage.
 export async function searchGoogleHotels(
   location: string,
   checkIn: string,
   checkOut: string,
   adults: number,
-  intentIndex: number
+  intentIndex: number,
+  limit = 3,
+  query?: string
 ): Promise<Widget[]> {
   const key = process.env.SERPAPI_KEY
   if (!key) {
     console.error("SERPAPI_KEY not set")
-    return []
+    throw new Error("SERPAPI_KEY is not configured")
   }
+
+  const searchTerm = query
+    ? `${query} hotels in ${location}`
+    : `${location} hotels`
 
   const url =
     `${SERP_BASE}?engine=google_hotels` +
-    `&q=${encodeURIComponent(location + " hotels")}` +
+    `&q=${encodeURIComponent(searchTerm)}` +
     `&check_in_date=${checkIn}` +
     `&check_out_date=${checkOut}` +
     `&adults=${adults}` +
@@ -352,54 +363,53 @@ export async function searchGoogleHotels(
 
   console.log("GOOGLE HOTELS URL:", url)
 
-  try {
-    const res = await fetch(url)
-    if (!res.ok) {
-      console.error("GOOGLE HOTELS ERROR:", res.status, await res.text())
-      return []
-    }
-
-    const data = await res.json()
-    const properties = data.properties ?? []
-    console.log("GOOGLE HOTELS FOUND:", properties.length)
-    console.log("GOOGLE HOTELS FIRST:", JSON.stringify(properties[0], null, 2))
-
-    const widgets: Widget[] = []
-
-    for (let i = 0; i < Math.min(properties.length, 3); i++) {
-      const h = properties[i]
-      if (!h) continue
-
-      const priceStr = h.rate_per_night?.lowest ?? h.total_rate?.lowest ?? ""
-      const price = priceStr ? parseInt(priceStr.replace(/[^0-9]/g, "")) : undefined
-
-      const description = [
-        h.type,
-        h.amenities?.slice(0, 3).join(", "),
-      ].filter(Boolean).join(" · ") || undefined
-
-      const bookingUrl =
-        h.link ??
-        `https://www.google.com/travel/hotels/s/${encodeURIComponent(location)}`
-
-      widgets.push({
-        id: `ghotel-${h.property_token ?? i}-${intentIndex}`,
-        title: h.name,
-        location: h.neighborhood ?? location,
-        description,
-        type: "Reservation",
-        image_url: h.images?.[0]?.thumbnail ?? h.thumbnail ?? undefined,
-        rating: h.overall_rating ?? undefined,
-        price,
-        url: bookingUrl,
-      })
-
-      console.log("GOOGLE HOTEL BUILT:", h.name, "| price:", price, "| rating:", h.overall_rating)
-    }
-
-    return widgets
-  } catch (e) {
-    console.error("GOOGLE HOTELS FETCH ERROR:", e)
-    return []
+  const res = await fetch(url)
+  if (!res.ok) {
+    console.error("GOOGLE HOTELS ERROR:", res.status, await res.text())
+    throw new Error(`SerpAPI Google Hotels request failed (${res.status})`)
   }
+
+  const data = await res.json()
+  const properties = data.properties ?? []
+  console.log("GOOGLE HOTELS FOUND:", properties.length)
+  console.log("GOOGLE HOTELS FIRST:", JSON.stringify(properties[0], null, 2))
+
+  const widgets: Widget[] = []
+
+  for (let i = 0; i < Math.min(properties.length, limit); i++) {
+    const h = properties[i]
+    if (!h) continue
+
+    // extracted_lowest is already a number, so prefer it over parsing "$127"
+    const priceStr = h.rate_per_night?.lowest ?? h.total_rate?.lowest ?? ""
+    const price =
+      h.rate_per_night?.extracted_lowest ??
+      h.total_rate?.extracted_lowest ??
+      (priceStr ? parseInt(priceStr.replace(/[^0-9]/g, "")) : undefined)
+
+    const description = [
+      h.hotel_class ?? h.type,
+      h.amenities?.slice(0, 3).join(", "),
+    ].filter(Boolean).join(" · ") || undefined
+
+    const bookingUrl =
+      h.link ??
+      `https://www.google.com/travel/hotels/s/${encodeURIComponent(location)}`
+
+    widgets.push({
+      id: `ghotel-${h.property_token ?? i}-${intentIndex}`,
+      title: h.name,
+      location: h.neighborhood ?? location,
+      description,
+      type: "Reservation",
+      image_url: h.images?.[0]?.thumbnail ?? h.thumbnail ?? undefined,
+      rating: h.overall_rating ?? undefined,
+      price,
+      url: bookingUrl,
+    })
+
+    console.log("GOOGLE HOTEL BUILT:", h.name, "| price:", price, "| rating:", h.overall_rating)
+  }
+
+  return widgets
 }

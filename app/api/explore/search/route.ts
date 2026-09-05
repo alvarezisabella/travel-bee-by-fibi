@@ -3,17 +3,20 @@ import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 import { Widget, EventLabel } from "@/app/itinerary/types/types"
 import { searchPlacesByText } from "@/lib/map/places"
+import { searchGoogleHotels } from "@/lib/ai/serp"
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const RESULT_LIMIT = 12
 
-// Only Dining is wired up so far. Stays and Activities get added here as their
-// own mini tasks land; Transportation needs a different data source entirely.
+// Activities gets added here as its own mini task lands; Transportation needs a
+// different data source entirely.
 const CATEGORY_TO_TYPE: Record<string, EventLabel> = {
   Dining: "Food",
+  Stays: "Reservation",
 }
 
-// Restricts results to one Places type so a search can't drift into hotels
+// Restricts results to one Places type so a search can't drift into hotels.
+// Dining only, since this is a Places concept and Stays uses SerpAPI.
 const CATEGORY_TO_PLACE_TYPE: Record<string, string> = {
   Dining: "restaurant",
 }
@@ -21,6 +24,7 @@ const CATEGORY_TO_PLACE_TYPE: Record<string, string> = {
 // Used when the user hasn't typed anything into the search box
 const DEFAULT_QUERIES: Record<string, string> = {
   Dining: "restaurants",
+  Stays: "hotels",
 }
 
 // Widget.price is a number, so the Places enum is stored as a 0 to 4 tier and
@@ -31,6 +35,21 @@ const PRICE_LEVEL_TO_TIER: Record<string, number> = {
   PRICE_LEVEL_MODERATE: 2,
   PRICE_LEVEL_EXPENSIVE: 3,
   PRICE_LEVEL_VERY_EXPENSIVE: 4,
+}
+
+// A nightly rate only means something for specific dates, so trips without
+// them fall back to a short stay starting tomorrow
+function addDays(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split("T")[0]
+}
+
+// Parsed as UTC so a date only string never shifts a day either way
+function nextDay(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().split("T")[0]
 }
 
 export async function POST(req: NextRequest) {
@@ -62,7 +81,7 @@ export async function POST(req: NextRequest) {
   // Read the destination server side rather than trusting the client
   const { data: itinerary, error: itineraryError } = await supabase
     .from("itineraries")
-    .select("location")
+    .select("location, start_date, end_date")
     .eq("id", tripId)
     .single()
 
@@ -80,6 +99,44 @@ export async function POST(req: NextRequest) {
 
   const normalizedQuery = (query ?? "").trim()
 
+  const checkIn = itinerary.start_date || addDays(1)
+  let checkOut = itinerary.end_date || addDays(4)
+
+  // SerpAPI rejects a check in date in the past, so say so plainly instead of
+  // letting the request fail
+  if (category === "Stays" && checkIn < addDays(0)) {
+    return NextResponse.json(
+      {
+        error:
+          "This trip's dates have already passed, so live hotel prices aren't available.",
+      },
+      { status: 400 }
+    )
+  }
+
+  // SerpAPI needs check out strictly after check in, and some trips are saved
+  // with both dates the same
+  if (checkOut <= checkIn) {
+    checkOut = nextDay(checkIn)
+  }
+
+  // Hotel rates are per booking, so the traveler count changes the quote
+  let travelers = 2
+  if (category === "Stays") {
+    const { count } = await supabase
+      .from("itinerary_members")
+      .select("id", { count: "exact", head: true })
+      .eq("itinerary_id", tripId)
+
+    if (count) {
+      travelers = count
+    }
+  }
+
+  // Only Stays prices depend on dates, so other categories keep an empty key
+  // and stay cached across date edits
+  const dates = category === "Stays" ? `${checkIn}|${checkOut}` : ""
+
   const { data: cached } = await supabase
     .from("explore_cache")
     .select("results, created_at")
@@ -87,6 +144,7 @@ export async function POST(req: NextRequest) {
     .eq("category", category)
     .eq("query", normalizedQuery)
     .eq("location", location)
+    .eq("dates", dates)
     .maybeSingle()
 
   if (cached && Date.now() - new Date(cached.created_at).getTime() < CACHE_TTL_MS) {
@@ -98,32 +156,48 @@ export async function POST(req: NextRequest) {
 
   let widgets: Widget[]
   try {
-    // Naming the destination in the query is what keeps results in the right
-    // city rather than matching the city name inside a business name
-    const results = await searchPlacesByText(
-      `${searchQuery} in ${location}`,
-      CATEGORY_TO_PLACE_TYPE[category],
-      RESULT_LIMIT
-    )
+    if (category === "Stays") {
+      // Places returns no priceLevel for lodging, so hotels come from SerpAPI
+      // which gives a real nightly rate for the trip's dates
+      // normalizedQuery, not searchQuery: the latter falls back to the literal
+      // string "hotels", which would build "hotels hotels in {location}"
+      widgets = await searchGoogleHotels(
+        location,
+        checkIn,
+        checkOut,
+        travelers,
+        0,
+        RESULT_LIMIT,
+        normalizedQuery || undefined
+      )
+    } else {
+      // Naming the destination in the query is what keeps results in the right
+      // city rather than matching the city name inside a business name
+      const results = await searchPlacesByText(
+        `${searchQuery} in ${location}`,
+        CATEGORY_TO_PLACE_TYPE[category],
+        RESULT_LIMIT
+      )
 
-    widgets = results.map((place) => ({
-      id: `gplace-${place.id}`,
-      title: place.title,
-      location: place.address,
-      // The editorial summary is better prose but long enough to push the
-      // address off the card, and the address matters more when planning
-      description: place.category ?? place.summary,
-      type,
-      image_url: place.photoName
-        ? `/api/places/photo?name=${encodeURIComponent(place.photoName)}`
-        : undefined,
-      rating: place.rating,
-      price:
-        place.priceLevel !== undefined
-          ? PRICE_LEVEL_TO_TIER[place.priceLevel]
+      widgets = results.map((place) => ({
+        id: `gplace-${place.id}`,
+        title: place.title,
+        location: place.address,
+        // The editorial summary is better prose but long enough to push the
+        // address off the card, and the address matters more when planning
+        description: place.category ?? place.summary,
+        type,
+        image_url: place.photoName
+          ? `/api/places/photo?name=${encodeURIComponent(place.photoName)}`
           : undefined,
-      url: place.websiteUri,
-    }))
+        rating: place.rating,
+        price:
+          place.priceLevel !== undefined
+            ? PRICE_LEVEL_TO_TIER[place.priceLevel]
+            : undefined,
+        url: place.websiteUri,
+      }))
+    }
   } catch (e) {
     console.error("EXPLORE SEARCH FAILED:", e)
     return NextResponse.json(
@@ -139,10 +213,11 @@ export async function POST(req: NextRequest) {
       category,
       query: normalizedQuery,
       location,
+      dates,
       results: widgets,
       created_at: new Date().toISOString(),
     },
-    { onConflict: "itinerary_id,category,query,location" }
+    { onConflict: "itinerary_id,category,query,location,dates" }
   )
 
   if (cacheError) {

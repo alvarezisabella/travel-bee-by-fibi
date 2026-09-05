@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { Widget } from "@/app/itinerary/types/types"
 
-const DEBOUNCE_MS = 500
-
+// query is an already submitted search, never live keystrokes. Debouncing
+// typing still leaked a paid call per hesitation mid word, so the page only
+// calls this on Enter or the Search button.
 // enabled is false when the category is filtered out by the active tab, so a
 // hidden section doesn't spend a paid SerpAPI search
 export function useExploreSearch(
@@ -26,11 +27,7 @@ export function useExploreSearch(
 
     let ignore = false
 
-    // Only debounce typing. The initial load has nothing to wait for, and each
-    // cache miss costs a paid SerpAPI search.
-    const delay = query ? DEBOUNCE_MS : 0
-
-    const timer = setTimeout(async () => {
+    async function run() {
       setLoading(true)
       setError(null)
 
@@ -59,12 +56,13 @@ export function useExploreSearch(
       } finally {
         if (!ignore) setLoading(false)
       }
-    }, delay)
+    }
+
+    run()
 
     // ignore guards against a slow earlier request landing after a newer one
     return () => {
       ignore = true
-      clearTimeout(timer)
     }
   }, [tripId, category, query, reloadKey, enabled])
 
