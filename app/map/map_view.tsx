@@ -66,16 +66,12 @@ export default function CaliforniaMap({ days }: MapProps) {
       <MapContainer
         center={center}
         zoom={5}
-<<<<<<< HEAD
         style={{ height: '600px', width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' , isolation: "isolate"}}
-=======
-        style={{ height: '600px', width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden', zIndex: 0 }}
->>>>>>> matt
       >
         <MapResizer />
         <TileLayer
-          url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          attribution='&copy; OpenStreetMap contributors'
+          url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+          attribution='&copy; OpenStreetMap contributors & CARTO'
         />
 
         {visibleEvents.map(e => e.lat && e.lng && (
