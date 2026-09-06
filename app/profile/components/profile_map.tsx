@@ -61,8 +61,8 @@ export default function ProfileMap({ trips }: MapProps) {
         >
           <MapResizer />
           <TileLayer
-            url='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-            attribution='&copy; OpenStreetMap contributors & CARTO'
+            url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            attribution='&copy; OpenStreetMap contributors'
           />
           {trips.map(t => t.lat && t.lng && (
             <Marker key={t.id} position={[t.lat, t.lng]}>

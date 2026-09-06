@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { Widget, EventLabel } from "@/app/itinerary/types/types"
 import { searchPlacesByText } from "@/lib/map/places"
 import { searchGoogleHotels } from "@/lib/ai/serp"
+import { searchTicketmaster } from "@/lib/ticketmaster"
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const RESULT_LIMIT = 12
@@ -136,9 +137,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Only Stays prices depend on dates, so other categories keep an empty key
-  // and stay cached across date edits
-  const dates = category === "Stays" ? `${checkIn}|${checkOut}` : ""
+  // Stays prices and Activities' Ticketmaster events depend on trip dates, so
+  // both key the cache on them; Dining stays cached across date edits
+  const dates =
+    category === "Stays" || category === "Activities"
+      ? `${checkIn}|${checkOut}`
+      : ""
 
   const { data: cached } = await supabase
     .from("explore_cache")
@@ -182,7 +186,7 @@ export async function POST(req: NextRequest) {
         RESULT_LIMIT
       )
 
-      widgets = results.map((place) => ({
+      const placeWidgets: Widget[] = results.map((place) => ({
         id: `gplace-${place.id}`,
         title: place.title,
         location: place.address,
@@ -200,6 +204,20 @@ export async function POST(req: NextRequest) {
             : undefined,
         url: place.websiteUri,
       }))
+
+      if (category === "Activities") {
+        // Ticketmaster covers ticketed events (concerts, games, shows) that
+        // Places' tourist_attraction type never returns. It never throws, so
+        // a Ticketmaster outage still leaves the Places results standing.
+        const eventWidgets = await searchTicketmaster(normalizedQuery, location, 0, {
+          startDate: checkIn,
+          endDate: checkOut,
+        })
+
+        widgets = [...eventWidgets, ...placeWidgets].slice(0, RESULT_LIMIT)
+      } else {
+        widgets = placeWidgets
+      }
     }
   } catch (e) {
     console.error("EXPLORE SEARCH FAILED:", e)

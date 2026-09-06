@@ -86,8 +86,10 @@ function ErrorBlock({
   )
 }
 
-// The two sources mean different things by Widget.price. Dining sends a 0 to 4
-// Places tier, Stays sends a nightly dollar amount from SerpAPI.
+// The sources mean different things by Widget.price. Dining and Places-backed
+// Activities send a 0 to 4 tier, Stays sends a nightly dollar amount from
+// SerpAPI, and Ticketmaster (tm- prefixed, mixed into Activities) sends a real
+// per-ticket dollar amount.
 function widgetToExploreItem(
   widget: Widget,
   category: ExploreItem["category"],
@@ -99,6 +101,10 @@ function widgetToExploreItem(
     if (widget.price) {
       price = `$${widget.price.toLocaleString()}`
       priceNote = "/ night"
+    }
+  } else if (widget.id.startsWith("tm-")) {
+    if (widget.price !== undefined) {
+      price = widget.price === 0 ? "Free" : `$${widget.price.toLocaleString()}`
     }
   } else if (widget.price === 0) {
     price = "Free"
