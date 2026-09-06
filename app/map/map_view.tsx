@@ -64,7 +64,7 @@ export default function CaliforniaMap({ days }: MapProps) {
       <MapContainer
         center={center}
         zoom={5}
-        style={{ height: '600px', width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}
+        style={{ height: '600px', width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' , isolation: "isolate"}}
       >
         <MapResizer />
         <TileLayer
