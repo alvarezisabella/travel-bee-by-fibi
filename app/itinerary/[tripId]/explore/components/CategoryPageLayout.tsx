@@ -11,6 +11,7 @@ import { useMemo, useState } from "react"
 import type { Widget } from "@/app/itinerary/types/types"
 import ExploreMapPanel from "./ExploreMapPanel"
 import ExploreResultCard from "./ExploreResultCard"
+import type { Day } from "@/app/itinerary/day"
 
 type SortOption =
   | "recommended"
@@ -23,12 +24,15 @@ interface CategoryPageLayoutProps {
   subtitle?: string
   location: string
   widgets: Widget[]
+  days: Day[]
   loading: boolean
   error: string | null
   selectedWidgetId: string | null
   savedWidgetIds: string[]
+  isBookmarked: (title: string, location?: string) => boolean
   onSelectWidget: (widget: Widget) => void
-  onToggleSaved: (widget: Widget) => void
+  onRemoveBookmark: (widget: Widget) => void
+  onAddBookmark: (widget: Widget, day: string) => void
   onAddWidget: (widget: Widget) => void
   onRetry: () => void
   onSearchArea?: () => void
@@ -39,12 +43,15 @@ export default function CategoryPageLayout({
   subtitle,
   location,
   widgets,
+  days,
   loading,
   error,
   selectedWidgetId,
   savedWidgetIds,
   onSelectWidget,
-  onToggleSaved,
+  isBookmarked,
+  onRemoveBookmark,
+  onAddBookmark,
   onAddWidget,
   onRetry,
   onSearchArea,
@@ -197,21 +204,21 @@ export default function CategoryPageLayout({
         </header>
 
         {sortedWidgets.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid items-start gap-4 sm:grid-cols-2">
             {sortedWidgets.map(
               (widget) => (
                 <ExploreResultCard
                   key={widget.id}
                   widget={widget}
+                  days={days}
                   selected={
                     selectedWidgetId ===
                     widget.id
                   }
-                  saved={savedWidgetIds.includes(
-                    widget.id,
-                  )}
+                  saved={isBookmarked(widget.title, widget.location)}
                   onSelect={onSelectWidget}
-                  onSave={onToggleSaved}
+                  onRemoveBookmark={onRemoveBookmark}
+                  onAddBookmark={onAddBookmark}
                   onAdd={onAddWidget}
                 />
               ),

@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import {
   BedDouble,
   BusFront,
+  Check,
   Clock3,
   ExternalLink,
   Heart,
@@ -10,79 +12,56 @@ import {
   Star,
   Ticket,
   Utensils,
+  X,
 } from "lucide-react"
 import type {
   EventLabel,
   Widget,
 } from "@/app/itinerary/types/types"
+import type { Day } from "@/app/itinerary/day"
+import styles from "@/styles/bookmarkcard.module.css"
 
 interface ExploreResultCardProps {
   widget: Widget
+  days: Day[]
   saved?: boolean
   selected?: boolean
-  onSave?: (widget: Widget) => void
+  onRemoveBookmark?: (widget: Widget) => void
+  onAddBookmark?: (widget: Widget, day: string) => void
   onSelect?: (widget: Widget) => void
   onAdd?: (widget: Widget) => void
 }
 
 function getTypeLabel(type: EventLabel) {
   switch (type) {
-    case "Activity":
-      return "Activity"
-    case "Transit":
-      return "Transportation"
-    case "Reservation":
-      return "Stay"
-    case "Food":
-      return "Dining"
+    case "Activity": return "Activity"
+    case "Transit": return "Transportation"
+    case "Reservation": return "Stay"
+    case "Food": return "Dining"
   }
 }
 
 function getTypeStyles(type: EventLabel) {
   switch (type) {
-    case "Activity":
-      return "bg-emerald-50 text-emerald-700"
-    case "Transit":
-      return "bg-violet-50 text-violet-700"
-    case "Reservation":
-      return "bg-blue-50 text-blue-700"
-    case "Food":
-      return "bg-orange-50 text-orange-700"
+    case "Activity": return "bg-emerald-50 text-emerald-700"
+    case "Transit": return "bg-violet-50 text-violet-700"
+    case "Reservation": return "bg-blue-50 text-blue-700"
+    case "Food": return "bg-orange-50 text-orange-700"
   }
 }
 
-function TypeIcon({
-  type,
-}: {
-  type: EventLabel
-}) {
+function TypeIcon({ type }: { type: EventLabel }) {
   const iconClassName = "h-3 w-3"
-
   switch (type) {
-    case "Activity":
-      return (
-        <Ticket className={iconClassName} />
-      )
-    case "Transit":
-      return (
-        <BusFront className={iconClassName} />
-      )
-    case "Reservation":
-      return (
-        <BedDouble className={iconClassName} />
-      )
-    case "Food":
-      return (
-        <Utensils className={iconClassName} />
-      )
+    case "Activity": return <Ticket className={iconClassName} />
+    case "Transit": return <BusFront className={iconClassName} />
+    case "Reservation": return <BedDouble className={iconClassName} />
+    case "Food": return <Utensils className={iconClassName} />
   }
 }
 
 function formatPrice(price?: number) {
-  if (typeof price !== "number") {
-    return null
-  }
-
+  if (typeof price !== "number") return null
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -95,20 +74,45 @@ const fallbackImage =
 
 export default function ExploreResultCard({
   widget,
+  days,
   saved = false,
   selected = false,
-  onSave,
+  onRemoveBookmark,
+  onAddBookmark,
   onSelect,
   onAdd,
 }: ExploreResultCardProps) {
-  const formattedPrice = formatPrice(
-    widget.price,
-  )
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<Day | null>(null)
+  const [justSaved, setJustSaved] = useState(false)
+
+  const formattedPrice = formatPrice(widget.price)
+
+  function handleHeartClick(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (saved) {
+      onRemoveBookmark?.(widget)
+    } else {
+      setPickerOpen(true)
+    }
+  }
+
+  function handleConfirmDay() {
+    if (!selectedDay?.date) return
+    onAddBookmark?.(widget, selectedDay.date)
+    setJustSaved(true)
+    setTimeout(() => {
+      setPickerOpen(false)
+      setJustSaved(false)
+      setSelectedDay(null)
+    }, 800)
+  }
 
   return (
     <article
       className={[
-        "group overflow-hidden rounded-xl border bg-white",
+        "group relative overflow-hidden rounded-xl border bg-white",
         "transition duration-200",
         selected
           ? "border-amber-400 shadow-md ring-1 ring-amber-200"
@@ -117,18 +121,13 @@ export default function ExploreResultCard({
     >
       <button
         type="button"
-        onClick={() =>
-          onSelect?.(widget)
-        }
+        onClick={() => onSelect?.(widget)}
         className="block w-full text-left"
         aria-label={`Show ${widget.title} on the map`}
       >
         <div className="relative aspect-[16/8] overflow-hidden bg-slate-100">
           <img
-            src={
-              widget.image_url ||
-              fallbackImage
-            }
+            src={widget.image_url || fallbackImage}
             alt={widget.title}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
@@ -152,9 +151,7 @@ export default function ExploreResultCard({
         <div className="flex items-start justify-between gap-2">
           <button
             type="button"
-            onClick={() =>
-              onSelect?.(widget)
-            }
+            onClick={() => onSelect?.(widget)}
             className="min-w-0 flex-1 text-left"
           >
             <h3 className="truncate text-sm font-bold text-slate-900 transition group-hover:text-amber-700">
@@ -170,24 +167,13 @@ export default function ExploreResultCard({
 
           <button
             type="button"
-            onClick={() =>
-              onSave?.(widget)
-            }
-            aria-label={
-              saved
-                ? `Remove ${widget.title} from saved items`
-                : `Save ${widget.title}`
-            }
+            onClick={handleHeartClick}
+            aria-label={saved ? `Remove ${widget.title} from saved items` : `Save ${widget.title}`}
             aria-pressed={saved}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-slate-200 bg-white transition hover:border-amber-300 hover:bg-amber-50"
+            className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white transition hover:border-amber-300 hover:bg-amber-50"
           >
             <Heart
-              className={[
-                "h-4 w-4",
-                saved
-                  ? "fill-amber-400 text-amber-400"
-                  : "text-slate-500",
-              ].join(" ")}
+              className={["h-4 w-4", saved ? "fill-amber-400 text-amber-400" : "text-slate-500"].join(" ")}
             />
           </button>
         </div>
@@ -196,10 +182,7 @@ export default function ExploreResultCard({
           {widget.location && (
             <span className="inline-flex min-w-0 items-center gap-1">
               <MapPin className="h-3 w-3 shrink-0" />
-
-              <span className="truncate">
-                {widget.location}
-              </span>
+              <span className="truncate">{widget.location}</span>
             </span>
           )}
 
@@ -212,23 +195,17 @@ export default function ExploreResultCard({
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-          {typeof widget.rating ===
-          "number" ? (
+          {typeof widget.rating === "number" ? (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-800">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               {widget.rating.toFixed(1)}
             </span>
-          ) : (
-            <span />
-          )}
+          ) : <span />}
 
           {formattedPrice && (
             <p className="text-sm font-bold text-slate-900">
               {formattedPrice}
-
-              <span className="ml-1 text-[10px] font-normal text-slate-400">
-                from
-              </span>
+              <span className="ml-1 text-[10px] font-normal text-slate-400">from</span>
             </p>
           )}
         </div>
@@ -248,15 +225,54 @@ export default function ExploreResultCard({
 
           <button
             type="button"
-            onClick={() =>
-              onAdd?.(widget)
-            }
-            className="flex-1 rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-300"
+            onClick={() => onAdd?.(widget)}
+            className="flex-1 cursor-pointer rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-amber-300"
           >
             Add
           </button>
         </div>
       </div>
+
+      {/* Day picker sheet */}
+      {pickerOpen && (
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHandle}><div className={styles.modalHandleBar} /></div>
+          <div className={styles.modalBody}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Save "{widget.title}" to a day</h3>
+              <button onClick={() => setPickerOpen(false)} className={styles.modalCloseBtn}><X size={18} /></button>
+            </div>
+
+            <div className={styles.dayPicker}>
+              <p className={styles.dayPickerLabel}>Choose a day</p>
+              <div className={styles.dayPickerScroll}>
+                {days.map((day, index) => (
+                  <button
+                    key={day.id}
+                    onClick={() => setSelectedDay(day)}
+                    className={`${styles.dayBtn} ${selectedDay?.id === day.id ? styles.dayBtnSelected : ""}`}
+                  >
+                    <span className={styles.dayBtnLabel}>Day {index + 1}</span>
+                    {day.date && (
+                      <span className={styles.dayBtnDate}>
+                        {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleConfirmDay}
+              disabled={!selectedDay || justSaved}
+              className={styles.addBtn}
+            >
+              {justSaved ? <><Check size={14} /> Saved!</> : "Save bookmark"}
+            </button>
+          </div>
+        </div>
+      )}
     </article>
   )
 }

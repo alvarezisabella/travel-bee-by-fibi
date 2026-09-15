@@ -16,19 +16,25 @@ import {
   Star,
   Ticket,
   Utensils,
+  Check,
+  X,
 } from "lucide-react"
 import {
   useParams,
   useRouter,
 } from "next/navigation"
 import type { Widget } from "@/app/itinerary/types/types"
+import type { Day } from "@/app/itinerary/day"
 import TripInfoBar, {
   type ExploreCategory,
 } from "./components/TripInfoBar"
 import { useExploreSearch } from "./useExploreSearch"
+import { useTripDays } from "./components/useTripDays"
+import {useBookmarks} from "@/app/itinerary/components/useBookmarks"
+import styles from "@/styles/bookmarkcard.module.css"
 
 const CARD_GRID =
-  "grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
+  "grid items-start gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
 
 const transportationItems: Widget[] = [
   {
@@ -170,17 +176,25 @@ function ErrorBlock({
 function ResultCard({
   widget,
   category,
+  days,
   saved,
-  onSave,
+  onRemoveBookmark,
+  onAddBookmark,
 }: {
   widget: Widget
   category: Exclude<
     ExploreCategory,
     "All"
   >
+  days: Day[]
   saved: boolean
-  onSave: () => void
+  onRemoveBookmark: () => void
+  onAddBookmark: (day: string) => void
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<Day | null>(null)
+  const [justSaved, setJustSaved] = useState(false)
+
   let price = ""
   let priceNote = ""
 
@@ -211,6 +225,27 @@ function ResultCard({
     }
   }
 
+    function handleHeartClick(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (saved) {
+      onRemoveBookmark()
+    } else {
+      setPickerOpen(true)
+    }
+  }
+
+  function handleConfirmDay() {
+    if (!selectedDay?.date) return
+    onAddBookmark(selectedDay.date)
+    setJustSaved(true)
+    setTimeout(() => {
+      setPickerOpen(false)
+      setJustSaved(false)
+      setSelectedDay(null)
+    }, 800)
+  }
+
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
@@ -226,7 +261,7 @@ function ResultCard({
 
         <button
           type="button"
-          onClick={onSave}
+          onClick={handleHeartClick}
           aria-label={`Save ${widget.title}`}
           className="absolute right-2.5 top-2.5 rounded-full bg-white/95 p-1.5 shadow-sm"
         >
@@ -283,6 +318,47 @@ function ResultCard({
           )}
         </div>
       </div>
+
+      {/* Day picker sheet */}
+      {pickerOpen && (
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHandle}><div className={styles.modalHandleBar} /></div>
+          <div className={styles.modalBody}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Save "{widget.title}" to a day</h3>
+              <button onClick={() => setPickerOpen(false)} className={styles.modalCloseBtn}><X size={18} /></button>
+            </div>
+
+            <div className={styles.dayPicker}>
+              <p className={styles.dayPickerLabel}>Choose a day</p>
+              <div className={styles.dayPickerScroll}>
+                {days.map((day, index) => (
+                  <button
+                    key={day.id}
+                    onClick={() => setSelectedDay(day)}
+                    className={`${styles.dayBtn} ${selectedDay?.id === day.id ? styles.dayBtnSelected : ""}`}
+                  >
+                    <span className={styles.dayBtnLabel}>Day {index + 1}</span>
+                    {day.date && (
+                      <span className={styles.dayBtnDate}>
+                        {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleConfirmDay}
+              disabled={!selectedDay || justSaved}
+              className={styles.addBtn}
+            >
+              {justSaved ? <><Check size={14} /> Saved!</> : "Save bookmark"}
+            </button>
+          </div>
+        </div>
+      )}
     </article>
   )
 }
@@ -298,9 +374,12 @@ export default function ExploreTripPage() {
   const [activeTab, setActiveTab] =
     useState<ExploreCategory>("All")
 
-  const [saved, setSaved] = useState<
-    string[]
-  >([])
+  const { days } = useTripDays(tripId)
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks(tripId)
+
+  // const [saved, setSaved] = useState<
+  //   string[]
+  // >([])
 
   const [query, setQuery] = useState("")
   const [
@@ -358,15 +437,15 @@ export default function ExploreTripPage() {
     )
   }, [query])
 
-  function toggleSaved(widgetId: string) {
-    setSaved((current) =>
-      current.includes(widgetId)
-        ? current.filter(
-            (id) => id !== widgetId,
-          )
-        : [...current, widgetId],
-    )
-  }
+  // function toggleSaved(widgetId: string) {
+  //   setSaved((current) =>
+  //     current.includes(widgetId)
+  //       ? current.filter(
+  //           (id) => id !== widgetId,
+  //         )
+  //       : [...current, widgetId],
+  //   )
+  // }
 
   function handleSubmitQuery() {
     setSubmittedQuery(query.trim())
@@ -688,11 +767,13 @@ export default function ExploreTripPage() {
                     key={widget.id}
                     widget={widget}
                     category={section.category}
-                    saved={saved.includes(
-                      widget.id,
-                    )}
-                    onSave={() =>
-                      toggleSaved(widget.id)
+                    days={days}
+                    saved={isBookmarked(widget.title, widget.location)}
+                    onRemoveBookmark={() =>
+                      removeBookmark(widget)
+                    }
+                    onAddBookmark={(day) =>
+                      addBookmark(widget, day)
                     }
                   />
                 ),

@@ -25,6 +25,8 @@ import TripInfoBar, {
 } from "../components/TripInfoBar"
 import CategoryPageLayout from "../components/CategoryPageLayout"
 import { useExploreSearch } from "../useExploreSearch"
+import { useTripDays } from "../components/useTripDays"
+import {useBookmarks} from "@/app/itinerary/components/useBookmarks"
 
 const transportationItems: Widget[] = [
   {
@@ -191,6 +193,9 @@ export default function ExploreCategoryPage() {
     validCategory && !isTransportation,
   )
 
+  const { days } = useTripDays(tripId)
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks(tripId)
+
   const transportationResults =
     useMemo(() => {
       if (!isTransportation) {
@@ -294,34 +299,34 @@ export default function ExploreCategoryPage() {
     selectedWidgetId,
   ])
 
-  useEffect(() => {
-    try {
-      const storedValue =
-        window.localStorage.getItem(
-          `travelbee-explore-saved-${tripId}`,
-        )
+  // useEffect(() => {
+  //   try {
+  //     const storedValue =
+  //       window.localStorage.getItem(
+  //         `travelbee-explore-saved-${tripId}`,
+  //       )
 
-      if (!storedValue) {
-        return
-      }
+  //     if (!storedValue) {
+  //       return
+  //     }
 
-      const parsedValue =
-        JSON.parse(storedValue)
+  //     const parsedValue =
+  //       JSON.parse(storedValue)
 
-      if (Array.isArray(parsedValue)) {
-        setSavedWidgetIds(
-          parsedValue.filter(
-            (
-              value,
-            ): value is string =>
-              typeof value === "string",
-          ),
-        )
-      }
-    } catch {
-      setSavedWidgetIds([])
-    }
-  }, [tripId])
+  //     if (Array.isArray(parsedValue)) {
+  //       setSavedWidgetIds(
+  //         parsedValue.filter(
+  //           (
+  //             value,
+  //           ): value is string =>
+  //             typeof value === "string",
+  //         ),
+  //       )
+  //     }
+  //   } catch {
+  //     setSavedWidgetIds([])
+  //   }
+  // }, [tripId])
 
   const selectedWidget =
     useMemo(() => {
@@ -337,30 +342,30 @@ export default function ExploreCategoryPage() {
       selectedWidgetId,
     ])
 
-  function toggleSavedWidget(
-    widget: Widget,
-  ) {
-    setSavedWidgetIds((current) => {
-      const updated = current.includes(
-        widget.id,
-      )
-        ? current.filter(
-            (id) => id !== widget.id,
-          )
-        : [...current, widget.id]
+  // function toggleSavedWidget(
+  //   widget: Widget,
+  // ) {
+  //   setSavedWidgetIds((current) => {
+  //     const updated = current.includes(
+  //       widget.id,
+  //     )
+  //       ? current.filter(
+  //           (id) => id !== widget.id,
+  //         )
+  //       : [...current, widget.id]
 
-      try {
-        window.localStorage.setItem(
-          `travelbee-explore-saved-${tripId}`,
-          JSON.stringify(updated),
-        )
-      } catch {
-        // Continue if local storage is unavailable.
-      }
+  //     try {
+  //       window.localStorage.setItem(
+  //         `travelbee-explore-saved-${tripId}`,
+  //         JSON.stringify(updated),
+  //       )
+  //     } catch {
+  //       // Continue if local storage is unavailable.
+  //     }
 
-      return updated
-    })
-  }
+  //     return updated
+  //   })
+  // }
 
   function handleCategoryChange(
     category: ExploreCategory,
@@ -484,6 +489,7 @@ export default function ExploreCategoryPage() {
           }
           location={location}
           widgets={widgets}
+          days={days}
           loading={
             tripLoading || loading
           }
@@ -491,6 +497,7 @@ export default function ExploreCategoryPage() {
           selectedWidgetId={
             selectedWidget?.id ?? null
           }
+          isBookmarked={isBookmarked}
           savedWidgetIds={
             savedWidgetIds
           }
@@ -499,9 +506,11 @@ export default function ExploreCategoryPage() {
               widget.id,
             )
           }
-          onToggleSaved={
-            toggleSavedWidget
-          }
+          onRemoveBookmark={removeBookmark}
+          onAddBookmark={addBookmark}
+          // onToggleSaved={
+          //   toggleSavedWidget
+          // }
           onAddWidget={
             handleAddWidget
           }
