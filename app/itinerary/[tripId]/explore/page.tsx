@@ -18,6 +18,8 @@ import {
   Utensils,
   Check,
   X,
+  Link,
+  ArrowLeft,
 } from "lucide-react"
 import {
   useParams,
@@ -528,10 +530,12 @@ export default function ExploreTripPage() {
 
         <div className="mx-auto flex min-h-[420px] max-w-7xl items-center px-5 py-16 sm:px-8 lg:px-10">
           <div className="max-w-xl text-white">
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm backdrop-blur">
-              <Sparkles className="h-4 w-4 text-amber-300" />
-              Curated for your trip
-            </span>
+            <button
+            onClick={() => router.push(`/itinerary/${tripId}`)}
+            className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm backdrop-blur cursor-pointer hover:bg-white/25 transition">
+              <ArrowLeft className="h-4 w-4 text-amber-300" />
+              Back to Itinerary
+            </button>
 
             <h1 className="font-serif text-4xl font-semibold leading-tight sm:text-6xl">
               More to explore,
