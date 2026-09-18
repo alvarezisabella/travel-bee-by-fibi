@@ -34,6 +34,7 @@ interface CategoryPageLayoutProps {
   onRemoveBookmark: (widget: Widget) => void
   onAddBookmark: (widget: Widget, day: string) => void
   onAddWidget: (widget: Widget) => void
+  onViewDetails: (widget: Widget) => void
   onRetry: () => void
   onSearchArea?: () => void
 }
@@ -53,6 +54,7 @@ export default function CategoryPageLayout({
   onRemoveBookmark,
   onAddBookmark,
   onAddWidget,
+  onViewDetails,
   onRetry,
   onSearchArea,
 }: CategoryPageLayoutProps) {
@@ -220,6 +222,7 @@ export default function CategoryPageLayout({
                   onRemoveBookmark={onRemoveBookmark}
                   onAddBookmark={onAddBookmark}
                   onAdd={onAddWidget}
+                  onViewDetails={onViewDetails}
                 />
               ),
             )}

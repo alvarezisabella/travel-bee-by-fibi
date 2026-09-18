@@ -34,6 +34,7 @@ import { useExploreSearch } from "./useExploreSearch"
 import { useTripDays } from "./components/useTripDays"
 import {useBookmarks} from "@/app/itinerary/components/useBookmarks"
 import styles from "@/styles/bookmarkcard.module.css"
+import { saveExploreSelection } from "./exploreSelection"
 
 const CARD_GRID =
   "grid items-start gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
@@ -182,6 +183,7 @@ function ResultCard({
   saved,
   onRemoveBookmark,
   onAddBookmark,
+  onOpen,
 }: {
   widget: Widget
   category: Exclude<
@@ -192,6 +194,7 @@ function ResultCard({
   saved: boolean
   onRemoveBookmark: () => void
   onAddBookmark: (day: string) => void
+  onOpen: () => void
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [selectedDay, setSelectedDay] = useState<Day | null>(null)
@@ -249,7 +252,18 @@ function ResultCard({
   }
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+    <article
+      role="link"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+      className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+    >
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
         {widget.image_url ? (
           <img
@@ -779,6 +793,12 @@ export default function ExploreTripPage() {
                     onAddBookmark={(day) =>
                       addBookmark(widget, day)
                     }
+                    onOpen={() => {
+                      saveExploreSelection(tripId, widget)
+                      router.push(
+                        `/itinerary/${tripId}/explore/${section.category.toLowerCase()}`,
+                      )
+                    }}
                   />
                 ),
               )}

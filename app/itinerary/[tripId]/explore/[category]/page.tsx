@@ -27,6 +27,10 @@ import CategoryPageLayout from "../components/CategoryPageLayout"
 import { useExploreSearch } from "../useExploreSearch"
 import { useTripDays } from "../components/useTripDays"
 import {useBookmarks} from "@/app/itinerary/components/useBookmarks"
+import {
+  getCurrentExploreSelection,
+  saveExploreSelection,
+} from "../exploreSelection"
 
 const transportationItems: Widget[] = [
   {
@@ -290,11 +294,17 @@ export default function ExploreCategoryPage() {
       widgets.length > 0 &&
       !selectedWidgetId
     ) {
+      const previousSelection = getCurrentExploreSelection(tripId)
+      const matchingSelection = widgets.find(
+        (widget) => widget.id === previousSelection?.id,
+      )
+
       setSelectedWidgetId(
-        widgets[0].id,
+        matchingSelection?.id ?? widgets[0].id,
       )
     }
   }, [
+    tripId,
     widgets,
     selectedWidgetId,
   ])
@@ -514,6 +524,23 @@ export default function ExploreCategoryPage() {
           onAddWidget={
             handleAddWidget
           }
+          onViewDetails={(widget) => {
+            const stored = saveExploreSelection(tripId, widget)
+
+            if (!stored) {
+              window.alert(
+                "TravelBee could not save this card for the details tab. Please allow browser storage for this site and try again.",
+              )
+              return
+            }
+
+            const detailsUrl =
+              `/itinerary/${encodeURIComponent(tripId)}` +
+              `/explore/${categorySlug}` +
+              `/${encodeURIComponent(widget.id)}`
+
+            window.open(detailsUrl, "_blank", "noopener,noreferrer")
+          }}
           onRetry={() => {
             if (isTransportation) {
               runSearch()
