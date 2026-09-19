@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
       // which gives a real nightly rate for the trip's dates
       // normalizedQuery, not searchQuery: the latter falls back to the literal
       // string "hotels", which would build "hotels hotels in {location}"
-      widgets = await searchGoogleHotels(
+      const hotels = await searchGoogleHotels(
         location,
         checkIn,
         checkOut,
@@ -173,6 +173,15 @@ export async function POST(req: NextRequest) {
         RESULT_LIMIT,
         normalizedQuery || undefined
       )
+
+      // Done here rather than inside searchGoogleHotels so chat's hotel
+      // widgets keep loading the original URL
+      widgets = hotels.map((hotel) => ({
+        ...hotel,
+        image_url: hotel.image_url
+          ? `/api/explore/photo?url=${encodeURIComponent(hotel.image_url)}`
+          : undefined,
+      }))
     } else {
       // Naming the destination in the query is what keeps results in the right
       // city rather than matching the city name inside a business name
