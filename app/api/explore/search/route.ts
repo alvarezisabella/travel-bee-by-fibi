@@ -3,7 +3,11 @@ import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 import { Widget, EventLabel } from "@/app/itinerary/types/types"
 import { searchPlacesByText } from "@/lib/map/places"
-import { searchGoogleHotels } from "@/lib/ai/serp"
+import {
+  searchGoogleHotels,
+  searchSerpTripAdvisor,
+} from "@/lib/ai/serp"
+import { searchTicketmaster } from "@/lib/ticketmaster"
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const RESULT_LIMIT = 12
@@ -38,6 +42,65 @@ const PRICE_LEVEL_TO_TIER: Record<string, number> = {
   PRICE_LEVEL_MODERATE: 2,
   PRICE_LEVEL_EXPENSIVE: 3,
   PRICE_LEVEL_VERY_EXPENSIVE: 4,
+}
+
+const CATEGORY_TO_TRIPADVISOR_TYPES: Record<string, string[]> = {
+  Dining: ["EATERY", "RESTAURANT"],
+  Activities: ["ATTRACTION", "ATTRACTION_PRODUCT", "ACTIVITY"],
+}
+
+function mapPlaceWidgets(
+  results: Awaited<ReturnType<typeof searchPlacesByText>>,
+  type: EventLabel,
+): Widget[] {
+  return results.map((place) => ({
+    id: `gplace-${place.id}`,
+    title: place.title,
+    location: place.address,
+    description: place.category ?? place.summary,
+    type,
+    image_url: place.photoName
+      ? `/api/places/photo?name=${encodeURIComponent(place.photoName)}`
+      : undefined,
+    rating: place.rating,
+    price:
+      place.priceLevel !== undefined
+        ? PRICE_LEVEL_TO_TIER[place.priceLevel]
+        : undefined,
+    url: place.websiteUri,
+  }))
+}
+
+async function searchLocalRecommendations(
+  category: string,
+  query: string,
+  location: string,
+  type: EventLabel,
+): Promise<Widget[]> {
+  if (process.env.GOOGLE_PLACES_API_KEY) {
+    try {
+      const places = await searchPlacesByText(
+        `${query} in ${location}`,
+        CATEGORY_TO_PLACE_TYPE[category],
+        RESULT_LIMIT,
+      )
+
+      if (places.length > 0) {
+        return mapPlaceWidgets(places, type)
+      }
+    } catch (error) {
+      console.error("GOOGLE PLACES EXPLORE SEARCH FAILED:", error)
+    }
+  }
+
+  return searchSerpTripAdvisor(
+    query,
+    location,
+    type,
+    0,
+    RESULT_LIMIT,
+    CATEGORY_TO_TRIPADVISOR_TYPES[category],
+  )
 }
 
 // A nightly rate only means something for specific dates, so trips without
@@ -136,9 +199,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Only Stays prices depend on dates, so other categories keep an empty key
-  // and stay cached across date edits
-  const dates = category === "Stays" ? `${checkIn}|${checkOut}` : ""
+  // Stays prices and Activities' Ticketmaster events depend on trip dates, so
+  // both key the cache on them; Dining stays cached across date edits
+  const dates =
+    category === "Stays" || category === "Activities"
+      ? `${checkIn}|${checkOut}`
+      : ""
 
   const { data: cached } = await supabase
     .from("explore_cache")
@@ -183,32 +249,26 @@ export async function POST(req: NextRequest) {
           : undefined,
       }))
     } else {
-      // Naming the destination in the query is what keeps results in the right
-      // city rather than matching the city name inside a business name
-      const results = await searchPlacesByText(
-        `${searchQuery} in ${location}`,
-        CATEGORY_TO_PLACE_TYPE[category],
-        RESULT_LIMIT
+      const placeWidgets = await searchLocalRecommendations(
+        category,
+        searchQuery,
+        location,
+        type,
       )
 
-      widgets = results.map((place) => ({
-        id: `gplace-${place.id}`,
-        title: place.title,
-        location: place.address,
-        // The editorial summary is better prose but long enough to push the
-        // address off the card, and the address matters more when planning
-        description: place.category ?? place.summary,
-        type,
-        image_url: place.photoName
-          ? `/api/places/photo?name=${encodeURIComponent(place.photoName)}`
-          : undefined,
-        rating: place.rating,
-        price:
-          place.priceLevel !== undefined
-            ? PRICE_LEVEL_TO_TIER[place.priceLevel]
-            : undefined,
-        url: place.websiteUri,
-      }))
+      if (category === "Activities") {
+        // Ticketmaster covers ticketed events (concerts, games, shows) that
+        // Places' tourist_attraction type never returns. It never throws, so
+        // a Ticketmaster outage still leaves the Places results standing.
+        const eventWidgets = await searchTicketmaster(normalizedQuery, location, 0, {
+          startDate: checkIn,
+          endDate: checkOut,
+        })
+
+        widgets = [...eventWidgets, ...placeWidgets].slice(0, RESULT_LIMIT)
+      } else {
+        widgets = placeWidgets
+      }
     }
   } catch (e) {
     console.error("EXPLORE SEARCH FAILED:", e)

@@ -293,7 +293,15 @@ export async function searchSerpTripAdvisor(
 
     // A generic query mixes ACCOMMODATION and ATTRACTION entries in with the
     // EATERY ones, so callers can restrict which kinds they want
-    if (placeTypes && !placeTypes.includes(place.place_type)) {
+    const normalizedPlaceType = String(place.place_type ?? "").toUpperCase()
+    const allowedPlaceTypes = placeTypes?.map((placeType) =>
+      placeType.toUpperCase(),
+    )
+
+    if (
+      allowedPlaceTypes &&
+      !allowedPlaceTypes.includes(normalizedPlaceType)
+    ) {
       console.log("SERP TA SKIP (place_type):", place.place_type, title)
       continue
     }

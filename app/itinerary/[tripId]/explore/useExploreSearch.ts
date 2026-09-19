@@ -1,70 +1,125 @@
-import { useState, useEffect, useCallback } from "react"
-import { Widget } from "@/app/itinerary/types/types"
+"use client"
 
-// query is an already submitted search, never live keystrokes. Debouncing
-// typing still leaked a paid call per hesitation mid word, so the page only
-// calls this on Enter or the Search button.
-// enabled is false when the category is filtered out by the active tab, so a
-// hidden section doesn't spend a paid SerpAPI search
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react"
+import type { Widget } from "@/app/itinerary/types/types"
+
+interface ExploreSearchResponse {
+  widgets?: Widget[]
+  error?: string
+}
+
 export function useExploreSearch(
   tripId: string,
   category: string,
   query: string,
-  enabled = true
+  enabled = true,
 ) {
   const [widgets, setWidgets] = useState<Widget[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
-  const retry = useCallback(() => setReloadKey((k) => k + 1), [])
+  const retry = useCallback(() => {
+    setReloadKey((current) => current + 1)
+  }, [])
 
   useEffect(() => {
     if (!tripId || !enabled) {
       setLoading(false)
+      setError(null)
+      setWidgets([])
       return
     }
 
-    let ignore = false
+    const controller = new AbortController()
 
-    async function run() {
+    async function runSearch() {
       setLoading(true)
       setError(null)
 
       try {
-        const res = await fetch("/api/explore/search", {
+        const response = await fetch("/api/explore/search", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tripId, category, query }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tripId,
+            category,
+            query: query.trim(),
+          }),
+          signal: controller.signal,
         })
 
-        const json = await res.json()
-        if (ignore) return
+        let result: ExploreSearchResponse = {}
 
-        if (!res.ok) {
-          setError(json?.error ?? "We couldn't load recommendations right now.")
-          setWidgets([])
+        try {
+          result =
+            (await response.json()) as ExploreSearchResponse
+        } catch {
+          result = {}
+        }
+
+        if (controller.signal.aborted) {
           return
         }
 
-        setWidgets(json.widgets ?? [])
-      } catch {
-        if (!ignore) {
-          setError("We couldn't load recommendations right now.")
+        if (!response.ok) {
           setWidgets([])
+          setError(
+            result.error ??
+              "We couldn't load recommendations right now.",
+          )
+          return
+        }
+
+        setWidgets(
+          Array.isArray(result.widgets)
+            ? result.widgets
+            : [],
+        )
+      } catch (searchError) {
+        if (
+          searchError instanceof DOMException &&
+          searchError.name === "AbortError"
+        ) {
+          return
+        }
+
+        if (!controller.signal.aborted) {
+          setWidgets([])
+          setError(
+            "We couldn't connect to the recommendation service. Please try again.",
+          )
         }
       } finally {
-        if (!ignore) setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
-    run()
+    runSearch()
 
-    // ignore guards against a slow earlier request landing after a newer one
     return () => {
-      ignore = true
+      controller.abort()
     }
-  }, [tripId, category, query, reloadKey, enabled])
+  }, [
+    tripId,
+    category,
+    query,
+    enabled,
+    reloadKey,
+  ])
 
-  return { widgets, loading, error, retry }
+  return {
+    widgets,
+    loading,
+    error,
+    retry,
+  }
 }
