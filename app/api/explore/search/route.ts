@@ -12,12 +12,11 @@ import { searchTicketmaster } from "@/lib/ticketmaster"
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const RESULT_LIMIT = 12
 
-// Transportation is still mock data, since it needs a different data source
-// entirely.
 const CATEGORY_TO_TYPE: Record<string, EventLabel> = {
   Dining: "Food",
   Stays: "Reservation",
   Activities: "Activity",
+  Transportation: "Transit",
 }
 
 // Restricts results to one Places type so a search can't drift into hotels.
@@ -101,6 +100,73 @@ async function searchLocalRecommendations(
     RESULT_LIMIT,
     CATEGORY_TO_TRIPADVISOR_TYPES[category],
   )
+}
+
+// No single Places type covers getting around, so rentals and transfer
+// services are fetched separately and merged. Transit stations are left out on
+// purpose: they return bus gates and platforms rather than anything a traveler
+// would save to an itinerary.
+const TRANSPORT_SUBSEARCHES: Array<{ text: string; placeType?: string }> = [
+  { text: "car rental", placeType: "car_rental" },
+  { text: "car rental downtown", placeType: "car_rental" },
+  { text: "airport transfer shuttle service" },
+]
+
+async function searchTransportation(
+  query: string,
+  location: string,
+): Promise<Widget[]> {
+  // A typed query drops the place type restriction so terms like "shuttle" or
+  // "limo" can match. The word transportation keeps results on topic.
+  if (query) {
+    const places = await searchPlacesByText(
+      `${query} transportation in ${location}`,
+      undefined,
+      RESULT_LIMIT,
+    )
+
+    return mapPlaceWidgets(places, "Transit")
+  }
+
+  const batches = await Promise.all(
+    TRANSPORT_SUBSEARCHES.map((subsearch) =>
+      searchPlacesByText(
+        `${subsearch.text} in ${location}`,
+        subsearch.placeType,
+        RESULT_LIMIT,
+      ).catch((error) => {
+        console.error("TRANSPORT SUBSEARCH FAILED:", subsearch.text, error)
+        return []
+      }),
+    ),
+  )
+
+  // Taken round robin rather than concatenated, since the rental searches
+  // return far more results than the transfer one and would otherwise fill the
+  // row before it got a turn. The two rental searches overlap, so the id check
+  // is doing real work here.
+  const merged: Awaited<ReturnType<typeof searchPlacesByText>> = []
+  const seen = new Set<string>()
+  const longest = Math.max(...batches.map((batch) => batch.length))
+
+  for (let i = 0; i < longest && merged.length < RESULT_LIMIT; i++) {
+    for (const batch of batches) {
+      const place = batch[i]
+
+      if (!place || seen.has(place.id)) {
+        continue
+      }
+
+      seen.add(place.id)
+      merged.push(place)
+
+      if (merged.length >= RESULT_LIMIT) {
+        break
+      }
+    }
+  }
+
+  return mapPlaceWidgets(merged, "Transit")
 }
 
 // A nightly rate only means something for specific dates, so trips without
@@ -248,6 +314,11 @@ export async function POST(req: NextRequest) {
           ? `/api/explore/photo?url=${encodeURIComponent(hotel.image_url)}`
           : undefined,
       }))
+    } else if (category === "Transportation") {
+      // normalizedQuery, not searchQuery: there is no DEFAULT_QUERIES entry for
+      // Transportation, so searchQuery would fall back to the category name and
+      // build "Transportation transportation in {location}"
+      widgets = await searchTransportation(normalizedQuery, location)
     } else {
       const placeWidgets = await searchLocalRecommendations(
         category,

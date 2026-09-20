@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  useMemo,
-  useState,
-} from "react"
+import { useState } from "react"
 import {
   BedDouble,
   CarFront,
@@ -38,75 +35,6 @@ import { saveExploreSelection } from "./exploreSelection"
 
 const CARD_GRID =
   "grid items-start gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
-
-const transportationItems: Widget[] = [
-  {
-    id: "transport-lisbon-card",
-    title: "Lisbon Card 72h",
-    location: "Citywide",
-    description: "Transit and attractions",
-    type: "Transit",
-    image_url:
-      "https://images.unsplash.com/photo-1525207934214-58e69a8f8a93?auto=format&fit=crop&w=900&q=85",
-    rating: 4.8,
-    price: 46,
-  },
-  {
-    id: "transport-airport-transfer",
-    title: "Private Airport Transfer",
-    location: "LIS Airport",
-    description: "Private door-to-door transfer",
-    type: "Transit",
-    image_url:
-      "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=85",
-    rating: 4.6,
-    price: 55,
-  },
-  {
-    id: "transport-public-pass",
-    title: "24h Public Transport Pass",
-    location: "Citywide",
-    description: "Metro, bus, and tram",
-    type: "Transit",
-    image_url:
-      "https://images.unsplash.com/photo-1555881400-69a2384ed1af?auto=format&fit=crop&w=900&q=85",
-    rating: 4.4,
-    price: 12,
-  },
-  {
-    id: "transport-hop-on-bus",
-    title: "Hop-on Hop-off Bus",
-    location: "Citywide",
-    description: "48-hour sightseeing pass",
-    type: "Transit",
-    image_url:
-      "https://images.unsplash.com/photo-1519452575417-564c1401ecc0?auto=format&fit=crop&w=900&q=85",
-    rating: 4.5,
-    price: 32,
-  },
-  {
-    id: "transport-tuk-tuk",
-    title: "Tuk-tuk City Tour",
-    location: "Alfama",
-    description: "Private 1.5-hour tour",
-    type: "Transit",
-    image_url:
-      "https://images.unsplash.com/photo-1580654712603-eb43273aff33?auto=format&fit=crop&w=900&q=85",
-    rating: 4.6,
-    price: 40,
-  },
-  {
-    id: "transport-car-rental",
-    title: "Car Rental",
-    location: "LIS Airport",
-    description: "Flexible daily rental",
-    type: "Transit",
-    image_url:
-      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=85",
-    rating: 4.3,
-    price: 38,
-  },
-]
 
 const moods = [
   {
@@ -436,22 +364,12 @@ export default function ExploreTripPage() {
     isVisible("Dining"),
   )
 
-  const transportation = useMemo(() => {
-    const normalizedQuery = query
-      .trim()
-      .toLowerCase()
-
-    if (!normalizedQuery) {
-      return transportationItems
-    }
-
-    return transportationItems.filter(
-      (item) =>
-        `${item.title} ${item.location ?? ""} ${item.description ?? ""}`
-          .toLowerCase()
-          .includes(normalizedQuery),
-    )
-  }, [query])
+  const transportation = useExploreSearch(
+    tripId,
+    "Transportation",
+    submittedQuery,
+    isVisible("Transportation"),
+  )
 
   // function toggleSaved(widgetId: string) {
   //   setSaved((current) =>
@@ -519,10 +437,10 @@ export default function ExploreTripPage() {
       subtitle:
         "Convenient transportation options.",
       icon: CarFront,
-      widgets: transportation,
-      loading: false,
-      error: null,
-      retry: () => undefined,
+      widgets: transportation.widgets,
+      loading: transportation.loading,
+      error: transportation.error,
+      retry: transportation.retry,
     },
   ]
 
