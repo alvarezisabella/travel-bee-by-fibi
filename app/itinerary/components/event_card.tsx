@@ -103,7 +103,7 @@ export function EventCard({event, members, onDelete, onSave, onUpvote, onDownvot
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(event.id); }}
           style={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s" }}
-          className="p-1 rounded-md text-muted hover:text-danger hover:bg-danger/10 transition-colstyle={colors:{ Text:${status_bg.dot} }}> cursor-pointer hover:bg-red-200 hover:text-red-800 flex-shrink-0"
+          className="p-1 rounded-md text-muted hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer hover:bg-red-200 hover:text-red-800 flex-shrink-0"
         >
           <Trash2 size={18} />
         </button>
