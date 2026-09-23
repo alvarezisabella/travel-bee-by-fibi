@@ -38,12 +38,36 @@ export async function POST(request: NextRequest) {
       type: body.type,
       rating: body.rating ?? null,
       price: body.price ?? null,
+      day: body.day,
     })
     .select()
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   // return the row directly so json.id works in EventWidget
+  return NextResponse.json(data)
+}
+
+export async function PATCH(request: NextRequest) {
+  const cookieStore = await cookies()
+  const supabase = await createClient(cookieStore)
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
+  }
+
+  const body = await request.json()
+  if (!body.id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('event_widgets')
+    .update({ day: body.day})
+    .eq('id', body.id)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
 

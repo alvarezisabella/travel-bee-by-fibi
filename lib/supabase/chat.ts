@@ -3,7 +3,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 // Function to get/create a chat session for a user and itinerary
 // Arguments: supabase client, user ID, itinerary ID
 // Returns: session ID
-export async function getOrCreateSession(supabase: SupabaseClient, userId: string, itineraryId: string): Promise<string> {
+export async function getOrCreateSession(supabase: SupabaseClient, userId?: string, itineraryId?: string): Promise<string> {
   const { data: existing } = await supabase
     .from('chat_sessions')
     .select('id')

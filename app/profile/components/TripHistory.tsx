@@ -26,68 +26,97 @@ interface Trip {
 
 export function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   })
 }
 
-function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => void }) {
-  const visible  = trip.members.slice(0, 3)
+function TripCard({
+  trip,
+  onDelete,
+}: {
+  trip: Trip
+  onDelete: (id: string) => void
+}) {
+  const visible = trip.members.slice(0, 3)
   const overflow = trip.members.length - visible.length
 
   return (
-    <div className="relative group rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
+    <div className="group relative overflow-hidden rounded-xl border border-gray-100 transition-shadow hover:shadow-md">
       <button
-        onClick={(e) => { e.preventDefault(); onDelete(trip.id) }}
-        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/80 hover:bg-red-50 border border-gray-200 hover:border-red-300 flex items-center justify-center text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+        onClick={(e) => {
+          e.preventDefault()
+          onDelete(trip.id)
+        }}
+        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-400 shadow-sm transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
       >
-        <Trash2 size={13} />
+        <Trash2 size={14} />
       </button>
 
       <Link href={`/itinerary/${trip.id}`} className="block">
-        <div className="w-full h-24 bg-gray-200 overflow-hidden">
+        <div className="h-36 w-full overflow-hidden bg-gray-200 sm:h-32 lg:h-28">
           {trip.cover_photo_url ? (
-            <img src={trip.cover_photo_url} className="w-full h-full object-cover" alt={trip.title} />
+            <img
+              src={trip.cover_photo_url}
+              className="h-full w-full object-cover"
+              alt={trip.title}
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+            <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
               No Cover Photo
             </div>
           )}
         </div>
-        <div className="p-3 flex flex-col gap-1">
-          <p className="text-sm font-semibold text-gray-700 truncate">{trip.title}</p>
-          <p className="text-xs text-gray-400 truncate">{trip.location ?? "No location"}</p>
+
+        <div className="flex flex-col gap-1 p-4">
+          <p className="truncate text-sm font-semibold text-gray-800">
+            {trip.title}
+          </p>
+
+          <p className="truncate text-xs text-gray-400">
+            {trip.location ?? "No location"}
+          </p>
+
           <p className="text-xs text-gray-400">
             {trip.start_date && trip.end_date
               ? `${formatDate(trip.start_date)} – ${formatDate(trip.end_date)}`
               : "No dates set"}
           </p>
+
           {trip.members.length > 0 && (
-            <div className="flex items-center mt-1">
+            <div className="mt-2 flex items-center">
               {visible.map((m, i) => {
-                const initials = [m.first_name?.[0], m.last_name?.[0]]
-                  .filter(Boolean).join("").toUpperCase() || "?"
+                const initials =
+                  [m.first_name?.[0], m.last_name?.[0]]
+                    .filter(Boolean)
+                    .join("")
+                    .toUpperCase() || "?"
+
                 return m.avatar_url ? (
                   <img
                     key={m.user_id}
                     src={m.avatar_url}
                     title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
-                    className="w-6 h-6 rounded-full object-cover border-2 border-white"
+                    className="h-6 w-6 rounded-full border-2 border-white object-cover"
                     style={{ marginLeft: i === 0 ? 0 : -8 }}
+                    alt=""
                   />
                 ) : (
                   <div
                     key={m.user_id}
                     title={`${m.first_name ?? ""} ${m.last_name ?? ""}`.trim()}
-                    className="w-6 h-6 rounded-full bg-yellow-300 border-2 border-white flex items-center justify-center text-[9px] font-bold text-gray-800"
+                    className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-yellow-300 text-[9px] font-bold text-gray-800"
                     style={{ marginLeft: i === 0 ? 0 : -8 }}
                   >
                     {initials}
                   </div>
                 )
               })}
+
               {overflow > 0 && (
                 <div
-                  className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[9px] font-semibold text-gray-500"
+                  className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-[9px] font-semibold text-gray-500"
                   style={{ marginLeft: -8 }}
                 >
                   +{overflow}
@@ -102,26 +131,29 @@ function TripCard({ trip, onDelete }: { trip: Trip; onDelete: (id: string) => vo
 }
 
 function TripHistoryCarousel({ trips: initialTrips }: { trips: Trip[] }) {
-  const [trips, setTrips]                   = useState(initialTrips)
-  const [confirmDelete, setConfirmDelete]   = useState<string | null>(null)
-  const [deleting, setDeleting]             = useState(false)
+  const [trips, setTrips] = useState(initialTrips)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-  // Sort by most recently edited, show top 2
-  const sorted    = [...trips].sort((a, b) => {
+  const sorted = [...trips].sort((a, b) => {
     const at = a.updated_at ? new Date(a.updated_at).getTime() : 0
     const bt = b.updated_at ? new Date(b.updated_at).getTime() : 0
     return bt - at
   })
+
   const displayed = sorted.slice(0, 2)
-  const hasMore   = trips.length > 2
+  const hasMore = trips.length > 2
 
   const handleDelete = async (tripId: string) => {
     setDeleting(true)
+
     try {
       const supabase = createClient()
+
       await supabase.from("events").delete().eq("itinerary_id", tripId)
       await supabase.from("itinerary_members").delete().eq("itinerary_id", tripId)
       await supabase.from("itineraries").delete().eq("id", tripId)
+
       setTrips((prev) => prev.filter((t) => t.id !== tripId))
       setConfirmDelete(null)
     } catch (err) {
@@ -135,52 +167,72 @@ function TripHistoryCarousel({ trips: initialTrips }: { trips: Trip[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {displayed.map((trip) => (
           <TripCard key={trip.id} trip={trip} onDelete={setConfirmDelete} />
         ))}
 
-        {/* See all — always the third slot when there are more than 2 trips */}
         {hasMore && (
           <Link
             href="/profile/trips"
-            className="rounded-xl border border-dashed border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all flex flex-col items-center justify-center gap-2 p-4 text-center min-h-[160px]"
+            className="flex min-h-[170px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 p-4 text-center transition-all hover:border-yellow-400 hover:bg-yellow-50"
           >
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100">
               <ChevronRight size={20} className="text-gray-400" />
             </div>
-            <p className="text-sm font-semibold text-gray-600">See all trips</p>
+
+            <p className="text-sm font-semibold text-gray-700">
+              See all trips
+            </p>
+
             <p className="text-xs text-gray-400">{trips.length} total</p>
           </Link>
         )}
       </div>
 
-      {/* Delete confirmation modal */}
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmDelete(null) }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmDelete(null)
+          }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4 mx-4">
+          <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-bold text-gray-900">Delete trip?</h2>
+              <h2 className="text-lg font-bold text-gray-900">
+                Delete trip?
+              </h2>
+
               <p className="text-sm text-gray-500">
-                <span className="font-medium text-gray-700">"{tripToDelete?.title}"</span> and all its events will be permanently deleted. This cannot be undone.
+                <span className="font-medium text-gray-700">
+                  "{tripToDelete?.title}"
+                </span>{" "}
+                and all its events will be permanently deleted. This cannot be
+                undone.
               </p>
             </div>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+                className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-200"
               >
                 Cancel
               </button>
+
               <button
                 onClick={() => handleDelete(confirmDelete)}
                 disabled={deleting}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50"
               >
-                {deleting ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : "Yes, delete it"}
+                {deleting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, delete it"
+                )}
               </button>
             </div>
           </div>
@@ -192,19 +244,22 @@ function TripHistoryCarousel({ trips: initialTrips }: { trips: Trip[] }) {
 
 export default function TripHistory({ trips }: { trips: Trip[] }) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-base font-semibold text-gray-800">My Trips</p>
-          <p className="text-xs text-gray-400 mt-0.5">All trips created or joined</p>
+          <p className="mt-0.5 text-xs text-gray-400">
+            All trips created or joined
+          </p>
         </div>
+
         <NewTripButton />
       </div>
 
       {trips.length > 0 ? (
         <TripHistoryCarousel trips={trips} />
       ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
+        <div className="flex flex-col items-center justify-center gap-2 py-12 text-gray-400">
           <p className="text-sm">No trips yet</p>
           <p className="text-xs">Create your first trip to get started!</p>
         </div>
@@ -219,13 +274,16 @@ function NewTripButton() {
 
   const handleNewTrip = async () => {
     setLoading(true)
+
     try {
       const res = await fetch("/api/auth/itinerary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       })
+
       const data = await res.json()
+
       if (res.ok && data.itinerary?.id) {
         router.push(`/itinerary/${data.itinerary.id}`)
       }
@@ -240,7 +298,7 @@ function NewTripButton() {
     <button
       onClick={handleNewTrip}
       disabled={loading}
-      className="h-8 px-4 bg-[#F5C842] hover:bg-[#e6b93a] rounded-full flex items-center justify-center text-xs font-semibold text-gray-900 transition-all disabled:opacity-50"
+      className="flex h-10 w-full items-center justify-center rounded-full bg-[#F5C842] px-4 text-xs font-semibold text-gray-900 transition-all hover:bg-[#e6b93a] disabled:opacity-50 sm:w-auto sm:min-w-32"
     >
       {loading ? "Creating..." : "+ New Trip"}
     </button>

@@ -183,6 +183,7 @@ function PlanContent() {
   const [bookmarkModal, setBookmarkModal] = useState<{ event: GeneratedEvent; key: string } | null>(null)
   const [bookmarkedKeys, setBookmarkedKeys] = useState<Set<string>>(new Set())
   const [bookmarkSaving, setBookmarkSaving] = useState(false)
+  const [shouldAutoSave, setShouldAutoSave] = useState(false)
 
   const toggleDay = (index: number) => {
     setCollapsedDays(prev => {
@@ -201,13 +202,26 @@ function PlanContent() {
     }
 
     const supabase = createClient()
+    const autoSave = searchParams.get("autoSave") === "1"
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
-        router.push(`/login?redirect=${encodeURIComponent(`/plan?${searchParams.toString()}`)}`)
-        return
-      }
+    // If returning from login, restore the existing draft instead of re-generating
+    const existingDraft = sessionStorage.getItem("travelbee_draft")
+    if (existingDraft) {
+      try {
+        const draft = JSON.parse(existingDraft)
+        if (draft.location === destination && draft.startDate === startDate && draft.endDate === endDate) {
+          setItinerary(draft.itinerary)
+          setCoverPhoto(draft.coverPhoto ?? null)
+          setStatus("done")
+          if (autoSave) setShouldAutoSave(true)
+          return
+        }
+      } catch {}
+    }
 
+    // Fetch user trips for bookmark functionality if authenticated (non-blocking)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return
       supabase
         .from("itineraries")
         .select("id, title, location")
@@ -215,20 +229,22 @@ function PlanContent() {
         .eq("is_recommendation", false)
         .order("updated_at", { ascending: false })
         .then(({ data }) => setUserTrips(data ?? []))
+    })
 
-      const abort = new AbortController()
-      abortRef.current = abort
+    const abort = new AbortController()
+    abortRef.current = abort
 
-      const msgTimer = setInterval(() => {
-        setMsgVisible(false)
-        setTimeout(() => {
-          setMsgIndex(i => (i + 1) % LOADING_MESSAGES.length)
-          setMsgVisible(true)
-        }, 250)
-      }, 2400)
+    const msgTimer = setInterval(() => {
+      setMsgVisible(false)
+      setTimeout(() => {
+        setMsgIndex(i => (i + 1) % LOADING_MESSAGES.length)
+        setMsgVisible(true)
+      }, 250)
+    }, 2400)
 
-      let receivedChars = 0
+    let receivedChars = 0
 
+    ;(async () => {
       try {
         const res = await fetch("/api/ai/generate-itinerary", {
           method: "POST",
@@ -295,11 +311,19 @@ function PlanContent() {
           setStatus("error")
         }
       }
-    })
+    })()
 
     return () => { abortRef.current?.abort() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (shouldAutoSave && itinerary && status === "done") {
+      setShouldAutoSave(false)
+      handleSave()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoSave, itinerary, status])
 
   const handleBookmarkSave = async (tripId: string) => {
     if (!bookmarkModal) return
@@ -325,6 +349,15 @@ function PlanContent() {
 
   const handleSave = async () => {
     if (!itinerary) return
+
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
+      router.push(`/login?redirect=${encodeURIComponent(`/plan?${searchParams.toString()}&autoSave=1`)}`)
+      return
+    }
+
     setSaving(true)
     setSaveError("")
 

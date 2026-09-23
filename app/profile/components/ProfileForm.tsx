@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Loader2, Camera, X } from "lucide-react"
+import { Loader2, Camera, X, Settings } from "lucide-react"
 
 interface Props {
   userId: string
@@ -54,6 +54,13 @@ export default function ProfileForm({ userId, currentFirstName, currentLastName,
     }
   }
 
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
+
   const handleSave = async () => {
     setSaving(true)
     setError(null)
@@ -83,9 +90,10 @@ export default function ProfileForm({ userId, currentFirstName, currentLastName,
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-28 h-9 bg-yellow-400 hover:bg-yellow-500 rounded-full text-sm font-medium text-gray-900 transition-all"
+        className="flex items-center gap-1.5 w-24 h-9 justify-center bg-yellow-400 hover:bg-yellow-500 rounded-full text-sm font-semibold text-gray-900 transition-all"
       >
-        Edit Profile
+        <Settings size={14} />
+        Settings
       </button>
 
       {open && (
@@ -156,6 +164,14 @@ export default function ProfileForm({ userId, currentFirstName, currentLastName,
                 {saving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : "Save"}
               </button>
             </div>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="w-full py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+            >
+              Log Out
+            </button>
 
           </div>
         </div>

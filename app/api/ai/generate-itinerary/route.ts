@@ -1,5 +1,3 @@
-import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
 import { anthropic } from "@/lib/ai/anthropic"
 import { buildItineraryGenerationPrompt } from "@/lib/ai/prompts"
@@ -103,16 +101,6 @@ function sseEvent(payload: Record<string, unknown>): Uint8Array {
 // first byte almost immediately, so it can show real progress instead of a
 // blank spinner for the full generation time (~10–20 s for a week-long trip).
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies()
-  const supabase = await createClient(cookieStore)
-
-  // Generation requires an account so the itinerary can be saved to a user later.
-  // Auth errors return plain JSON (not SSE) because the stream hasn't started yet.
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
-  }
-
   const { location, startDate, endDate, numTravelers, description } = await req.json()
 
   if (!location || !startDate || !endDate || !numTravelers || !description) {

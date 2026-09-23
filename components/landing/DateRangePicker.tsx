@@ -158,10 +158,10 @@ export default function DateRangePicker({ startDate, endDate, onStartChange, onE
   const labelCls = "block text-[10px] font-medium tracking-widest uppercase text-gray-400 mb-1.5"
 
   return (
-    <div ref={containerRef} className="flex border-b border-gray-100">
+    <div ref={containerRef} className="flex flex-col sm:flex-row border-b border-gray-100">
 
       {/* Start date */}
-      <div className="flex-[5] p-4 px-6 border-r border-gray-100 flex flex-col items-center justify-center text-center relative">
+      <div className="flex-[5] p-4 px-4 sm:px-6 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col items-center justify-center text-center relative">
         <span className={labelCls}>Start date</span>
         <button
           onClick={openStart}
@@ -185,7 +185,7 @@ export default function DateRangePicker({ startDate, endDate, onStartChange, onE
       </div>
 
       {/* End date */}
-      <div className="flex-[5] p-4 px-6 border-r border-gray-100 flex flex-col items-center justify-center text-center relative">
+      <div className="flex-[5] p-4 px-4 sm:px-6 border-b sm:border-b-0 sm:border-r border-gray-100 flex flex-col items-center justify-center text-center relative">
         <span className={labelCls}>End date</span>
         <button
           onClick={openEnd}
@@ -209,7 +209,7 @@ export default function DateRangePicker({ startDate, endDate, onStartChange, onE
       </div>
 
       {/* Duration */}
-      <div className="flex-[3] p-4 px-6 flex flex-col items-center justify-center text-center">
+      <div className="flex-[3] p-4 px-4 sm:px-6 flex flex-col items-center justify-center text-center">
         <span className={labelCls}>Duration</span>
         <div className="flex items-center justify-center gap-2">
           <span className="text-sm opacity-50">⏱</span>

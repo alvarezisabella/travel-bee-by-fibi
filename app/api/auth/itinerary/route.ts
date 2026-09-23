@@ -3,6 +3,52 @@ import { insertItinerary, updateItinerary, getItinerary } from '@/lib/supabase/i
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+export async function GET(req: NextRequest) {
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'Itinerary ID is required.' }, { status: 400 })
+
+  const cookieStore = await cookies()
+  const supabase = await createClient(cookieStore)
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+
+  const { data: itinerary, error: itinError } = await getItinerary(supabase, id)
+  if (itinError || !itinerary) {
+    return NextResponse.json({ error: itinError?.message ?? 'Itinerary not found.' }, { status: 404 })
+  }
+
+  const { data: events, error: eventsError } = await supabase
+    .from('events')
+    .select('*')
+    .eq('itinerary_id', id)
+
+  if (eventsError) return NextResponse.json({ error: eventsError.message }, { status: 500 })
+
+  // Days are derived from the date range, same as handleAddDay's id scheme (sequential index)
+  const days: { id: string; itineraryid: string; date?: string; events: typeof events }[] = []
+
+  if (itinerary.start_date && itinerary.end_date) {
+    let index = 1
+    for (
+      let d = new Date(itinerary.start_date);
+      d <= new Date(itinerary.end_date);
+      d.setDate(d.getDate() + 1)
+    ) {
+      const dateStr = d.toISOString().split('T')[0]
+      days.push({
+        id: String(index),
+        itineraryid: id,
+        date: dateStr,
+        events: (events ?? []).filter(e => e.day === dateStr),
+      })
+      index++
+    }
+  }
+
+  return NextResponse.json({ ...itinerary, days })
+}
+
 // POST to insert new itinerary row
 export async function POST(req: NextRequest){
     // // Collects itinerary variables from json response

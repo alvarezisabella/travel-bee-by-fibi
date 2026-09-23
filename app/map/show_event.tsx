@@ -1,5 +1,22 @@
-import { ThumbsUp, ThumbsDown } from "lucide-react"
-import { Event, EventLabel, EventStatus, cardColor, STATUS_MAP, LABEL_MAP } from "@/app/itinerary/types/types";
+import { Dot, Clock, MapPin } from "lucide-react";
+import { Event, cardColor, STATUS_MAP, LABEL_MAP } from "@/app/itinerary/types/types";
+
+function formatTime(time: string): string {
+  if (!time) return ""
+  const [h, m] = time.split(":").map(Number)
+  if (isNaN(h) || isNaN(m)) return time
+  const period = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, "0")} ${period}`
+}
+
+function formatDuration(minutes: number): string {
+  if (!minutes) return ""
+  if (minutes < 60) return `${minutes}m`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
 
 
 interface EventProp {
@@ -10,41 +27,56 @@ export function ShowEvent({event}: EventProp) {
     const status_bg = STATUS_MAP[event.status]
 
     return (
-    <div
-        className={`w-full h-full flex gap-4 ${cardColor.bg} transition-shadow`}
-    >
-        <div className={`w-1 rounded-full ${cardColor.bar} flex-shrink-0`} />
+    <div className={`w-full flex gap-3 ${cardColor.bg} py-1`}>
 
-        <div 
-        style={{fontFamily:"Helvetica"}}
-        className={`absolute top-3 right-8 max-w-24 rounded-xl ${status_bg} shadow-sm items-center justify-center`}>
-        <h4 className="px-2 py-1 text-white text-xs">{event.status}</h4>
-        </div>
+        <div style={{"--bg": status_bg.bg} as React.CSSProperties}
+  className={`w-1 rounded-full bg-[rgb(var(--bg)/0.3)] flex-shrink-0 self-stretch`} />
 
-        {/*Event Title*/}
-        <div className="flex-1 min-w-0">
-        <div className="items-start justify-between gap-2">
-            <h4 className={`font-medium text-md ${cardColor.text} truncate mt-1`} style={{ fontFamily: "Helvetica, serif" }}>
-            {event.title}
-            </h4>
+        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
 
-        <div className={`max-w-24 rounded-sm py-1 ${colors.bg} flex items-center justify-center mt-2`}>
-            <h4 className={`text-xs ${colors.text} opacity-100`}>{event.type}</h4>
-        </div>
-        {event.description && (
-            <p className={`text-xs mt-1 ${cardColor.time} opacity-80 whitespace-pre-wrap`} style={{ fontFamily: "Georgia, serif" }}>
-            {event.description}
-            </p>
-        )}
+            {/*Event Title & Status*/}
+            <div className="flex items-start justify-between gap-2">
+                <h4 className="font-medium text-[16px] leading-snug text-primary tracking-tight">
+                {event.title}
+                </h4>
 
-        <div className={`flex items-center gap-1.5 mt-2 text-xs ${cardColor.time}`}>
-            <span>{event.startTime}</span>
-            <span className="opacity-40">·</span>
-            <span>{event.duration}</span>
-        </div>
+                <span
+                style={{"--bg": status_bg.bg} as React.CSSProperties}
+                className={`flex flex-shrink-0 items-center gap-1 text-[11px] ${status_bg.dot} font-extrabold px-2 py-0.5 rounded-full bg-[rgb(var(--bg)/0.3)] whitespace-nowrap`}>
+                <Dot size={14}/> {event.status}
+                </span>
+            </div>
+
+            <div className={`w-fit max-w-full rounded-sm px-1.5 py-0.5 ${colors.bg}`}>
+            <h4 className={`text-xs ${colors.text} truncate`}>{event.type}</h4>
+            </div>
+
+            {event.description && (
+                <p className={`text-xs ${cardColor.time} opacity-80 line-clamp-3 whitespace-pre-wrap`} style={{ fontFamily: "Georgia, serif" }}>
+                {event.description}
+                </p>
+            )}
+
+            {event.location && (
+                <div className={`flex items-center gap-1 min-w-0 text-[12px] ${cardColor.time} opacity-80`}>
+                    <MapPin size={13} className="flex-shrink-0" />
+                    <span className="truncate">{event.location}</span>
+                </div>
+            )}
+
+            {/*Time & Duration */}
+            <div className="flex items-center gap-1.5 text-[12px] text-tertiary">
+            <Clock size={14}/>
+            <span>{formatTime(event.startTime)}</span>
+            {event.duration > 0 && (
+                <>
+                <span className="opacity-80">·</span>
+                <span>{formatDuration(event.duration)}</span>
+                </>
+            )}
+            </div>
 
         </div>
     </div>
-  </div>
     );
 }

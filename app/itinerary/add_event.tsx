@@ -33,6 +33,9 @@ export default function AddEvent({day, date, trip, event, initialStartTime, memb
   const [status, setStatus] = useState(event?.status || "Pending")
   const [location, setLocation] = useState(event?.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | undefined>(
+    event?.lat != null && event?.lng != null ? { lat: event.lat, lng: event.lng } : undefined
+  )
   const [travelers, setTravelers] = useState<string[]>(() => {
     if (!event?.travelers || !members?.length) return []
     const names = event.travelers.split(', ').filter(Boolean)
@@ -48,7 +51,7 @@ export default function AddEvent({day, date, trip, event, initialStartTime, memb
     const res = await fetch("/api/auth/event", {
       method: event ? "PUT" : "POST",
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id: event?.id, itineraryid: trip, dayid: day, day: date, title: title.trim(), description: description.trim(), status, startTime, duration, location, type, travelers})
+      body: JSON.stringify({id: event?.id, itineraryid: trip, dayid: day, day: date, title: title.trim(), description: description.trim(), status, startTime, duration, location, type, travelers, lat: coords?.lat, lng: coords?.lng})
     })
 
     // If unsuccessful, logs error. If successful, calls onAdd with new event details and closes add event card
@@ -57,7 +60,7 @@ export default function AddEvent({day, date, trip, event, initialStartTime, memb
 
     const eventId = event ? event.id : data.event.id
     const travelerNames = (members ?? []).filter(m => travelers.includes(m.id)).map(m => m.name).join(', ')
-    onAdd({ id: eventId, itineraryid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers: travelerNames, type, upvotes:0, downvotes:0 });
+    onAdd({ id: eventId, itineraryid:trip, dayid:day, title: title.trim(), description: description.trim(), status: status, startTime, duration, location, travelers: travelerNames, type, upvotes:0, downvotes:0, lat: coords?.lat, lng: coords?.lng });
     onClose();
   };
 
@@ -187,7 +190,11 @@ export default function AddEvent({day, date, trip, event, initialStartTime, memb
             <LocationSearch
               value={location}
               onChange={(val) => setLocation(val)}
-              onClose={() => setEditingLocation(false)}
+              onClose={(val, newCoords) => {
+                setEditingLocation(false)
+                setLocation(val)
+                if (newCoords) setCoords(newCoords)
+              }}
             />
             ) : (
               <span
