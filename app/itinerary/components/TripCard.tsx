@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useItineraryRealtime } from '@/lib/hooks/useItineraryRealtime'
 import { Day, DayCell } from './../day'
+import { DayBoard, EventMove } from './../day_board'
 import { Trip, Event } from '../types/types'
 import { CirclePlus, X } from "lucide-react"
 import { ChatSidebar } from './sidebar'
@@ -101,6 +102,35 @@ export default function TripList({ trip }: TripProps) {
     setDays(prev => [...prev, { id: String(prev.length + 1), itineraryid: trip.id, date: nextDate, events: [] }])
   }
 
+  // Called by DayBoard when a drag ends with a real change (reorder within a day, or move to another day)
+  const handleDaysChange = async (next: Day[], move: EventMove) => {
+    const previous = days
+    setDays(next) // optimistic
+
+    // Send the full order for both affected days so positions stay consistent.
+    // Events are linked to a day by its actual date, not the display-only day.id.
+    const affectedDays = next.filter(d => d.id === move.fromDayId || d.id === move.toDayId)
+    const missingDate = affectedDays.find(d => !d.date)
+    if (missingDate) {
+      console.error(`Day ${missingDate.id} has no date set; can't save event order`)
+      setDays(previous)
+      return
+    }
+    const updates = affectedDays.flatMap(d => d.events.map((e, i) => ({ id: e.id, day: d.date, position: i })))
+
+    try {
+      const res = await fetch('/api/auth/eventOrder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itineraryid: trip.id, updates })
+      })
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`)
+    } catch (err) {
+      console.error('Failed to save event order', err)
+      setDays(previous) // roll back the optimistic update
+    }
+  }
+
   const handleUpvote = async (dayId: string, eventId: string) => {
     const day = days.find(d => d.id === dayId)
     const event = day?.events.find(e => e.id === eventId)
@@ -158,18 +188,22 @@ export default function TripList({ trip }: TripProps) {
   return (
     <div className="pt-6 pb-4 text-gray-800">
       <div className="flex flex-col gap-4 w-full">
-        {days.map(day => (
-          <DayCell
-            key={day.id}
-            day={day}
-            members={trip.travelers}
-            onAddEvent={handleAddEvent}
-            onEditEvent={handleEdit}
-            onDeleteEvent={requestDeleteEvent}
-            onUpvote={handleUpvote}
-            onDownvote={handleDownvote}
-          />
-        ))}
+        <DayBoard
+          days={days}
+          onChange={handleDaysChange}
+          renderDay={(day) => (
+            <DayCell
+              key={day.id}
+              day={day}
+              members={trip.travelers}
+              onAddEvent={handleAddEvent}
+              onEditEvent={handleEdit}
+              onDeleteEvent={requestDeleteEvent}
+              onUpvote={handleUpvote}
+              onDownvote={handleDownvote}
+            />
+          )}
+        />
 
         {showAdd && (
           <EditEvent
