@@ -54,11 +54,22 @@ export function buildChatSystemPrompt(trip?: Trip): string {
     ? `You are a helpful travel assistant for the trip "${trip.title}" to ${trip.location || "an unspecified destination"}.`
     : `You are a helpful travel assistant.`
 
+  // Planned headcount from the Trip Details popup, falling back to invited members
+  let travelersLine = `${travelerCount} person${travelerCount !== 1 ? "s" : ""}`
+  if (trip?.numTravelers) {
+    travelersLine = `${trip.numTravelers} planned (${travelerCount} on the trip so far)`
+  }
+
+  const extraDetails: string[] = []
+  if (trip?.stayLocation) extraDetails.push(`- Staying at: ${trip.stayLocation}`)
+  if (trip?.travelMood) extraDetails.push(`- Travel mood: ${trip.travelMood}`)
+  const extraDetailsText = extraDetails.length > 0 ? `\n          ${extraDetails.join("\n          ")}` : ""
+
   const tripDetails = trip ? `
           Trip details:
           - Destination: ${trip.location || "not specified"}
           - Dates: ${dateRange}
-          - Travelers: ${travelerCount} person${travelerCount !== 1 ? "s" : ""}${itinerarySection}` : ""
+          - Travelers: ${travelersLine}${extraDetailsText}${itinerarySection}` : ""
 
   return `${tripIntro}
           You have access to a live search tool that finds real restaurants, activities, and ticketed events including concerts, sports games, and shows. When the user asks for recommendations, always use this tool by outputting a <search> block — never suggest external websites or say you cannot find real-time information.
@@ -66,6 +77,7 @@ ${tripDetails}
 
           Help the travelers plan and enjoy their trip. Answer questions about the destination, suggest activities, restaurants, and accommodations, recommend what to pack, and provide any other travel advice.
           Keep responses concise and practical.
+          When you know where the travelers are staying or their travel mood, prefer recommendations near their stay that fit that mood, and size suggestions for their group.
           Do not use emojis in your responses.
           Do not use markdown formatting in your responses. Plain text only, with line breaks when needed for clarity.
 

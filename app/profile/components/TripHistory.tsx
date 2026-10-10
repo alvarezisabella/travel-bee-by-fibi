@@ -3,8 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ChevronRight, Trash2, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import TripDetailsModal from "./TripDetailsModal"
 
 interface TripMember {
   user_id: string
@@ -269,38 +269,17 @@ export default function TripHistory({ trips }: { trips: Trip[] }) {
 }
 
 function NewTripButton() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-
-  const handleNewTrip = async () => {
-    setLoading(true)
-
-    try {
-      const res = await fetch("/api/auth/itinerary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      })
-
-      const data = await res.json()
-
-      if (res.ok && data.itinerary?.id) {
-        router.push(`/itinerary/${data.itinerary.id}`)
-      }
-    } catch (err) {
-      console.error("Failed to create trip:", err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [showDetails, setShowDetails] = useState(false)
 
   return (
-    <button
-      onClick={handleNewTrip}
-      disabled={loading}
-      className="flex h-10 w-full items-center justify-center rounded-full bg-[#F5C842] px-4 text-xs font-semibold text-gray-900 transition-all hover:bg-[#e6b93a] disabled:opacity-50 sm:w-auto sm:min-w-32"
-    >
-      {loading ? "Creating..." : "+ New Trip"}
-    </button>
+    <>
+      <button
+        onClick={() => setShowDetails(true)}
+        className="flex h-10 w-full items-center justify-center rounded-full bg-[#F5C842] px-4 text-xs font-semibold text-gray-900 transition-all hover:bg-[#e6b93a] disabled:opacity-50 sm:w-auto sm:min-w-32"
+      >
+        + New Trip
+      </button>
+      {showDetails && <TripDetailsModal onClose={() => setShowDetails(false)} />}
+    </>
   )
 }

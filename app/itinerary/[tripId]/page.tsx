@@ -144,7 +144,10 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
     travelers: members ?? [],
     days, 
     lat: itinerary.lat || undefined, 
-    lng: itinerary.lng || undefined
+    lng: itinerary.lng || undefined,
+    stayLocation: itinerary.stay_location ?? undefined,
+    numTravelers: itinerary.num_travelers ?? null,
+    travelMood: itinerary.travel_mood ?? undefined,
   }
 
   return (

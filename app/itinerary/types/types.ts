@@ -21,6 +21,9 @@ export interface Trip {
   days: Day[]
   lat: number | null
   lng: number | null
+  stayLocation?: string
+  numTravelers?: number | null
+  travelMood?: string
 }
 
 export interface Event {

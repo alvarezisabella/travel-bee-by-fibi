@@ -2,14 +2,27 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 
 export async function insertItinerary(supabase: SupabaseClient,
-  data: { title?: string | null; start_date?: string; end_date?: string; location?: string; created_by: string }) {
+  data: {
+    title?: string | null
+    start_date?: string | null
+    end_date?: string | null
+    location?: string | null
+    lat?: number | null
+    lng?: number | null
+    num_travelers?: number | null
+    travel_mood?: string | null
+    stay_location?: string | null
+    stay_lat?: number | null
+    stay_lng?: number | null
+    created_by: string
+  }) {
   return supabase.from('itineraries').insert(data).select('id').single()
 }
 
 export async function getItinerary(supabase: SupabaseClient, id: string) {
   return supabase
     .from('itineraries')
-    .select('id, title, start_date, end_date, location, created_by, created_at, cover_photo_url, cover_photo_position, lat, lng')
+    .select('id, title, start_date, end_date, location, created_by, created_at, cover_photo_url, cover_photo_position, lat, lng, num_travelers, travel_mood, stay_location, stay_lat, stay_lng')
     .eq('id', id)
     .single()
 }
@@ -55,6 +68,11 @@ export async function updateItinerary(supabase: SupabaseClient, id: string,
     cover_photo_position?: number | null
     lat?: number | null
     lng?: number | null
+    num_travelers?: number | null
+    travel_mood?: string | null
+    stay_location?: string | null
+    stay_lat?: number | null
+    stay_lng?: number | null
   }) {
   return supabase.from('itineraries').update(data).eq('id', id)
 }

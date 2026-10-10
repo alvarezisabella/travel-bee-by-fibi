@@ -3,6 +3,19 @@ import { insertItinerary, updateItinerary, getItinerary } from '@/lib/supabase/i
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+// Trims a string field, treating blanks and non-strings as null
+function cleanText(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+// Returns a finite number or null
+function cleanNumber(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return value
+}
+
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Itinerary ID is required.' }, { status: 400 })
@@ -65,8 +78,35 @@ export async function POST(req: NextRequest){
     const {data: {user}, error: authError} = await supabase.auth.getUser()
     if(authError || !user) {return NextResponse.json({error: 'Unauthorized.'}, {status: 401})}
 
+    // Optional trip details from the Trip Details popup (empty body when skipped)
+    const body = await req.json().catch(() => ({}))
+    const start_date = cleanText(body.start_date)
+    const end_date = cleanText(body.end_date)
+    if (start_date && end_date && end_date < start_date) {
+        return NextResponse.json({ error: 'End date cannot be before start date.' }, { status: 400 })
+    }
+
+    let num_travelers: number | null = null
+    const travelersNum = Number(body.num_travelers)
+    if (body.num_travelers != null && Number.isFinite(travelersNum)) {
+        num_travelers = Math.min(50, Math.max(1, Math.round(travelersNum)))
+    }
+
     // Inserts row into supabase itinerary table using user id
-    const {data, error} = await insertItinerary(supabase, {created_by: user.id})
+    const {data, error} = await insertItinerary(supabase, {
+        created_by: user.id,
+        title: cleanText(body.title),
+        start_date,
+        end_date,
+        location: cleanText(body.location),
+        lat: cleanNumber(body.lat),
+        lng: cleanNumber(body.lng),
+        num_travelers,
+        travel_mood: cleanText(body.travel_mood),
+        stay_location: cleanText(body.stay_location),
+        stay_lat: cleanNumber(body.stay_lat),
+        stay_lng: cleanNumber(body.stay_lng),
+    })
     if(error) {return NextResponse.json({error: error.message}, {status: 500})}
 
     return NextResponse.json({itinerary: data}, {status: 201})
@@ -74,7 +114,10 @@ export async function POST(req: NextRequest){
 
 // PUT to update itinerary fields
 export async function PUT(req: NextRequest) {
-    const { id, title, start_date, end_date, location, cover_photo_url, confirm_date_shift } = await req.json()
+    const {
+        id, title, start_date, end_date, location, lat, lng, cover_photo_url, confirm_date_shift,
+        stay_location, stay_lat, stay_lng, travel_mood, num_travelers,
+    } = await req.json()
     if (!id) { return NextResponse.json({ error: 'Itinerary ID is required.' }, { status: 400 }) }
 
     const cookieStore = await cookies()
@@ -151,7 +194,10 @@ export async function PUT(req: NextRequest) {
         }
     }
 
-    const { error } = await updateItinerary(supabase, id, { title, start_date, end_date, location, cover_photo_url })
+    const { error } = await updateItinerary(supabase, id, {
+        title, start_date, end_date, location, lat, lng, cover_photo_url,
+        stay_location, stay_lat, stay_lng, travel_mood, num_travelers,
+    })
     if (error) { return NextResponse.json({ error: error.message }, { status: 500 }) }
 
     return NextResponse.json({ success: true }, { status: 200 })

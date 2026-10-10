@@ -2,7 +2,7 @@
 
 import {
   MapPin, Calendar, Users, List, CalendarDays, Map, Bookmark, FileText,
-  X, Copy, Check, Loader2, UserPlus, MoveLeft, Compass
+  X, Copy, Check, Loader2, UserPlus, MoveLeft, Compass, BedDouble
 } from "lucide-react"
 import { Trip, Widget } from "../types/types"
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -197,6 +197,8 @@ export default function TripHeader({ trip }: Props) {
 
   const [location, setLocation]               = useState(trip.location || "")
   const [editingLocation, setEditingLocation] = useState(false)
+  const [stay, setStay]                       = useState(trip.stayLocation || "")
+  const [editingStay, setEditingStay]         = useState(false)
   const [startDate, setStartDate]             = useState(trip.startDate || "")
   const [endDate, setEndDate]                 = useState(trip.endDate || "")
   const [dateError, setDateError]             = useState<string | null>(null)
@@ -239,6 +241,27 @@ export default function TripHeader({ trip }: Props) {
       body: JSON.stringify({ id: trip.id, location, lat: coords?.lat, lng: coords?.lng }),
     })
     if (!res.ok) console.log(await res.json())
+  }
+
+  const saveStay = async (stayLocation: string, coords?: { lat: number; lng: number }) => {
+    const trimmed = stayLocation.trim()
+    // Clicking away without picking anything new keeps the saved stay and its coords
+    if (!coords && trimmed === (trip.stayLocation || "")) return
+    const res = await fetch('/api/auth/itinerary', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: trip.id,
+        stay_location: trimmed || null,
+        stay_lat: coords?.lat ?? null,
+        stay_lng: coords?.lng ?? null,
+      }),
+    })
+    if (!res.ok) {
+      console.log(await res.json())
+      return
+    }
+    router.refresh()
   }
 
   const saveItinerary = async (fields: {
@@ -313,7 +336,7 @@ export default function TripHeader({ trip }: Props) {
     setClearing(true)
     try {
       await fetch('/api/auth/event/clear', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itinerary_id: trip.id }) })
-      await fetch('/api/auth/itinerary', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: trip.id, title: 'New Trip', location: null, start_date: null, end_date: null, cover_photo_url: null }) })
+      await fetch('/api/auth/itinerary', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: trip.id, title: 'New Trip', location: null, lat: null, lng: null, start_date: null, end_date: null, cover_photo_url: null, stay_location: null, stay_lat: null, stay_lng: null, travel_mood: null, num_travelers: null }) })
       setShowClearModal(false)
       window.location.reload()
     } catch (err) {
@@ -444,6 +467,21 @@ export default function TripHeader({ trip }: Props) {
                   ) : (
                     <span className="cursor-pointer hover:text-black" onClick={() => setEditingLocation(true)}>
                       {location || "Add location"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <BedDouble size={16} />
+                  {editingStay ? (
+                    <LocationSearch
+                      value={stay}
+                      onChange={val => setStay(val)}
+                      onClose={(val, coords) => { setEditingStay(false); setStay(val); saveStay(val, coords) }}
+                      placeholder="Hotel, Airbnb, or address"
+                    />
+                  ) : (
+                    <span className="cursor-pointer hover:text-black" onClick={() => setEditingStay(true)}>
+                      {stay || "Add stay"}
                     </span>
                   )}
                 </div>

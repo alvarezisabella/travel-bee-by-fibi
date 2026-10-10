@@ -17,12 +17,20 @@ interface Props {
   value: string
   onChange: (val: string) => void
   onClose?: (val: string, coords?: Coords) => void
+  placeholder?: string
+  autoFocus?: boolean
+  className?: string
 }
 
 // Component for searching locations via the Google Places API, with a dropdown of suggestions
-export default function LocationSearch({ value, onChange, onClose }: Props) {
+export default function LocationSearch({
+  value, onChange, onClose,
+  placeholder = "Search city or country...",
+  autoFocus = true,
+  className = "w-72",
+}: Props) {
   const [query, setQuery] = useState(value === "Add location" ? "" : value)
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(autoFocus)
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -34,11 +42,11 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
 
   // Select all text on mount
   useEffect(() => {
-    if (inputRef.current) {
+    if (autoFocus && inputRef.current) {
       inputRef.current.focus()
       inputRef.current.select()
     }
-  }, [])
+  }, [autoFocus])
 
   // Debounced fetch of Google Places autocomplete suggestions
   useEffect(() => {
@@ -111,7 +119,7 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
 
   // Renders the search input and dropdown suggestions based on the query
   return (
-    <div ref={containerRef} className="relative w-72">
+    <div ref={containerRef} className={`relative ${className}`}>
       <div className="flex items-center gap-2 border border-gray-300 rounded-xl px-3 py-2 bg-white focus-within:border-yellow-400 focus-within:ring-2 focus-within:ring-yellow-100 transition-all">
         <MapPin size={15} className="text-gray-400 shrink-0" />
         <input
@@ -130,7 +138,7 @@ export default function LocationSearch({ value, onChange, onClose }: Props) {
               }
             }
           }}
-          placeholder="Search city or country..."
+          placeholder={placeholder}
           className="flex-1 text-sm outline-none text-gray-700 bg-transparent placeholder-gray-400"
         />
         {loading && <Loader2 size={14} className="text-gray-300 shrink-0 animate-spin" />}
