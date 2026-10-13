@@ -9,8 +9,10 @@ import {
   ArrowLeft,
   BedDouble,
   CarFront,
+  Check,
   Ticket,
   Utensils,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -19,6 +21,7 @@ import {
 } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { Widget } from "@/app/itinerary/types/types"
+import type { Day } from "@/app/itinerary/day"
 import TripInfoBar, {
   type ExploreCategory,
   type ExploreTripInfo,
@@ -26,7 +29,7 @@ import TripInfoBar, {
 import CategoryPageLayout from "../components/CategoryPageLayout"
 import { useExploreSearch } from "../useExploreSearch"
 import { useTripDays } from "../components/useTripDays"
-import {useBookmarks} from "@/app/itinerary/components/useBookmarks"
+import { useBookmarks } from "@/app/itinerary/components/useBookmarks"
 import {
   getCurrentExploreSelection,
   saveExploreSelection,
@@ -48,8 +51,7 @@ const transportationItems: Widget[] = [
     id: "transport-airport-transfer",
     title: "Private Airport Transfer",
     location: "Airport",
-    description:
-      "Private door-to-door transportation",
+    description: "Private door-to-door transportation",
     type: "Transit",
     image_url:
       "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=85",
@@ -106,89 +108,156 @@ const categoryInformation = {
   stays: {
     category: "Stays",
     title: "Standout stays",
-    subtitle:
-      "Hotels and accommodations recommended for your trip.",
+    subtitle: "Hotels and accommodations recommended for your trip.",
     icon: BedDouble,
   },
   activities: {
     category: "Activities",
     title: "Things to do",
-    subtitle:
-      "Activities, attractions, and experiences for your itinerary.",
+    subtitle: "Activities, attractions, and experiences for your itinerary.",
     icon: Ticket,
   },
   dining: {
     category: "Dining",
     title: "Dining favorites",
-    subtitle:
-      "Restaurants and dining experiences near your destination.",
+    subtitle: "Restaurants and dining experiences near your destination.",
     icon: Utensils,
   },
   transportation: {
     category: "Transportation",
     title: "Getting around",
-    subtitle:
-      "Transportation options for a smoother trip.",
+    subtitle: "Transportation options for a smoother trip.",
     icon: CarFront,
   },
 } as const
 
-type CategorySlug =
-  keyof typeof categoryInformation
+type CategorySlug = keyof typeof categoryInformation
 
-function isCategorySlug(
-  value: string,
-): value is CategorySlug {
+function isCategorySlug(value: string): value is CategorySlug {
   return value in categoryInformation
 }
 
-export default function ExploreCategoryPage() {
-  const params = useParams<{
-    tripId: string
-    category: string
-  }>()
+function BookmarkToast({
+  dayLabel,
+  onChange,
+  onDismiss,
+}: {
+  dayLabel: string
+  onChange: () => void
+  onDismiss: () => void
+}) {
+  return (
+    <div className="fixed bottom-5 left-5 z-50 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg">
+      <Check className="h-4 w-4 flex-shrink-0 text-amber-400" />
+      <span>Saved to {dayLabel}</span>
+      <button
+        onClick={onChange}
+        className="cursor-pointer font-semibold text-amber-400 underline-offset-2 hover:underline"
+      >
+        Change
+      </button>
+      <button onClick={onDismiss} className="cursor-pointer text-slate-400 hover:text-white">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
 
+function ChangeDayModal({
+  widget,
+  days,
+  currentDayId,
+  onClose,
+  onConfirm,
+}: {
+  widget: Widget
+  days: Day[]
+  currentDayId?: string
+  onClose: () => void
+  onConfirm: (day: Day) => void
+}) {
+  const [selectedDay, setSelectedDay] = useState<Day | null>(
+    days.find((d) => d.id === currentDayId) ?? null,
+  )
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="text-base font-semibold text-slate-900">Save "{widget.title}" to</h3>
+          <button onClick={onClose} className="cursor-pointer text-slate-400 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex gap-3">
+          {widget.image_url && (
+            <img
+              src={widget.image_url}
+              alt={widget.title}
+              className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
+            />
+          )}
+
+          <div className="flex max-h-48 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+            {days.map((day, index) => (
+              <button
+                key={day.id}
+                onClick={() => setSelectedDay(day)}
+                className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${
+                  selectedDay?.id === day.id
+                    ? "border-amber-400 bg-amber-50 text-slate-900"
+                    : "border-slate-200 text-slate-600 hover:border-amber-200"
+                }`}
+              >
+                <span className="font-medium">Day {index + 1}</span>
+                {day.date && (
+                  <span className="text-xs text-slate-400">
+                    {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={() => selectedDay && onConfirm(selectedDay)}
+          disabled={!selectedDay}
+          className="mt-4 w-full cursor-pointer rounded-xl bg-amber-400 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function ExploreCategoryPage() {
+  const params = useParams<{ tripId: string; category: string }>()
   const router = useRouter()
 
   const tripId = params.tripId
-  const categorySlug =
-    params.category.toLowerCase()
+  const categorySlug = params.category.toLowerCase()
 
-  const validCategory =
-    isCategorySlug(categorySlug)
+  const validCategory = isCategorySlug(categorySlug)
+  const categoryDetails = validCategory ? categoryInformation[categorySlug] : null
+  const activeCategory: ExploreCategory = categoryDetails?.category ?? "All"
+  const isTransportation = activeCategory === "Transportation"
 
-  const categoryDetails = validCategory
-    ? categoryInformation[categorySlug]
-    : null
-
-  const activeCategory: ExploreCategory =
-    categoryDetails?.category ?? "All"
-
-  const isTransportation =
-    activeCategory === "Transportation"
-
-  const [location, setLocation] =
-    useState("")
-
-  const [tripLoading, setTripLoading] =
-    useState(true)
-
+  const [location, setLocation] = useState("")
+  const [tripLoading, setTripLoading] = useState(true)
   const [query, setQuery] = useState("")
-
-  const [
-    submittedQuery,
-    setSubmittedQuery,
-  ] = useState("")
-
-  const [
-    selectedWidgetId,
-    setSelectedWidgetId,
-  ] = useState<string | null>(null)
-
-  const [
-    savedWidgetIds,
-    setSavedWidgetIds,
-  ] = useState<string[]>([])
+  const [submittedQuery, setSubmittedQuery] = useState("")
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null)
 
   const search = useExploreSearch(
     tripId,
@@ -198,198 +267,97 @@ export default function ExploreCategoryPage() {
   )
 
   const { days } = useTripDays(tripId)
-  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks(tripId)
+  const { isBookmarked, addBookmark, removeBookmark, changeBookmarkDay } = useBookmarks(tripId)
 
-  const transportationResults =
-    useMemo(() => {
-      if (!isTransportation) {
-        return []
-      }
+  const [toast, setToast] = useState<{ widget: Widget; day: Day } | null>(null)
+  const [changeModalWidget, setChangeModalWidget] = useState<Widget | null>(null)
 
-      const normalizedQuery =
-        submittedQuery
-          .trim()
-          .toLowerCase()
+  const transportationResults = useMemo(() => {
+    if (!isTransportation) return []
 
-      if (!normalizedQuery) {
-        return transportationItems
-      }
+    const normalizedQuery = submittedQuery.trim().toLowerCase()
+    if (!normalizedQuery) return transportationItems
 
-      return transportationItems.filter(
-        (widget) =>
-          `${widget.title} ${widget.location ?? ""} ${widget.description ?? ""}`
-            .toLowerCase()
-            .includes(normalizedQuery),
-      )
-    }, [
-      isTransportation,
-      submittedQuery,
-    ])
+    return transportationItems.filter((widget) =>
+      `${widget.title} ${widget.location ?? ""} ${widget.description ?? ""}`
+        .toLowerCase()
+        .includes(normalizedQuery),
+    )
+  }, [isTransportation, submittedQuery])
 
-  const widgets = isTransportation
-    ? transportationResults
-    : search.widgets
-
-  const loading = isTransportation
-    ? false
-    : search.loading
-
-  const searchError = isTransportation
-    ? null
-    : search.error
+  const widgets = isTransportation ? transportationResults : search.widgets
+  const loading = isTransportation ? false : search.loading
+  const searchError = isTransportation ? null : search.error
 
   useEffect(() => {
     if (!validCategory) {
-      router.replace(
-        `/itinerary/${tripId}/explore`,
-      )
+      router.replace(`/itinerary/${tripId}/explore`)
     }
-  }, [
-    router,
-    tripId,
-    validCategory,
-  ])
+  }, [router, tripId, validCategory])
 
   useEffect(() => {
-    if (!tripId || !validCategory) {
-      return
-    }
+    if (!tripId || !validCategory) return
 
     let ignore = false
 
     async function loadItinerary() {
       setTripLoading(true)
-
       const supabase = createClient()
+      const { data, error } = await supabase
+        .from("itineraries")
+        .select("location")
+        .eq("id", tripId)
+        .single()
 
-      const { data, error } =
-        await supabase
-          .from("itineraries")
-          .select("location")
-          .eq("id", tripId)
-          .single()
-
-      if (ignore) {
-        return
-      }
-
-      if (!error) {
-        setLocation(
-          data?.location ?? "",
-        )
-      }
-
+      if (ignore) return
+      if (!error) setLocation(data?.location ?? "")
       setTripLoading(false)
     }
 
     loadItinerary()
-
     return () => {
       ignore = true
     }
   }, [tripId, validCategory])
 
   useEffect(() => {
-    if (
-      widgets.length > 0 &&
-      !selectedWidgetId
-    ) {
+    if (widgets.length > 0 && !selectedWidgetId) {
       const previousSelection = getCurrentExploreSelection(tripId)
-      const matchingSelection = widgets.find(
-        (widget) => widget.id === previousSelection?.id,
-      )
-
-      setSelectedWidgetId(
-        matchingSelection?.id ?? widgets[0].id,
-      )
+      const matchingSelection = widgets.find((widget) => widget.id === previousSelection?.id)
+      setSelectedWidgetId(matchingSelection?.id ?? widgets[0].id)
     }
-  }, [
-    tripId,
-    widgets,
-    selectedWidgetId,
-  ])
+  }, [tripId, widgets, selectedWidgetId])
 
-  // useEffect(() => {
-  //   try {
-  //     const storedValue =
-  //       window.localStorage.getItem(
-  //         `travelbee-explore-saved-${tripId}`,
-  //       )
+  const selectedWidget = useMemo(() => {
+    return widgets.find((widget) => widget.id === selectedWidgetId) ?? null
+  }, [widgets, selectedWidgetId])
 
-  //     if (!storedValue) {
-  //       return
-  //     }
-
-  //     const parsedValue =
-  //       JSON.parse(storedValue)
-
-  //     if (Array.isArray(parsedValue)) {
-  //       setSavedWidgetIds(
-  //         parsedValue.filter(
-  //           (
-  //             value,
-  //           ): value is string =>
-  //             typeof value === "string",
-  //         ),
-  //       )
-  //     }
-  //   } catch {
-  //     setSavedWidgetIds([])
-  //   }
-  // }, [tripId])
-
-  const selectedWidget =
-    useMemo(() => {
-      return (
-        widgets.find(
-          (widget) =>
-            widget.id ===
-            selectedWidgetId,
-        ) ?? null
-      )
-    }, [
-      widgets,
-      selectedWidgetId,
-    ])
-
-  // function toggleSavedWidget(
-  //   widget: Widget,
-  // ) {
-  //   setSavedWidgetIds((current) => {
-  //     const updated = current.includes(
-  //       widget.id,
-  //     )
-  //       ? current.filter(
-  //           (id) => id !== widget.id,
-  //         )
-  //       : [...current, widget.id]
-
-  //     try {
-  //       window.localStorage.setItem(
-  //         `travelbee-explore-saved-${tripId}`,
-  //         JSON.stringify(updated),
-  //       )
-  //     } catch {
-  //       // Continue if local storage is unavailable.
-  //     }
-
-  //     return updated
-  //   })
-  // }
-
-  function handleCategoryChange(
-    category: ExploreCategory,
-  ) {
-    if (category === "All") {
-      router.push(
-        `/itinerary/${tripId}/explore`,
-      )
+  function handleHeartClick(widget: Widget) {
+    if (isBookmarked(widget.title, widget.location)) {
+      removeBookmark(widget)
+      if (toast?.widget.id === widget.id) setToast(null)
       return
     }
+    if (days.length === 0) return
+    const defaultDay = days[0]
+    if (!defaultDay.date) return
+    addBookmark(widget, defaultDay.date)
+    setToast({ widget, day: defaultDay })
+  }
 
-    router.push(
-      `/itinerary/${tripId}/explore/${category.toLowerCase()}`,
-    )
+  function handleConfirmDayChange(day: Day) {
+    if (!changeModalWidget || !day.date) return
+    changeBookmarkDay(changeModalWidget, day.date)
+    setToast({ widget: changeModalWidget, day })
+    setChangeModalWidget(null)
+  }
+
+  function handleCategoryChange(category: ExploreCategory) {
+    if (category === "All") {
+      router.push(`/itinerary/${tripId}/explore`)
+      return
+    }
+    router.push(`/itinerary/${tripId}/explore/${category.toLowerCase()}`)
   }
 
   function runSearch() {
@@ -397,32 +365,21 @@ export default function ExploreCategoryPage() {
     setSelectedWidgetId(null)
   }
 
-  function handleTripSearch(
-    tripInfo: ExploreTripInfo,
-  ) {
+  function handleTripSearch(tripInfo: ExploreTripInfo) {
     setLocation(tripInfo.location)
     runSearch()
   }
 
-  function handleAddWidget(
-    widget: Widget,
-  ) {
+  function handleAddWidget(widget: Widget) {
     setSelectedWidgetId(widget.id)
-
-    window.alert(
-      `${widget.title} is ready to be added to your itinerary.`,
-    )
+    window.alert(`${widget.title} is ready to be added to your itinerary.`)
   }
 
-  if (
-    !validCategory ||
-    !categoryDetails
-  ) {
+  if (!validCategory || !categoryDetails) {
     return null
   }
 
-  const CategoryIcon =
-    categoryDetails.icon
+  const CategoryIcon = categoryDetails.icon
 
   return (
     <main className="min-h-screen bg-[#fffdf9] text-slate-900">
@@ -440,10 +397,7 @@ export default function ExploreCategoryPage() {
 
           <div className="flex items-center gap-2">
             <CategoryIcon className="h-5 w-5 text-amber-600" />
-
-            <span className="font-semibold text-slate-900">
-              {categoryDetails.title}
-            </span>
+            <span className="font-semibold text-slate-900">{categoryDetails.title}</span>
           </div>
         </div>
       </header>
@@ -452,15 +406,9 @@ export default function ExploreCategoryPage() {
         <div className="mx-auto w-full max-w-[1800px] px-4 py-7 sm:px-8 lg:px-10">
           <TripInfoBar
             tripId={tripId}
-            activeCategory={
-              activeCategory
-            }
-            onCategoryChange={
-              handleCategoryChange
-            }
-            onSearch={
-              handleTripSearch
-            }
+            activeCategory={activeCategory}
+            onCategoryChange={handleCategoryChange}
+            onSearch={handleTripSearch}
           />
 
           <form
@@ -472,18 +420,14 @@ export default function ExploreCategoryPage() {
           >
             <input
               value={query}
-              onChange={(event) =>
-                setQuery(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setQuery(event.target.value)}
               placeholder={`Search ${activeCategory.toLowerCase()} by name, neighborhood, or preference`}
               className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
             />
 
             <button
               type="submit"
-              className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
+              className="cursor-pointer rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
             >
               Search
             </button>
@@ -494,36 +438,16 @@ export default function ExploreCategoryPage() {
       <div className="mx-auto w-full max-w-[1800px] px-5 py-8 sm:px-8 lg:px-10">
         <CategoryPageLayout
           title={categoryDetails.title}
-          subtitle={
-            categoryDetails.subtitle
-          }
+          subtitle={categoryDetails.subtitle}
           location={location}
           widgets={widgets}
-          days={days}
-          loading={
-            tripLoading || loading
-          }
+          loading={tripLoading || loading}
           error={searchError}
-          selectedWidgetId={
-            selectedWidget?.id ?? null
-          }
+          selectedWidgetId={selectedWidget?.id ?? null}
           isBookmarked={isBookmarked}
-          savedWidgetIds={
-            savedWidgetIds
-          }
-          onSelectWidget={(widget) =>
-            setSelectedWidgetId(
-              widget.id,
-            )
-          }
-          onRemoveBookmark={removeBookmark}
-          onAddBookmark={addBookmark}
-          // onToggleSaved={
-          //   toggleSavedWidget
-          // }
-          onAddWidget={
-            handleAddWidget
-          }
+          onSelectWidget={(widget) => setSelectedWidgetId(widget.id)}
+          onHeartClick={handleHeartClick}
+          onAddWidget={handleAddWidget}
           onViewDetails={(widget) => {
             const stored = saveExploreSelection(tripId, widget)
 
@@ -555,6 +479,27 @@ export default function ExploreCategoryPage() {
           }}
         />
       </div>
+
+      {toast && (
+        <BookmarkToast
+          dayLabel={`Day ${days.findIndex((d) => d.id === toast.day.id) + 1}`}
+          onChange={() => {
+            setChangeModalWidget(toast.widget)
+            setToast(null)
+          }}
+          onDismiss={() => setToast(null)}
+        />
+      )}
+
+      {changeModalWidget && (
+        <ChangeDayModal
+          widget={changeModalWidget}
+          days={days}
+          currentDayId={toast?.widget.id === changeModalWidget.id ? toast.day.id : undefined}
+          onClose={() => setChangeModalWidget(null)}
+          onConfirm={handleConfirmDayChange}
+        />
+      )}
     </main>
   )
 }

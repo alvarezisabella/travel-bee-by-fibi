@@ -15,7 +15,6 @@ import {
   Utensils,
   Check,
   X,
-  Link,
   ArrowLeft,
 } from "lucide-react"
 import {
@@ -29,8 +28,7 @@ import TripInfoBar, {
 } from "./components/TripInfoBar"
 import { useExploreSearch } from "./useExploreSearch"
 import { useTripDays } from "./components/useTripDays"
-import {useBookmarks} from "@/app/itinerary/components/useBookmarks"
-import styles from "@/styles/bookmarkcard.module.css"
+import { useBookmarks } from "@/app/itinerary/components/useBookmarks"
 import { saveExploreSelection } from "./exploreSelection"
 
 const CARD_GRID =
@@ -60,22 +58,19 @@ const moods = [
 function SkeletonGrid() {
   return (
     <div className={CARD_GRID}>
-      {Array.from({ length: 12 }).map(
-        (_, index) => (
-          <div
-            key={index}
-            className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white"
-          >
-            <div className="aspect-[4/3] w-full bg-slate-100" />
-
-            <div className="space-y-2 p-3.5">
-              <div className="h-4 w-3/4 rounded bg-slate-100" />
-              <div className="h-3 w-1/2 rounded bg-slate-100" />
-              <div className="h-3 w-full rounded bg-slate-100" />
-            </div>
+      {Array.from({ length: 12 }).map((_, index) => (
+        <div
+          key={index}
+          className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white"
+        >
+          <div className="aspect-[4/3] w-full bg-slate-100" />
+          <div className="space-y-2 p-3.5">
+            <div className="h-4 w-3/4 rounded bg-slate-100" />
+            <div className="h-3 w-1/2 rounded bg-slate-100" />
+            <div className="h-3 w-full rounded bg-slate-100" />
           </div>
-        ),
-      )}
+        </div>
+      ))}
     </div>
   )
 }
@@ -89,14 +84,11 @@ function ErrorBlock({
 }) {
   return (
     <div className="rounded-2xl border border-red-200 bg-white p-8 text-center">
-      <p className="text-sm font-medium text-red-600">
-        {message}
-      </p>
-
+      <p className="text-sm font-medium text-red-600">{message}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 rounded-xl bg-amber-400 px-5 py-2 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
+        className="mt-4 cursor-pointer rounded-xl bg-amber-400 px-5 py-2 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
       >
         Try again
       </button>
@@ -107,27 +99,16 @@ function ErrorBlock({
 function ResultCard({
   widget,
   category,
-  days,
   saved,
-  onRemoveBookmark,
-  onAddBookmark,
+  onHeartClick,
   onOpen,
 }: {
   widget: Widget
-  category: Exclude<
-    ExploreCategory,
-    "All"
-  >
-  days: Day[]
+  category: Exclude<ExploreCategory, "All">
   saved: boolean
-  onRemoveBookmark: () => void
-  onAddBookmark: (day: string) => void
+  onHeartClick: () => void
   onOpen: () => void
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [selectedDay, setSelectedDay] = useState<Day | null>(null)
-  const [justSaved, setJustSaved] = useState(false)
-
   let price = ""
   let priceNote = ""
 
@@ -135,48 +116,17 @@ function ResultCard({
     if (category === "Dining") {
       if (widget.price === 0) {
         price = "Free"
-      } else if (
-        widget.price >= 1 &&
-        widget.price <= 4
-      ) {
+      } else if (widget.price >= 1 && widget.price <= 4) {
         price = "$".repeat(widget.price)
       } else {
         price = `$${widget.price.toLocaleString()}`
       }
     } else {
       price = `$${widget.price.toLocaleString()}`
-
-      if (category === "Stays") {
-        priceNote = "/ night"
-      } else if (
-        category === "Transportation"
-      ) {
-        priceNote = "/ ride"
-      } else {
-        priceNote = "/ person"
-      }
+      if (category === "Stays") priceNote = "/ night"
+      else if (category === "Transportation") priceNote = "/ ride"
+      else priceNote = "/ person"
     }
-  }
-
-    function handleHeartClick(e: React.MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    if (saved) {
-      onRemoveBookmark()
-    } else {
-      setPickerOpen(true)
-    }
-  }
-
-  function handleConfirmDay() {
-    if (!selectedDay?.date) return
-    onAddBookmark(selectedDay.date)
-    setJustSaved(true)
-    setTimeout(() => {
-      setPickerOpen(false)
-      setJustSaved(false)
-      setSelectedDay(null)
-    }, 800)
   }
 
   return (
@@ -205,16 +155,18 @@ function ResultCard({
 
         <button
           type="button"
-          onClick={handleHeartClick}
-          aria-label={`Save ${widget.title}`}
-          className="absolute right-2.5 top-2.5 rounded-full bg-white/95 p-1.5 shadow-sm"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onHeartClick()
+          }}
+          aria-label={saved ? `Remove ${widget.title} from saved items` : `Save ${widget.title}`}
+          className="absolute right-2.5 top-2.5 cursor-pointer rounded-full bg-white/95 p-1.5 shadow-sm"
         >
           <Heart
             className={[
               "h-4 w-4",
-              saved
-                ? "fill-amber-400 text-amber-400"
-                : "text-slate-700",
+              saved ? "fill-amber-400 text-amber-400" : "text-slate-700",
             ].join(" ")}
           />
         </button>
@@ -225,22 +177,14 @@ function ResultCard({
       </div>
 
       <div className="p-3.5">
-        <h3 className="line-clamp-1 text-sm font-semibold text-slate-900">
-          {widget.title}
-        </h3>
+        <h3 className="line-clamp-1 text-sm font-semibold text-slate-900">{widget.title}</h3>
 
         <p className="mt-1 line-clamp-1 min-h-5 text-sm text-slate-500">
-          {[
-            widget.description,
-            widget.location,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
+          {[widget.description, widget.location].filter(Boolean).join(" · ")}
         </p>
 
         <div className="mt-3 flex items-end justify-between gap-2">
-          {typeof widget.rating ===
-          "number" ? (
+          {typeof widget.rating === "number" ? (
             <span className="flex items-center gap-1 text-sm font-medium">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               {widget.rating.toFixed(1)}
@@ -252,118 +196,142 @@ function ResultCard({
           {price && (
             <span className="text-sm font-bold text-slate-900">
               {price}
-
-              {priceNote && (
-                <small className="ml-1 font-normal text-slate-500">
-                  {priceNote}
-                </small>
-              )}
+              {priceNote && <small className="ml-1 font-normal text-slate-500">{priceNote}</small>}
             </span>
           )}
         </div>
       </div>
-
-      {/* Day picker sheet */}
-      {pickerOpen && (
-        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.modalHandle}><div className={styles.modalHandleBar} /></div>
-          <div className={styles.modalBody}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Save "{widget.title}" to a day</h3>
-              <button onClick={() => setPickerOpen(false)} className={styles.modalCloseBtn}><X size={18} /></button>
-            </div>
-
-            <div className={styles.dayPicker}>
-              <p className={styles.dayPickerLabel}>Choose a day</p>
-              <div className={styles.dayPickerScroll}>
-                {days.map((day, index) => (
-                  <button
-                    key={day.id}
-                    onClick={() => setSelectedDay(day)}
-                    className={`${styles.dayBtn} ${selectedDay?.id === day.id ? styles.dayBtnSelected : ""}`}
-                  >
-                    <span className={styles.dayBtnLabel}>Day {index + 1}</span>
-                    {day.date && (
-                      <span className={styles.dayBtnDate}>
-                        {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleConfirmDay}
-              disabled={!selectedDay || justSaved}
-              className={styles.addBtn}
-            >
-              {justSaved ? <><Check size={14} /> Saved!</> : "Save bookmark"}
-            </button>
-          </div>
-        </div>
-      )}
     </article>
   )
 }
 
-export default function ExploreTripPage() {
-  const params = useParams<{
-    tripId: string
-  }>()
+function BookmarkToast({
+  dayLabel,
+  onChange,
+  onDismiss,
+}: {
+  dayLabel: string
+  onChange: () => void
+  onDismiss: () => void
+}) {
+  return (
+    <div className="fixed bottom-5 left-5 z-50 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg">
+      <Check className="h-4 w-4 flex-shrink-0 text-amber-400" />
+      <span>Saved to {dayLabel}</span>
+      <button
+        onClick={onChange}
+        className="cursor-pointer font-semibold text-amber-400 underline-offset-2 hover:underline"
+      >
+        Change
+      </button>
+      <button onClick={onDismiss} className="cursor-pointer text-slate-400 hover:text-white">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
 
+function ChangeDayModal({
+  widget,
+  days,
+  currentDayId,
+  onClose,
+  onConfirm,
+}: {
+  widget: Widget
+  days: Day[]
+  currentDayId?: string
+  onClose: () => void
+  onConfirm: (day: Day) => void
+}) {
+  const [selectedDay, setSelectedDay] = useState<Day | null>(
+    days.find((d) => d.id === currentDayId) ?? null,
+  )
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="text-base font-semibold text-slate-900">Save "{widget.title}" to</h3>
+          <button onClick={onClose} className="cursor-pointer text-slate-400 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex gap-3">
+          {widget.image_url && (
+            <img
+              src={widget.image_url}
+              alt={widget.title}
+              className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
+            />
+          )}
+
+          <div className="flex max-h-48 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+            {days.map((day, index) => (
+              <button
+                key={day.id}
+                onClick={() => setSelectedDay(day)}
+                className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${
+                  selectedDay?.id === day.id
+                    ? "border-amber-400 bg-amber-50 text-slate-900"
+                    : "border-slate-200 text-slate-600 hover:border-amber-200"
+                }`}
+              >
+                <span className="font-medium">Day {index + 1}</span>
+                {day.date && (
+                  <span className="text-xs text-slate-400">
+                    {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={() => selectedDay && onConfirm(selectedDay)}
+          disabled={!selectedDay}
+          className="mt-4 w-full cursor-pointer rounded-xl bg-amber-400 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function ExploreTripPage() {
+  const params = useParams<{ tripId: string }>()
   const router = useRouter()
   const tripId = params.tripId
 
-  const [activeTab, setActiveTab] =
-    useState<ExploreCategory>("All")
+  const [activeTab, setActiveTab] = useState<ExploreCategory>("All")
 
   const { days } = useTripDays(tripId)
-  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks(tripId)
+  const { isBookmarked, addBookmark, removeBookmark, changeBookmarkDay } = useBookmarks(tripId)
 
-  // const [saved, setSaved] = useState<
-  //   string[]
-  // >([])
+  const [toast, setToast] = useState<{ widget: Widget; day: Day } | null>(null)
+  const [changeModalWidget, setChangeModalWidget] = useState<Widget | null>(null)
 
   const [query, setQuery] = useState("")
-  const [
-    submittedQuery,
-    setSubmittedQuery,
-  ] = useState("")
+  const [submittedQuery, setSubmittedQuery] = useState("")
 
-  function isVisible(
-    category: Exclude<
-      ExploreCategory,
-      "All"
-    >,
-  ) {
-    return (
-      activeTab === "All" ||
-      activeTab === category
-    )
+  function isVisible(category: Exclude<ExploreCategory, "All">) {
+    return activeTab === "All" || activeTab === category
   }
 
-  const stays = useExploreSearch(
-    tripId,
-    "Stays",
-    submittedQuery,
-    isVisible("Stays"),
-  )
-
-  const activities = useExploreSearch(
-    tripId,
-    "Activities",
-    submittedQuery,
-    isVisible("Activities"),
-  )
-
-  const dining = useExploreSearch(
-    tripId,
-    "Dining",
-    submittedQuery,
-    isVisible("Dining"),
-  )
-
+  const stays = useExploreSearch(tripId, "Stays", submittedQuery, isVisible("Stays"))
+  const activities = useExploreSearch(tripId, "Activities", submittedQuery, isVisible("Activities"))
+  const dining = useExploreSearch(tripId, "Dining", submittedQuery, isVisible("Dining"))
   const transportation = useExploreSearch(
     tripId,
     "Transportation",
@@ -371,25 +339,32 @@ export default function ExploreTripPage() {
     isVisible("Transportation"),
   )
 
-  // function toggleSaved(widgetId: string) {
-  //   setSaved((current) =>
-  //     current.includes(widgetId)
-  //       ? current.filter(
-  //           (id) => id !== widgetId,
-  //         )
-  //       : [...current, widgetId],
-  //   )
-  // }
-
   function handleSubmitQuery() {
     setSubmittedQuery(query.trim())
   }
 
+  function handleHeartClick(widget: Widget) {
+    if (isBookmarked(widget.title, widget.location)) {
+      removeBookmark(widget)
+      if (toast?.widget.id === widget.id) setToast(null)
+      return
+    }
+    if (days.length === 0) return
+    const defaultDay = days[0]
+    if (!defaultDay.date) return
+    addBookmark(widget, defaultDay.date)
+    setToast({ widget, day: defaultDay })
+  }
+
+  function handleConfirmDayChange(day: Day) {
+    if (!changeModalWidget || !day.date) return
+    changeBookmarkDay(changeModalWidget, day.date)
+    setToast({ widget: changeModalWidget, day })
+    setChangeModalWidget(null)
+  }
+
   const sections: Array<{
-    category: Exclude<
-      ExploreCategory,
-      "All"
-    >
+    category: Exclude<ExploreCategory, "All">
     title: string
     subtitle: string
     icon: typeof BedDouble
@@ -401,8 +376,7 @@ export default function ExploreTripPage() {
     {
       category: "Stays",
       title: "Standout stays",
-      subtitle:
-        "Recommended for your trip itinerary.",
+      subtitle: "Recommended for your trip itinerary.",
       icon: BedDouble,
       widgets: stays.widgets,
       loading: stays.loading,
@@ -412,8 +386,7 @@ export default function ExploreTripPage() {
     {
       category: "Activities",
       title: "Things to do",
-      subtitle:
-        "Experiences selected for your destination.",
+      subtitle: "Experiences selected for your destination.",
       icon: Ticket,
       widgets: activities.widgets,
       loading: activities.loading,
@@ -423,8 +396,7 @@ export default function ExploreTripPage() {
     {
       category: "Dining",
       title: "Dining favorites",
-      subtitle:
-        "Restaurants and local favorites nearby.",
+      subtitle: "Restaurants and local favorites nearby.",
       icon: Utensils,
       widgets: dining.widgets,
       loading: dining.loading,
@@ -434,8 +406,7 @@ export default function ExploreTripPage() {
     {
       category: "Transportation",
       title: "Getting around",
-      subtitle:
-        "Convenient transportation options.",
+      subtitle: "Convenient transportation options.",
       icon: CarFront,
       widgets: transportation.widgets,
       loading: transportation.loading,
@@ -444,10 +415,7 @@ export default function ExploreTripPage() {
     },
   ]
 
-  const visibleSections =
-    sections.filter((section) =>
-      isVisible(section.category),
-    )
+  const visibleSections = sections.filter((section) => isVisible(section.category))
 
   return (
     <main className="min-h-screen bg-[#fffdf9] text-slate-900">
@@ -463,8 +431,9 @@ export default function ExploreTripPage() {
         <div className="mx-auto flex min-h-[420px] max-w-7xl items-center px-5 py-16 sm:px-8 lg:px-10">
           <div className="max-w-xl text-white">
             <button
-            onClick={() => router.push(`/itinerary/${tripId}`)}
-            className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm backdrop-blur cursor-pointer hover:bg-white/25 transition">
+              onClick={() => router.push(`/itinerary/${tripId}`)}
+              className="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm backdrop-blur transition hover:bg-white/25"
+            >
               <ArrowLeft className="h-4 w-4 text-amber-300" />
               Back to Itinerary
             </button>
@@ -476,9 +445,7 @@ export default function ExploreTripPage() {
             </h1>
 
             <p className="mt-4 max-w-md text-base text-white/85 sm:text-lg">
-              Inspiring places and effortless
-              planning, personalized to your
-              itinerary.
+              Inspiring places and effortless planning, personalized to your itinerary.
             </p>
           </div>
         </div>
@@ -497,24 +464,14 @@ export default function ExploreTripPage() {
         <section>
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <h2 className="font-serif text-3xl font-semibold">
-                Your trip inspiration
-              </h2>
-
-              <p className="mt-1 text-slate-500">
-                A locally inspired itinerary with
-                flexibility built in.
-              </p>
+              <h2 className="font-serif text-3xl font-semibold">Your trip inspiration</h2>
+              <p className="mt-1 text-slate-500">A locally inspired itinerary with flexibility built in.</p>
             </div>
 
             <button
               type="button"
-              onClick={() =>
-                router.push(
-                  `/itinerary/${tripId}`,
-                )
-              }
-              className="hidden items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900 sm:flex"
+              onClick={() => router.push(`/itinerary/${tripId}`)}
+              className="hidden cursor-pointer items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900 sm:flex"
             >
               View trip
               <ChevronRight className="h-4 w-4" />
@@ -530,65 +487,28 @@ export default function ExploreTripPage() {
 
             <div className="space-y-5 p-6">
               {[
-                {
-                  day: "Day 1",
-                  title:
-                    "Explore the historic center",
-                  icon: MapPin,
-                },
-                {
-                  day: "Day 2",
-                  title:
-                    "Discover a nearby destination",
-                  icon: Ticket,
-                },
-                {
-                  day: "Day 3",
-                  title:
-                    "Relax and enjoy local favorites",
-                  icon: CarFront,
-                },
-              ].map(
-                ({
-                  day,
-                  title,
-                  icon: Icon,
-                }) => (
-                  <div
-                    key={day}
-                    className="flex gap-4 border-b border-slate-100 pb-5 last:border-0"
-                  >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-100">
-                      <Icon className="h-5 w-5 text-amber-700" />
-                    </span>
+                { day: "Day 1", title: "Explore the historic center", icon: MapPin },
+                { day: "Day 2", title: "Discover a nearby destination", icon: Ticket },
+                { day: "Day 3", title: "Relax and enjoy local favorites", icon: CarFront },
+              ].map(({ day, title, icon: Icon }) => (
+                <div key={day} className="flex gap-4 border-b border-slate-100 pb-5 last:border-0">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-100">
+                    <Icon className="h-5 w-5 text-amber-700" />
+                  </span>
 
-                    <div>
-                      <small className="text-slate-400">
-                        {day}
-                      </small>
-
-                      <h3 className="font-semibold">
-                        {title}
-                      </h3>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        Handpicked for your dates
-                        and travel pace.
-                      </p>
-                    </div>
+                  <div>
+                    <small className="text-slate-400">{day}</small>
+                    <h3 className="font-semibold">{title}</h3>
+                    <p className="mt-1 text-sm text-slate-500">Handpicked for your dates and travel pace.</p>
                   </div>
-                ),
-              )}
+                </div>
+              ))}
             </div>
 
             <aside className="bg-amber-50 p-6">
-              <h3 className="font-serif text-2xl font-semibold">
-                Make it yours
-              </h3>
-
+              <h3 className="font-serif text-2xl font-semibold">Make it yours</h3>
               <p className="mt-2 text-sm text-slate-600">
-                Save the experiences you love and
-                add them to your itinerary.
+                Save the experiences you love and add them to your itinerary.
               </p>
 
               <div className="my-6 space-y-3 text-sm">
@@ -596,12 +516,10 @@ export default function ExploreTripPage() {
                   <span>Stays</span>
                   <b>Personalized</b>
                 </p>
-
                 <p className="flex justify-between">
                   <span>Activities</span>
                   <b>Curated</b>
                 </p>
-
                 <p className="flex justify-between border-t border-amber-200 pt-3">
                   <span>Planning</span>
                   <b>Flexible</b>
@@ -610,12 +528,8 @@ export default function ExploreTripPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  router.push(
-                    `/itinerary/${tripId}`,
-                  )
-                }
-                className="w-full rounded-xl bg-amber-400 py-3 font-bold hover:bg-amber-300"
+                onClick={() => router.push(`/itinerary/${tripId}`)}
+                className="w-full cursor-pointer rounded-xl bg-amber-400 py-3 font-bold hover:bg-amber-300"
               >
                 Customize your trip
               </button>
@@ -625,14 +539,8 @@ export default function ExploreTripPage() {
 
         <section>
           <div className="mb-6">
-            <h2 className="font-serif text-3xl font-semibold">
-              Choose your travel mood
-            </h2>
-
-            <p className="mt-1 text-slate-500">
-              Not sure what you’re in the mood
-              for? Let us inspire you.
-            </p>
+            <h2 className="font-serif text-3xl font-semibold">Choose your travel mood</h2>
+            <p className="mt-1 text-slate-500">Not sure what you're in the mood for? Let us inspire you.</p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-3">
@@ -640,26 +548,18 @@ export default function ExploreTripPage() {
               <button
                 key={mood.title}
                 type="button"
-                className="group relative min-h-56 overflow-hidden rounded-2xl text-left text-white"
+                className="group relative min-h-56 cursor-pointer overflow-hidden rounded-2xl text-left text-white"
               >
                 <img
                   src={mood.image}
                   alt={mood.title}
                   className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
-
                 <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-
                 <span className="absolute bottom-5 left-5">
-                  <b className="block text-xl">
-                    {mood.title}
-                  </b>
-
-                  <small className="text-white/80">
-                    {mood.subtitle}
-                  </small>
+                  <b className="block text-xl">{mood.title}</b>
+                  <small className="text-white/80">{mood.subtitle}</small>
                 </span>
-
                 <ChevronRight className="absolute bottom-5 right-5 h-8 w-8 rounded-full bg-white p-2 text-slate-900" />
               </button>
             ))}
@@ -674,19 +574,15 @@ export default function ExploreTripPage() {
           className="mx-auto flex max-w-2xl items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 shadow-sm"
         >
           <Search className="h-5 w-5 text-slate-400" />
-
           <input
             value={query}
-            onChange={(event) =>
-              setQuery(event.target.value)
-            }
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Search within your trip recommendations, then press Enter"
             className="w-full bg-transparent text-sm outline-none"
           />
-
           <button
             type="submit"
-            className="rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-amber-300"
+            className="cursor-pointer rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-amber-300"
           >
             Search
           </button>
@@ -697,48 +593,30 @@ export default function ExploreTripPage() {
 
           let sectionBody = (
             <div className={CARD_GRID}>
-              {section.widgets.map(
-                (widget) => (
-                  <ResultCard
-                    key={widget.id}
-                    widget={widget}
-                    category={section.category}
-                    days={days}
-                    saved={isBookmarked(widget.title, widget.location)}
-                    onRemoveBookmark={() =>
-                      removeBookmark(widget)
-                    }
-                    onAddBookmark={(day) =>
-                      addBookmark(widget, day)
-                    }
-                    onOpen={() => {
-                      saveExploreSelection(tripId, widget)
-                      router.push(
-                        `/itinerary/${tripId}/explore/${section.category.toLowerCase()}`,
-                      )
-                    }}
-                  />
-                ),
-              )}
+              {section.widgets.map((widget) => (
+                <ResultCard
+                  key={widget.id}
+                  widget={widget}
+                  category={section.category}
+                  saved={isBookmarked(widget.title, widget.location)}
+                  onHeartClick={() => handleHeartClick(widget)}
+                  onOpen={() => {
+                    saveExploreSelection(tripId, widget)
+                    router.push(`/itinerary/${tripId}/explore/${section.category.toLowerCase()}`)
+                  }}
+                />
+              ))}
             </div>
           )
 
           if (section.error) {
-            sectionBody = (
-              <ErrorBlock
-                message={section.error}
-                onRetry={section.retry}
-              />
-            )
+            sectionBody = <ErrorBlock message={section.error} onRetry={section.retry} />
           } else if (section.loading) {
             sectionBody = <SkeletonGrid />
-          } else if (
-            section.widgets.length === 0
-          ) {
+          } else if (section.widgets.length === 0) {
             sectionBody = (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-                No results were found for this
-                search.
+                No results were found for this search.
               </div>
             )
           }
@@ -751,20 +629,13 @@ export default function ExploreTripPage() {
                     <Icon className="h-6 w-6 text-slate-500" />
                     {section.title}
                   </h2>
-
-                  <p className="mt-1 text-slate-500">
-                    {section.subtitle}
-                  </p>
+                  <p className="mt-1 text-slate-500">{section.subtitle}</p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    router.push(
-                      `/itinerary/${tripId}/explore/${section.category.toLowerCase()}`,
-                    )
-                  }
-                  className="flex shrink-0 items-center gap-1 text-sm font-semibold text-blue-700 transition hover:text-blue-900"
+                  onClick={() => router.push(`/itinerary/${tripId}/explore/${section.category.toLowerCase()}`)}
+                  className="flex shrink-0 cursor-pointer items-center gap-1 text-sm font-semibold text-blue-700 transition hover:text-blue-900"
                 >
                   View all
                   <ChevronRight className="h-4 w-4" />
@@ -779,17 +650,32 @@ export default function ExploreTripPage() {
         {visibleSections.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
             <Clock3 className="mx-auto h-8 w-8 text-slate-400" />
-
-            <h2 className="mt-3 text-xl font-semibold">
-              No recommendations found
-            </h2>
-
-            <p className="mt-1 text-slate-500">
-              Try another search or category.
-            </p>
+            <h2 className="mt-3 text-xl font-semibold">No recommendations found</h2>
+            <p className="mt-1 text-slate-500">Try another search or category.</p>
           </div>
         )}
       </div>
+
+      {toast && (
+        <BookmarkToast
+          dayLabel={`Day ${days.findIndex((d) => d.id === toast.day.id) + 1}`}
+          onChange={() => {
+            setChangeModalWidget(toast.widget)
+            setToast(null)
+          }}
+          onDismiss={() => setToast(null)}
+        />
+      )}
+
+      {changeModalWidget && (
+        <ChangeDayModal
+          widget={changeModalWidget}
+          days={days}
+          currentDayId={toast?.widget.id === changeModalWidget.id ? toast.day.id : undefined}
+          onClose={() => setChangeModalWidget(null)}
+          onConfirm={handleConfirmDayChange}
+        />
+      )}
     </main>
   )
 }
