@@ -66,7 +66,8 @@ export default async function ItineraryPage({ params }: { params: Promise<{ trip
   rawEvents.sort((a, b) => {
     const dayDiff = (a.day ?? '').localeCompare(b.day ?? '')
     if (dayDiff !== 0) return dayDiff
-    return (a.starts_at ?? '').localeCompare(b.starts_at ?? '')
+    return (a.position ?? 0) - (b.position ?? 0)
+    // return (a.starts_at ?? '').localeCompare(b.starts_at ?? '')
   })
 
   const dateGroups = new Map<string, typeof rawEvents>()
