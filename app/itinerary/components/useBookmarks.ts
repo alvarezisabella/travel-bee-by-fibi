@@ -89,5 +89,21 @@ export function useBookmarks(tripId: string) {
     }
   }
 
-  return { isBookmarked, getSavedId, removeBookmark, addBookmark, loading, refetch: fetchBookmarks }
+async function changeBookmarkDay(widget: Widget, day: string) {
+  const key = `${widget.title}__${widget.location ?? ""}`
+  const id = bookmarkMap[key]
+  if (!id) return
+  try {
+    await fetch('/api/auth/widgets', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, day }),
+    })
+    window.dispatchEvent(new CustomEvent('widget-bookmarked'))
+  } catch {
+    // leave UI as-is; next refetch will reflect the real state
+  }
+}
+
+  return { isBookmarked, getSavedId, removeBookmark, addBookmark, changeBookmarkDay, loading, refetch: fetchBookmarks }
 }

@@ -17,8 +17,10 @@ import {
   Star,
   Ticket,
   Utensils,
+  X,
 } from "lucide-react"
 import type { EventLabel, Widget } from "@/app/itinerary/types/types"
+import type { Day } from "@/app/itinerary/day"
 import { useTripDays } from "../../components/useTripDays"
 import { useBookmarks } from "@/app/itinerary/components/useBookmarks"
 import { getExploreSelection } from "../../exploreSelection"
@@ -64,6 +66,110 @@ function createMapUrl(location?: string) {
   )}&z=14&output=embed`
 }
 
+function BookmarkToast({
+  dayLabel,
+  onChange,
+  onDismiss,
+}: {
+  dayLabel: string
+  onChange: () => void
+  onDismiss: () => void
+}) {
+  return (
+    <div className="fixed bottom-5 left-5 z-50 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg">
+      <Check className="h-4 w-4 flex-shrink-0 text-amber-400" />
+      <span>Saved to {dayLabel}</span>
+      <button
+        onClick={onChange}
+        className="cursor-pointer font-semibold text-amber-400 underline-offset-2 hover:underline"
+      >
+        Change
+      </button>
+      <button onClick={onDismiss} className="cursor-pointer text-slate-400 hover:text-white">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
+
+function ChangeDayModal({
+  widget,
+  days,
+  currentDayId,
+  onClose,
+  onConfirm,
+}: {
+  widget: Widget
+  days: Day[]
+  currentDayId?: string
+  onClose: () => void
+  onConfirm: (day: Day) => void
+}) {
+  const [selectedDay, setSelectedDay] = useState<Day | null>(
+    days.find((d) => d.id === currentDayId) ?? null,
+  )
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="text-base font-semibold text-slate-900">Save "{widget.title}" to</h3>
+          <button onClick={onClose} className="cursor-pointer text-slate-400 hover:text-slate-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex gap-3">
+          {widget.image_url && (
+            <img
+              src={widget.image_url}
+              alt={widget.title}
+              className="h-20 w-20 flex-shrink-0 rounded-lg object-cover"
+            />
+          )}
+
+          <div className="flex max-h-48 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+            {days.map((day, index) => (
+              <button
+                key={day.id}
+                onClick={() => setSelectedDay(day)}
+                className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm transition ${
+                  selectedDay?.id === day.id
+                    ? "border-amber-400 bg-amber-50 text-slate-900"
+                    : "border-slate-200 text-slate-600 hover:border-amber-200"
+                }`}
+              >
+                <span className="font-medium">Day {index + 1}</span>
+                {day.date && (
+                  <span className="text-xs text-slate-400">
+                    {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={() => selectedDay && onConfirm(selectedDay)}
+          disabled={!selectedDay}
+          className="mt-4 w-full cursor-pointer rounded-xl bg-amber-400 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ExploreItemDetailsPage() {
   const params = useParams<{
     tripId: string
@@ -79,10 +185,12 @@ export default function ExploreItemDetailsPage() {
   const [widget, setWidget] = useState<Widget | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [selectedDay, setSelectedDay] = useState("")
-  const [added, setAdded] = useState(false)
 
   const { days } = useTripDays(tripId)
-  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks(tripId)
+  const { isBookmarked, addBookmark, removeBookmark, changeBookmarkDay } = useBookmarks(tripId)
+
+  const [toast, setToast] = useState<Day | null>(null)
+  const [changeModalOpen, setChangeModalOpen] = useState(false)
 
   useEffect(() => {
     setWidget(getExploreSelection(tripId, itemId))
@@ -90,27 +198,48 @@ export default function ExploreItemDetailsPage() {
   }, [itemId, tripId])
 
   const saved = useMemo(
-    () =>
-      widget
-        ? isBookmarked(widget.title, widget.location)
-        : false,
+    () => (widget ? isBookmarked(widget.title, widget.location) : false),
     [isBookmarked, widget],
   )
 
-  function handleSave() {
+  function handleHeartClick() {
     if (!widget) return
 
     if (saved) {
       removeBookmark(widget)
+      setToast(null)
       return
     }
 
-    const day = selectedDay || days[0]?.date
-    if (!day) return
+    const day = days[0]
+    if (!day?.date) return
 
-    addBookmark(widget, day)
-    setAdded(true)
-    window.setTimeout(() => setAdded(false), 1200)
+    addBookmark(widget, day.date)
+    setToast(day)
+  }
+
+  function handleAddWithSelectedDay() {
+    if (!widget) return
+
+    if (saved) {
+      removeBookmark(widget)
+      setToast(null)
+      return
+    }
+
+    const dateStr = selectedDay || days[0]?.date
+    if (!dateStr) return
+
+    const day = days.find((d) => d.date === dateStr) ?? days[0]
+    addBookmark(widget, dateStr)
+    setToast(day)
+  }
+
+  function handleConfirmDayChange(day: Day) {
+    if (!widget || !day.date) return
+    changeBookmarkDay(widget, day.date)
+    setToast(day)
+    setChangeModalOpen(false)
   }
 
   if (!loaded) {
@@ -152,7 +281,7 @@ export default function ExploreItemDetailsPage() {
         <button
           type="button"
           onClick={() => router.push(resultsHref)}
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to {categoryLabels[category] ?? "results"}
@@ -185,13 +314,11 @@ export default function ExploreItemDetailsPage() {
 
           <button
             type="button"
-            onClick={handleSave}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold shadow-sm transition hover:border-amber-300 hover:bg-amber-50"
+            onClick={handleHeartClick}
+            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold shadow-sm transition hover:border-amber-300 hover:bg-amber-50"
           >
             <Heart
-              className={`h-4 w-4 ${
-                saved ? "fill-amber-400 text-amber-400" : "text-slate-600"
-              }`}
+              className={`h-4 w-4 ${saved ? "fill-amber-400 text-amber-400" : "text-slate-600"}`}
             />
             {saved ? "Saved" : "Save"}
           </button>
@@ -272,13 +399,13 @@ export default function ExploreItemDetailsPage() {
               )}
             </div>
 
-            {days.length > 0 && (
+            {days.length > 0 && !saved && (
               <label className="mt-6 block">
                 <span className="text-sm font-bold text-slate-800">Add to a trip day</span>
                 <select
                   value={selectedDay}
                   onChange={(event) => setSelectedDay(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                  className="mt-2 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                 >
                   <option value="">Choose a day</option>
                   {days.map((day, index) => (
@@ -298,12 +425,21 @@ export default function ExploreItemDetailsPage() {
 
             <button
               type="button"
-              onClick={handleSave}
+              onClick={handleAddWithSelectedDay}
               disabled={!saved && (days.length === 0 || !selectedDay)}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              className="mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             >
-              {added ? <Check className="h-4 w-4" /> : <CalendarPlus className="h-4 w-4" />}
-              {saved ? "Remove from itinerary" : added ? "Added!" : "Add to itinerary"}
+              {saved ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Remove from itinerary
+                </>
+              ) : (
+                <>
+                  <CalendarPlus className="h-4 w-4" />
+                  Add to itinerary
+                </>
+              )}
             </button>
 
             {widget.url && (
@@ -324,6 +460,26 @@ export default function ExploreItemDetailsPage() {
           </aside>
         </div>
       </div>
+
+      {toast && (
+        <BookmarkToast
+          dayLabel={`Day ${days.findIndex((d) => d.id === toast.id) + 1}`}
+          onChange={() => {
+            setChangeModalOpen(true)
+            setToast(null)
+          }}
+          onDismiss={() => setToast(null)}
+        />
+      )}
+
+      {changeModalOpen && widget && (
+        <ChangeDayModal
+          widget={widget}
+          days={days}
+          onClose={() => setChangeModalOpen(false)}
+          onConfirm={handleConfirmDayChange}
+        />
+      )}
     </main>
   )
 }

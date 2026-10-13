@@ -1,32 +1,25 @@
 "use client"
 
-import { useState } from "react"
 import {
   BedDouble,
   BusFront,
-  Check,
   Clock3,
   Heart,
   MapPin,
   Star,
   Ticket,
   Utensils,
-  X,
 } from "lucide-react"
 import type {
   EventLabel,
   Widget,
 } from "@/app/itinerary/types/types"
-import type { Day } from "@/app/itinerary/day"
-import styles from "@/styles/bookmarkcard.module.css"
 
 interface ExploreResultCardProps {
   widget: Widget
-  days: Day[]
   saved?: boolean
   selected?: boolean
-  onRemoveBookmark?: (widget: Widget) => void
-  onAddBookmark?: (widget: Widget, day: string) => void
+  onHeartClick?: (widget: Widget) => void
   onSelect?: (widget: Widget) => void
   onAdd?: (widget: Widget) => void
   onViewDetails?: (widget: Widget) => void
@@ -74,41 +67,14 @@ const fallbackImage =
 
 export default function ExploreResultCard({
   widget,
-  days,
   saved = false,
   selected = false,
-  onRemoveBookmark,
-  onAddBookmark,
+  onHeartClick,
   onSelect,
   onAdd,
   onViewDetails,
 }: ExploreResultCardProps) {
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [selectedDay, setSelectedDay] = useState<Day | null>(null)
-  const [justSaved, setJustSaved] = useState(false)
-
   const formattedPrice = formatPrice(widget.price)
-
-  function handleHeartClick(e: React.MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    if (saved) {
-      onRemoveBookmark?.(widget)
-    } else {
-      setPickerOpen(true)
-    }
-  }
-
-  function handleConfirmDay() {
-    if (!selectedDay?.date) return
-    onAddBookmark?.(widget, selectedDay.date)
-    setJustSaved(true)
-    setTimeout(() => {
-      setPickerOpen(false)
-      setJustSaved(false)
-      setSelectedDay(null)
-    }, 800)
-  }
 
   return (
     <article
@@ -162,15 +128,17 @@ export default function ExploreResultCard({
             </h3>
 
             {widget.description && (
-              <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                {widget.description}
-              </p>
+              <p className="mt-1 line-clamp-1 text-xs text-slate-500">{widget.description}</p>
             )}
           </div>
 
           <button
             type="button"
-            onClick={handleHeartClick}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onHeartClick?.(widget)
+            }}
             aria-label={saved ? `Remove ${widget.title} from saved items` : `Save ${widget.title}`}
             aria-pressed={saved}
             className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white transition hover:border-amber-300 hover:bg-amber-50"
@@ -203,7 +171,9 @@ export default function ExploreResultCard({
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               {widget.rating.toFixed(1)}
             </span>
-          ) : <span />}
+          ) : (
+            <span />
+          )}
 
           {formattedPrice && (
             <p className="text-sm font-bold text-slate-900">
@@ -220,7 +190,7 @@ export default function ExploreResultCard({
               event.stopPropagation()
               onViewDetails?.(widget)
             }}
-            className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="flex flex-1 cursor-pointer items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             View details
           </button>
@@ -237,47 +207,6 @@ export default function ExploreResultCard({
           </button>
         </div>
       </div>
-
-      {/* Day picker sheet */}
-      {pickerOpen && (
-        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.modalHandle}><div className={styles.modalHandleBar} /></div>
-          <div className={styles.modalBody}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Save "{widget.title}" to a day</h3>
-              <button onClick={() => setPickerOpen(false)} className={styles.modalCloseBtn}><X size={18} /></button>
-            </div>
-
-            <div className={styles.dayPicker}>
-              <p className={styles.dayPickerLabel}>Choose a day</p>
-              <div className={styles.dayPickerScroll}>
-                {days.map((day, index) => (
-                  <button
-                    key={day.id}
-                    onClick={() => setSelectedDay(day)}
-                    className={`${styles.dayBtn} ${selectedDay?.id === day.id ? styles.dayBtnSelected : ""}`}
-                  >
-                    <span className={styles.dayBtnLabel}>Day {index + 1}</span>
-                    {day.date && (
-                      <span className={styles.dayBtnDate}>
-                        {new Date(day.date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleConfirmDay}
-              disabled={!selectedDay || justSaved}
-              className={styles.addBtn}
-            >
-              {justSaved ? <><Check size={14} /> Saved!</> : "Save bookmark"}
-            </button>
-          </div>
-        </div>
-      )}
     </article>
   )
 }
