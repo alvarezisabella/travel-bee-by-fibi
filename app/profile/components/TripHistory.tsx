@@ -54,7 +54,7 @@ function TripCard({
         <Trash2 size={14} />
       </button>
 
-      <Link href={`/itinerary/${trip.id}`} className="block">
+      <Link href={`/itinerary/${trip.id}/hub/`} className="block">
         <div className="h-36 w-full overflow-hidden bg-gray-200 sm:h-32 lg:h-28">
           {trip.cover_photo_url ? (
             <img

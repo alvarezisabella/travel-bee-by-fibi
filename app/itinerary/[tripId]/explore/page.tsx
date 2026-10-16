@@ -431,7 +431,7 @@ export default function ExploreTripPage() {
         <div className="mx-auto flex min-h-[420px] max-w-7xl items-center px-5 py-16 sm:px-8 lg:px-10">
           <div className="max-w-xl text-white">
             <button
-              onClick={() => router.push(`/itinerary/${tripId}`)}
+              onClick={() => router.push(`/itinerary/${tripId}/hub/`)}
               className="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm backdrop-blur transition hover:bg-white/25"
             >
               <ArrowLeft className="h-4 w-4 text-amber-300" />
@@ -470,7 +470,7 @@ export default function ExploreTripPage() {
 
             <button
               type="button"
-              onClick={() => router.push(`/itinerary/${tripId}`)}
+              onClick={() => router.push(`/itinerary/${tripId}/hub/`)}
               className="hidden cursor-pointer items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900 sm:flex"
             >
               View trip
