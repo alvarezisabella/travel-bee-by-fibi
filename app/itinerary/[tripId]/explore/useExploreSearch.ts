@@ -7,6 +7,11 @@ import {
 } from "react"
 import type { Widget } from "@/app/itinerary/types/types"
 
+export interface ExploreSearchOptions {
+  mood?: string
+  combined?: boolean
+}
+
 interface ExploreSearchResponse {
   widgets?: Widget[]
   error?: string
@@ -17,11 +22,14 @@ export function useExploreSearch(
   category: string,
   query: string,
   enabled = true,
+  options?: ExploreSearchOptions,
 ) {
   const [widgets, setWidgets] = useState<Widget[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const mood = options?.mood
+  const combined = options?.combined === true
 
   const retry = useCallback(() => {
     setReloadKey((current) => current + 1)
@@ -51,6 +59,7 @@ export function useExploreSearch(
             tripId,
             category,
             query: query.trim(),
+            ...(mood ? { mood, combined } : {}),
           }),
           signal: controller.signal,
         })
@@ -114,6 +123,8 @@ export function useExploreSearch(
     query,
     enabled,
     reloadKey,
+    mood,
+    combined,
   ])
 
   return {

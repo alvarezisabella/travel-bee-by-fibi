@@ -8,6 +8,7 @@ import {
   searchSerpTripAdvisor,
 } from "@/lib/ai/serp"
 import { searchTicketmaster } from "@/lib/ticketmaster"
+import { getTravelMood, type MoodExploreCategory } from "@/app/itinerary/[tripId]/explore/mood/moodConfig"
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const RESULT_LIMIT = 12
@@ -169,6 +170,148 @@ async function searchTransportation(
   return mapPlaceWidgets(merged, "Transit")
 }
 
+// Mood discovery uses multiple targeted queries while normal Explore keeps its
+// existing single-query behavior. Provider results can be fewer than the limit.
+const MOOD_SEARCH_VERSION = "v2-ranked"
+const MOOD_MAX_KEYWORDS = 4
+const MOOD_RESULTS_PER_KEYWORD = 12
+const MOOD_MAX_RESULTS = MOOD_MAX_KEYWORDS * MOOD_RESULTS_PER_KEYWORD
+
+// Rank each keyword batch using only information that providers actually return.
+// This is relevance ranking, not a claim of verified availability or personal taste.
+const SEARCH_STOP_WORDS = new Set([
+  "the", "and", "for", "with", "near", "in", "of", "a", "an", "to",
+  "local", "best", "top", "popular", "experiences", "experience",
+  "services", "service", "restaurants", "restaurant", "hotels", "hotel",
+  "tours", "tour", "activities", "activity",
+])
+
+function meaningfulWords(value: string): string[] {
+  return value.toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !SEARCH_STOP_WORDS.has(word))
+}
+
+function scoreMoodWidget(widget: Widget, keyword: string): number {
+  const words = [...new Set(meaningfulWords(keyword))]
+  const title = (widget.title ?? "").toLowerCase()
+  const description = (widget.description ?? "").toLowerCase()
+  // Location is not a relevance signal: it normally repeats the destination.
+  const keywordScore = words.reduce((total, word) => {
+    if (title.includes(word)) return total + 3
+    if (description.includes(word)) return total + 1
+    return total
+  }, 0)
+  const rating = typeof widget.rating === "number" &&
+    Number.isFinite(widget.rating) && widget.rating >= 0 && widget.rating <= 5
+      ? widget.rating
+      : null
+  // Ratings are a modest tie-breaker, never a substitute for keyword relevance.
+  const ratingScore = rating === null ? 0 : Math.max(0, rating - 3.5) * 0.4
+  const detailsScore = (widget.image_url ? 0.15 : 0) +
+    (widget.description ? 0.1 : 0)
+  return keywordScore + ratingScore + detailsScore
+}
+
+function rankMoodBatch(widgets: Widget[], keyword: string): Widget[] {
+  return widgets.map((widget, index) => ({ widget, index }))
+    .sort((a, b) =>
+      scoreMoodWidget(b.widget, keyword) - scoreMoodWidget(a.widget, keyword) ||
+      a.index - b.index,
+    )
+    .map(({ widget }) => widget)
+}
+
+function mergeMoodResults(batches: Widget[][]): Widget[] {
+  const merged: Widget[] = []
+  const seenIds = new Set<string>()
+  const seenPlaces = new Set<string>()
+  const longest = Math.max(0, ...batches.map((batch) => batch.length))
+
+  for (let index = 0; index < longest && merged.length < MOOD_MAX_RESULTS; index++) {
+    for (const batch of batches) {
+      const widget = batch[index]
+      if (!widget) continue
+      const id = String(widget.id).trim().toLowerCase()
+      const placeKey = `${widget.title || ""}|${widget.location || ""}`
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+      if (seenIds.has(id) || (placeKey !== "|" && seenPlaces.has(placeKey))) continue
+      seenIds.add(id)
+      if (placeKey !== "|") seenPlaces.add(placeKey)
+      merged.push(widget)
+      if (merged.length >= MOOD_MAX_RESULTS) break
+    }
+  }
+  return merged
+}
+
+async function searchMoodKeyword(
+  category: MoodExploreCategory,
+  keyword: string,
+  location: string,
+  type: EventLabel,
+  checkIn: string,
+  checkOut: string,
+  travelers: number,
+  moodSlug: string,
+): Promise<Widget[]> {
+  if (category === "Stays") {
+    const hotels = await searchGoogleHotels(
+      location, checkIn, checkOut, travelers, 0,
+      MOOD_RESULTS_PER_KEYWORD, keyword,
+    )
+    return hotels.map((hotel) => ({
+      ...hotel,
+      image_url: hotel.image_url
+        ? `/api/explore/photo?url=${encodeURIComponent(hotel.image_url)}`
+        : undefined,
+    }))
+  }
+
+  if (category === "Transportation") {
+    // Maintain the existing transportation helper and its query behavior.
+    return (await searchTransportation(keyword, location)).slice(0, MOOD_RESULTS_PER_KEYWORD)
+  }
+
+  // Specialized mood searches should not all be limited to tourist_attraction.
+  // For example, cooking schools, spas and music venues may use other types.
+  let places: Widget[] = []
+  if (process.env.GOOGLE_PLACES_API_KEY) {
+    try {
+      const placeType = category === "Dining" ? "restaurant" : undefined
+      const results = await searchPlacesByText(
+        `${keyword} in ${location}`,
+        placeType,
+        MOOD_RESULTS_PER_KEYWORD,
+      )
+      places = mapPlaceWidgets(results, type)
+    } catch (error) {
+      console.error("MOOD GOOGLE PLACES SEARCH FAILED:", keyword, error)
+    }
+  }
+  if (!places.length) {
+    places = await searchSerpTripAdvisor(
+      keyword, location, type, 0, MOOD_RESULTS_PER_KEYWORD,
+      CATEGORY_TO_TRIPADVISOR_TYPES[category],
+    )
+  }
+
+  // Only retrieve time-sensitive ticketed events when that fits the mood.
+  // Keep Ticketmaster on the normal Explore search regardless of mood.
+  if (category === "Activities" &&
+      (moodSlug === "nightlife" || moodSlug === "fun-entertainment")) {
+    const events = await searchTicketmaster(keyword, location, 0, {
+      startDate: checkIn,
+      endDate: checkOut,
+    })
+    return mergeMoodResults([events, places]).slice(0, MOOD_RESULTS_PER_KEYWORD)
+  }
+  return places.slice(0, MOOD_RESULTS_PER_KEYWORD)
+}
+
 // A nightly rate only means something for specific dates, so trips without
 // them fall back to a short stay starting tomorrow
 function addDays(days: number): string {
@@ -193,7 +336,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
   }
 
-  const { tripId, category, query } = await req.json()
+  const { tripId, category, query, mood, combined } = await req.json()
 
   if (!tripId || !category) {
     return NextResponse.json(
@@ -229,7 +372,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const normalizedQuery = (query ?? "").trim()
+  // Explicit opt-in, so the existing Explore page and its cache stay unchanged.
+  const selectedMood = typeof mood === "string" ? getTravelMood(mood) : undefined
+  const moodMode = combined === true && typeof mood === "string"
+  if (moodMode && !selectedMood) {
+    return NextResponse.json({ error: "Unsupported travel mood." }, { status: 400 })
+  }
+  const normalizedQuery = typeof query === "string" ? query.trim().slice(0, 150) : ""
 
   const checkIn = itinerary.start_date || addDays(1)
   let checkOut = itinerary.end_date || addDays(4)
@@ -263,6 +412,84 @@ export async function POST(req: NextRequest) {
     if (count) {
       travelers = count
     }
+  }
+
+  if (moodMode && selectedMood) {
+    const moodCategory = category as MoodExploreCategory
+    const chosenKeywords = normalizedQuery
+      ? [normalizedQuery]
+      : selectedMood.searchQueries[moodCategory].slice(0, MOOD_MAX_KEYWORDS)
+    // Prefix and version separate combined collections from standard query cache.
+    // The query field is already part of the existing unique cache key.
+    const moodCacheQuery = `mood:${MOOD_SEARCH_VERSION}:${selectedMood.slug}:${normalizedQuery || "all"}`
+    const moodDates = category === "Stays" || category === "Activities"
+      ? `${checkIn}|${checkOut}`
+      : ""
+
+    const { data: moodCached } = await supabase
+      .from("explore_cache")
+      .select("results, created_at")
+      .eq("itinerary_id", tripId)
+      .eq("category", category)
+      .eq("query", moodCacheQuery)
+      .eq("location", location)
+      .eq("dates", moodDates)
+      .maybeSingle()
+
+    if (moodCached &&
+        Date.now() - new Date(moodCached.created_at).getTime() < CACHE_TTL_MS) {
+      return NextResponse.json({
+        widgets: moodCached.results as Widget[],
+        keywordsSearched: chosenKeywords,
+        cached: true,
+      })
+    }
+
+    // Concurrent searches; one unavailable provider shouldn't erase good results.
+    const settled = await Promise.allSettled(
+      chosenKeywords.map((keyword) => searchMoodKeyword(
+        moodCategory, keyword, location, type, checkIn, checkOut,
+        travelers, selectedMood.slug,
+      )),
+    )
+    const batches = settled.map((result, index) => {
+      if (result.status === "fulfilled") return rankMoodBatch(result.value, chosenKeywords[index])
+      console.error("MOOD KEYWORD SEARCH FAILED:", chosenKeywords[index], result.reason)
+      return [] as Widget[]
+    })
+    const successCount = settled.filter((result) => result.status === "fulfilled").length
+    if (successCount === 0) {
+      return NextResponse.json(
+        { error: "We couldn't load mood recommendations right now." },
+        { status: 502 },
+      )
+    }
+
+    const moodWidgets = mergeMoodResults(batches)
+    // Don't cache incomplete batches, so the next visit can retry failures.
+    if (successCount === chosenKeywords.length) {
+      const { error: moodCacheError } = await supabase.from("explore_cache").upsert(
+        {
+          itinerary_id: tripId,
+          category,
+          query: moodCacheQuery,
+          location,
+          dates: moodDates,
+          results: moodWidgets,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: "itinerary_id,category,query,location,dates" },
+      )
+      if (moodCacheError) {
+        console.error("MOOD EXPLORE CACHE WRITE FAILED:", moodCacheError.message)
+      }
+    }
+    return NextResponse.json({
+      widgets: moodWidgets,
+      keywordsSearched: chosenKeywords,
+      cached: false,
+      partial: successCount < chosenKeywords.length,
+    })
   }
 
   // Stays prices and Activities' Ticketmaster events depend on trip dates, so

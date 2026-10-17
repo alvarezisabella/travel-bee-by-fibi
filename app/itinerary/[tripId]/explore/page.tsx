@@ -16,6 +16,7 @@ import {
   Check,
   X,
   ArrowLeft,
+  ArrowRight,
 } from "lucide-react"
 import {
   useParams,
@@ -30,30 +31,12 @@ import { useExploreSearch } from "./useExploreSearch"
 import { useTripDays } from "./components/useTripDays"
 import { useBookmarks } from "@/app/itinerary/components/useBookmarks"
 import { saveExploreSelection } from "./exploreSelection"
+import { getFeaturedTravelMoods } from "./mood/moodConfig"
 
 const CARD_GRID =
   "grid items-start gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
 
-const moods = [
-  {
-    title: "Food & culture",
-    subtitle: "Taste the soul of your destination",
-    image:
-      "https://images.unsplash.com/photo-1559628233-100c798642d4?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    title: "Coast & calm",
-    subtitle: "Relax and recharge",
-    image:
-      "https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?auto=format&fit=crop&w=900&q=85",
-  },
-  {
-    title: "Nightlife",
-    subtitle: "Sip, dance, and explore",
-    image:
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=85",
-  },
-]
+const moods = getFeaturedTravelMoods()
 
 function SkeletonGrid() {
   return (
@@ -546,9 +529,11 @@ export default function ExploreTripPage() {
           <div className="grid gap-5 md:grid-cols-3">
             {moods.map((mood) => (
               <button
-                key={mood.title}
+                key={mood.slug}
                 type="button"
-                className="group relative min-h-56 cursor-pointer overflow-hidden rounded-2xl text-left text-white"
+                onClick={() => router.push(`/itinerary/${encodeURIComponent(tripId)}/explore/mood/${encodeURIComponent(mood.slug)}`)}
+                aria-label={`Explore ${mood.title} recommendations`}
+                className="group relative min-h-56 cursor-pointer overflow-hidden rounded-2xl text-left text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-400"
               >
                 <img
                   src={mood.image}
@@ -563,6 +548,25 @@ export default function ExploreTripPage() {
                 <ChevronRight className="absolute bottom-5 right-5 h-8 w-8 rounded-full bg-white p-2 text-slate-900" />
               </button>
             ))}
+          </div>
+
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-5 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
+            <div>
+              <h3 className="font-serif text-xl font-semibold text-slate-900">
+                There is a travel mood for everyone.
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Discover more styles, from adventure and wellness to romance and luxury.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/itinerary/${encodeURIComponent(tripId)}/explore/moods`)}
+              className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200"
+            >
+              Explore All Travel Moods
+              <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </section>
 
@@ -602,7 +606,7 @@ export default function ExploreTripPage() {
                   onHeartClick={() => handleHeartClick(widget)}
                   onOpen={() => {
                     saveExploreSelection(tripId, widget)
-                    router.push(`/itinerary/${tripId}/explore/${section.category.toLowerCase()}`)
+                    router.push(`/itinerary/${encodeURIComponent(tripId)}/explore/${section.category.toLowerCase()}/${encodeURIComponent(widget.id)}`)
                   }}
                 />
               ))}
