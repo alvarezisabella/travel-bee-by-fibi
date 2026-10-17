@@ -1,4 +1,5 @@
 import { Widget } from "@/app/itinerary/types/types"
+import { formatTime } from "@/lib/utils/time"
 
 const TM_BASE = "https://app.ticketmaster.com/discovery/v2"
 
@@ -125,7 +126,7 @@ export async function searchTicketmaster(
     const price = priceRange ? Math.round(priceRange.min) : undefined
 
     const startTime = e.dates?.start?.localTime
-      ? e.dates.start.localTime.slice(0, 5)
+      ? formatTime(e.dates.start.localTime)
       : ""
     const description = [date, startTime, e.classifications?.[0]?.segment?.name]
       .filter(Boolean)

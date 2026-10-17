@@ -1,4 +1,5 @@
 import { Widget, EventLabel } from "@/app/itinerary/types/types"
+import { formatTime } from "@/lib/utils/time"
 
 const SERP_BASE = "https://serpapi.com/search.json"
 
@@ -168,7 +169,7 @@ export async function searchGoogleFlights(
 
     // Build description — all key details in one line
     const descriptionParts = [
-        `${depTime} → ${arrTime}`,
+        `${formatTime(depTime)} → ${formatTime(arrTime)}`,
         stops === 0 ? "Nonstop" : `${stops} stop${stops > 1 ? "s" : ""}`,
         duration,
         layoverInfo,
