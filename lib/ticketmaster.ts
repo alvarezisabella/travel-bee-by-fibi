@@ -140,7 +140,7 @@ export async function searchTicketmaster(
       title: e.name,
       location: [venue.name, venue.city?.name].filter(Boolean).join(", "),
       description,
-      type: "Reservation",
+      type: "Activity",
       image_url: image,
       rating: undefined,
       price,
