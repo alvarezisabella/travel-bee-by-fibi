@@ -17,6 +17,7 @@ import {
   X,
   ArrowLeft,
   ArrowRight,
+  Compass,
 } from "lucide-react"
 import {
   useParams,
@@ -403,6 +404,22 @@ export default function ExploreTripPage() {
   return (
     <main className="min-h-screen bg-[#fffdf9] text-slate-900">
       <section className="relative isolate min-h-[420px] overflow-hidden">
+
+
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:px-10">
+          <button
+            type="button"
+            onClick={() => router.push(`/itinerary/${tripId}/hub/`)}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Trip Hub
+          </button>
+        </div>
+      </div>
+
+
         <img
           src="https://images.unsplash.com/photo-1555881400-74d7acaacd8b?auto=format&fit=crop&w=2000&q=90"
           alt="Travel destination"
@@ -413,14 +430,6 @@ export default function ExploreTripPage() {
 
         <div className="mx-auto flex min-h-[420px] max-w-7xl items-center px-5 py-16 sm:px-8 lg:px-10">
           <div className="max-w-xl text-white">
-            <button
-              onClick={() => router.push(`/itinerary/${tripId}/hub/`)}
-              className="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm backdrop-blur transition hover:bg-white/25"
-            >
-              <ArrowLeft className="h-4 w-4 text-amber-300" />
-              Back to Itinerary
-            </button>
-
             <h1 className="font-serif text-4xl font-semibold leading-tight sm:text-6xl">
               More to explore,
               <br />
