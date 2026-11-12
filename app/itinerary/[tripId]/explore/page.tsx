@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import {
   BedDouble,
   CarFront,
@@ -18,12 +18,14 @@ import {
   ArrowLeft,
   ArrowRight,
   Compass,
+  Loader2,
+  Bookmark,
 } from "lucide-react"
 import {
   useParams,
   useRouter,
 } from "next/navigation"
-import type { Widget } from "@/app/itinerary/types/types"
+import type { Trip, Widget } from "@/app/itinerary/types/types"
 import type { Day } from "@/app/itinerary/day"
 import TripInfoBar, {
   type ExploreCategory,
@@ -33,6 +35,7 @@ import { useTripDays } from "./components/useTripDays"
 import { useBookmarks } from "@/app/itinerary/components/useBookmarks"
 import { saveExploreSelection } from "./exploreSelection"
 import { getFeaturedTravelMoods } from "./mood/moodConfig"
+import { BookmarkCard } from "../../components/BookmarkCard"
 
 const CARD_GRID =
   "grid items-start gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6"
@@ -298,10 +301,15 @@ export default function ExploreTripPage() {
   const router = useRouter()
   const tripId = params.tripId
 
+  if (!tripId) return null
+
   const [activeTab, setActiveTab] = useState<ExploreCategory>("All")
 
   const { days } = useTripDays(tripId)
   const { isBookmarked, addBookmark, removeBookmark, changeBookmarkDay } = useBookmarks(tripId)
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
+  const [bookmarkPanel, setBookmarkPanel] = useState(false)
+  const [savedIdeas, setSavedIdeas] = useState<Widget[]>([])
 
   const [toast, setToast] = useState<{ widget: Widget; day: Day } | null>(null)
   const [changeModalWidget, setChangeModalWidget] = useState<Widget | null>(null)
@@ -345,6 +353,34 @@ export default function ExploreTripPage() {
     changeBookmarkDay(changeModalWidget, day.date)
     setToast({ widget: changeModalWidget, day })
     setChangeModalWidget(null)
+  }
+
+  const fetchBookmarks = useCallback(async () => {
+    if (!tripId) return
+
+    setLoadingBookmarks(true)
+    try {
+      const res = await fetch(`/api/auth/widgets?itinerary_id=${tripId}`)
+      const data = await res.json()
+      setSavedIdeas(data)
+    } catch (err) {
+      console.error("Failed to fetch bookmarks:", err)
+    } finally {
+      setLoadingBookmarks(false)
+    }
+  }, [tripId])
+
+  useEffect(() => { fetchBookmarks() }, [fetchBookmarks])
+
+  useEffect(() => {
+    function onWidgetBookmarked() { fetchBookmarks() }
+    window.addEventListener('widget-bookmarked', onWidgetBookmarked)
+    return () => window.removeEventListener('widget-bookmarked', onWidgetBookmarked)
+  }, [fetchBookmarks])
+
+  async function handleDeleteWidget(ideaId: string) {
+    await fetch(`/api/auth/widgets?id=${ideaId}`, { method: 'DELETE' })
+    setSavedIdeas(prev => prev.filter(i => i.id !== ideaId))
   }
 
   const sections: Array<{
@@ -416,6 +452,23 @@ export default function ExploreTripPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Trip Hub
           </button>
+
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+          <button
+            type="button"
+            onClick={() => setBookmarkPanel(true)}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <Bookmark className="h-4 w-4" />
+            Saved ideas
+            {savedIdeas.length > 0 && (
+              <span className="rounded-full bg-amber-400 px-2 py-0.5 text-xs font-bold text-slate-950">
+                {savedIdeas.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         </div>
       </div>
 
@@ -689,6 +742,69 @@ export default function ExploreTripPage() {
           onConfirm={handleConfirmDayChange}
         />
       )}
+
+    {bookmarkPanel && (
+      <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="absolute inset-0 bg-black/30" onClick={() => setBookmarkPanel(false)} />
+        <div className="relative z-10 flex h-full w-full max-w-sm flex-col overflow-y-auto bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex items-center gap-2">
+              <Bookmark size={18} className="text-gray-700" />
+              <h2 className="text-base font-semibold text-gray-900">Saved ideas</h2>
+            </div>
+            <button
+              onClick={() => setBookmarkPanel(false)}
+              aria-label="Close saved ideas"
+              className="cursor-pointer text-gray-400 transition hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex flex-1 flex-col gap-5 p-4">
+            {loadingBookmarks ? (
+              <div className="mt-8 flex items-center justify-center">
+                <Loader2 size={20} className="animate-spin text-gray-400" />
+              </div>
+            ) : savedIdeas.length === 0 ? (
+              <p className="mt-8 text-center text-sm text-gray-400">No saved ideas yet.</p>
+            ) : (
+              days.map((day, index) => {
+                const ideas = savedIdeas.filter((i) => i.day === day.date)
+                if (ideas.length === 0) return null
+                return (
+                  <div key={day.id}>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      Day {index + 1}
+                      {day.date &&
+                        ` · ${new Date(day.date + "T00:00:00").toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}`}
+                    </h3>
+                    <div className="flex flex-col gap-3">
+                      {ideas.map((idea) => (
+                        <BookmarkCard
+                          key={idea.id}
+                          idea={idea}
+                          tripId={tripId}
+                          days={days}
+                          onAdded={() => {
+                            setBookmarkPanel(false)
+                            router.refresh()
+                          }}
+                          onDelete={() => handleDeleteWidget(idea.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </main>
   )
 }
